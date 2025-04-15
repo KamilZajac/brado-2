@@ -41,5 +41,5 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd ~/backend
-            pm2 restart backend || pm2 start dist/main.js --name backend
+            cd ~/backend/apps/backend
+            /home/your_user/.nvm/versions/node/v18.x.x/bin/pm2 restart backend || /home/your_user/.nvm/versions/node/v18.x.x/bin/pm2 start dist/main.js --name backend
