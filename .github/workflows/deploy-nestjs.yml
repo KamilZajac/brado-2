@@ -25,15 +25,23 @@ jobs:
       - name: Build NestJS app
         run: npx turbo run build --filter=backend
 
-      - name: Deploy to VPS
+      - name: Upload dist
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           source: "apps/backend/dist"
-          target: "~/backend"
+          target: "~/backend/dist"
 
+      - name: Upload node_modules
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "apps/backend/node_modules"
+          target: "~/backend/node_modules"
       - name: Restart backend service
         uses: appleboy/ssh-action@v1.0.0
         with:
