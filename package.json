@@ -20,5 +20,9 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@brado/shared-models": "^1.0.0",
+    "@ionic/angular": "^8.5.4"
+  }
 }

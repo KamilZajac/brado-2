@@ -1,0 +1,30 @@
+<!--<apx-chart-->
+<!--  [series]="chartOptions.series"-->
+<!--  [chart]="chartOptions.chart"-->
+<!--  [xaxis]="chartOptions.xaxis">-->
+<!--</apx-chart>-->
+
+
+@if(dataLoaded) {
+
+  <h1>Wytworzono dzisiaj: </h1>
+
+  @for(totalReading of totalProductionPerSensor; track totalReading) {
+    <h4>{{totalReading[0]}} : <b>{{totalReading[1]}}</b></h4>
+  }
+
+
+  @for(keypar of chartsData | keyvalue; track keypar.key) {
+
+    <apx-chart
+      [series]="chartsData[keypar.key]()"
+      [chart]="chart"
+      [xaxis]="xaxis"
+    >
+    </apx-chart>
+
+
+  }
+
+
+}
