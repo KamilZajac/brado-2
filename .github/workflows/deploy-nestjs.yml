@@ -3,8 +3,8 @@ name: Deploy NestJS App
 on:
   push:
     paths:
-      - 'apps/nestjs/**'
-      - 'packages/interfaces/**'
+      - 'apps/backend/**'
+      - 'packages/**'
 
 jobs:
   deploy:
