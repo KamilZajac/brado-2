@@ -1,0 +1,51 @@
+<ion-list>
+  <div *ngFor="let range of ranges; let i = index" class="ion-margin-bottom">
+
+    <ion-item>
+      <ion-label position="stacked">Od</ion-label>
+      <ion-datetime-button datetime="from-{{i}}"></ion-datetime-button>
+
+      <ion-modal [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime id="from-{{i}}"     [(ngModel)]="range.from"    presentation="date"
+          ></ion-datetime>
+        </ng-template>
+      </ion-modal>
+    </ion-item>
+    <ion-item>
+      <ion-label position="stacked">Od</ion-label>
+      <ion-datetime-button datetime="to-{{i}}"></ion-datetime-button>
+
+      <ion-modal [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime id="to-{{i}}"   [(ngModel)]="range.to" presentation="date"
+          ></ion-datetime>
+        </ng-template>
+      </ion-modal>
+    </ion-item>
+
+
+    <ion-item>
+      <ion-label position="stacked">Kolor</ion-label>
+      <ion-input
+        type="color"
+        [(ngModel)]="range.color">
+      </ion-input>
+    </ion-item>
+
+    <ion-button expand="full" color="danger" (click)="removeRange(i)">
+      Usuń zakres
+    </ion-button>
+
+    <hr>
+
+  </div>
+
+  <ion-button expand="block" color="primary" (click)="addRange()">
+    ➕ Dodaj nowy zakres
+  </ion-button>
+
+  <ion-button expand="block" color="primary" (click)="emitChanges()">
+    ➕ Porównaj!
+  </ion-button>
+</ion-list>

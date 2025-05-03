@@ -35,3 +35,11 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+
+
+.gray-bg {
+  --background: #f0f0f0; // Ionic way to override background
+  background-color: #f0f0f0;
+}
+

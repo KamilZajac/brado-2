@@ -1,0 +1,38 @@
+
+:host{
+  width: 100%;
+}
+
+.chart-grid {
+  display: grid;
+  grid-gap: 1rem;
+  //padding: 1rem;
+
+  // Mobile: 1 column
+  grid-template-columns: 1fr;
+
+  // Tablet and up: 2 columns
+  @media (min-width: 600px) {
+    grid-template-columns: 150px 1fr
+  }
+}
+
+.chart-wrapper {
+  background: #fff;
+  //padding: 1rem;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+}
+
+.chart-container {
+  width: 100%;
+  aspect-ratio: 1 / 1; // Keep it square
+  position: relative;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}

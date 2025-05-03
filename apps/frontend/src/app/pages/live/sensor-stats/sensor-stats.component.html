@@ -1,0 +1,40 @@
+<div class="chart-grid">
+
+    @if(data && data.readings) {
+  <div class="chart-wrapper" #chartContainer>
+    <div class="chart-container">
+        <apx-chart
+          [series]="[percentage5]"
+          [chart]="gaugeChart"
+          [plotOptions]="gaugePlotOptions"
+          [labels]="['5 Min']"
+          [fill]=gaugeFill
+        ></apx-chart>
+
+    </div>
+
+    <div class="chart-container">
+        <apx-chart
+          [series]="[percentage60]"
+          [chart]="gaugeChart"
+          [plotOptions]="gaugePlotOptions"
+          [labels]="['60min']"
+          [fill]=gaugeFill
+        ></apx-chart>
+
+    </div>
+  </div>
+
+  <apx-chart
+    [series]="chartReadings"
+    [chart]="lineChart"
+    [xaxis]="lineXaxis"
+
+  >
+  </apx-chart>
+    } @else {
+
+      <p>Czekam na dane...</p>
+    }
+
+</div>

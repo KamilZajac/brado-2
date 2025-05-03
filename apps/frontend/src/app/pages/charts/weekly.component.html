@@ -1,0 +1,10 @@
+@if (weeklyReadings() | keyvalue ; as readings) {
+
+    @for (keypar of readings; track keypar.key) {
+
+        <app-line-chart [data]="keypar.value" />
+
+    }
+
+}
+
