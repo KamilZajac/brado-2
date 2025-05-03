@@ -3,12 +3,12 @@ import {
     WebSocketServer,
     OnGatewayInit,
 } from '@nestjs/websockets';
-import { Server } from 'socket.io';
-import { Injectable } from '@nestjs/common';
-import {DataReading} from "@brado/shared-models";
+import {Server} from 'socket.io';
+import {Injectable} from '@nestjs/common';
+import {LiveReading, LiveUpdate} from "@brado/types";
 
 @Injectable()
-@WebSocketGateway({ cors: true })
+@WebSocketGateway({cors: true})
 export class ReadingsGateway implements OnGatewayInit {
     @WebSocketServer()
     server: Server;
@@ -17,7 +17,11 @@ export class ReadingsGateway implements OnGatewayInit {
         console.log('WebSocket gateway initialized');
     }
 
-    sendNewReading(readings: DataReading[]) {
+    sendNewReading(readings: LiveReading[]) {
         this.server.emit('new-reading', readings);
+    }
+
+    sendLifeUpdate(update: LiveUpdate) {
+        this.server.emit('live-update', update);
     }
 }

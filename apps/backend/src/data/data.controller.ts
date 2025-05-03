@@ -8,7 +8,7 @@ import {
     Delete,
 } from '@nestjs/common';
 import {DataService} from './data.service';
-import {DataReading} from "@brado/shared-models";
+import {LiveReading} from "@brado/types";
 
 @Controller('data')
 export class DataController {
@@ -16,7 +16,7 @@ export class DataController {
     }
 
     @Post()
-    create(@Body() data: DataReading[]) {
+    create(@Body() data: LiveReading[]) {
         return this.dataService.create(data);
     }
 

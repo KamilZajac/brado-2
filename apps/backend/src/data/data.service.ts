@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import {DataReading} from "@brado/shared-models";
+import {LiveReading} from "@brado/types";
 
 
 @Injectable()
 export class DataService {
-  create(createDatumDto: DataReading[]) {
+  create(createDatumDto: LiveReading[]) {
     console.log('RECEIVED DATA!')
     console.log(createDatumDto);
     return 'This action adds a new datum';
@@ -18,7 +18,7 @@ export class DataService {
     return `This action returns a #${id} datum`;
   }
 
-  update(id: number, updateDatumDto: DataReading) {
+  update(id: number, updateDatumDto: LiveReading) {
     return `This action updates a #${id} datum`;
   }
 

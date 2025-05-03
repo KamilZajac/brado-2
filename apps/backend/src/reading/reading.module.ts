@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 import { ReadingService } from './reading.service';
 import { ReadingController } from './reading.controller';
 import {TypeOrmModule} from "@nestjs/typeorm";
-import {Reading} from "./entities/reading.entity";
 import {ReadingsGateway} from "./readings.gateway";
+import {LiveReadingEntity} from "./entities/minute-reading.entity";
+import {HourlyReadingEntity} from "./entities/hourly-reading-entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Reading])],
+  imports: [TypeOrmModule.forFeature([LiveReadingEntity, HourlyReadingEntity])],
   controllers: [ReadingController],
   providers: [ReadingService, ReadingsGateway],
 })
