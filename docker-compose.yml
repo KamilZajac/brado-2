@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      target: backend
+    image: brado-backend
+    ports:
+      - "3000:3000" # Adjust to your NestJS port
+    restart: always
+
+  connector:
+    build:
+      context: .
+      target: connector
+    image: brado-connector
+    ports:
+      - "4000:4000" # Adjust as needed
+    restart: always
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+    image: brado-frontend
+    ports:
+      - "80:80" # Nginx default
+    restart: always
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: brado
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

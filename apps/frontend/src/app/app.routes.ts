@@ -1,17 +1,25 @@
 import { Routes } from '@angular/router';
-import {HomeComponent} from "./pages/home/home.component";
-import {ChartsComponent} from "./pages/charts/charts.component";
+import {WeeklyComponent} from "./pages/charts/weekly.component";
+import {LiveComponent} from "./pages/live/live.component";
+import {CompareComponent} from "./pages/compare/compare.component";
 
 export const routes: Routes = [
   {
     path: '',
-    component: HomeComponent,
+    redirectTo: 'live',
     pathMatch: 'full',
   },
   {
-    path: 'charts',
-    component: ChartsComponent,
-    pathMatch: 'full',
+    path: 'weekly',
+    component: WeeklyComponent,
+  },
+  {
+    path: 'live',
+    component: LiveComponent,
+  },
+  {
+    path: 'compare',
+    component: CompareComponent,
   },
 
 ];

@@ -1,0 +1,26 @@
+
+.sensor-grid {
+
+  grid-gap: 1rem;
+  padding: 1rem;
+
+  // Mobile: 1 column
+  grid-template-columns: 1fr;
+
+  // Tablets and up: auto-fit into available space
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
+
+.sensor-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem;
+}

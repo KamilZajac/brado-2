@@ -1,0 +1,11 @@
+@if (!isDataLoaded) {
+<app-date-picker (rangesChanged)="runCompare($event)"></app-date-picker>
+} @else {
+
+      @for (keypar of readings | keyvalue ; track keypar.key) {
+
+        <app-chart [chartSeries]="keypar.value | readingsToSeries" />
+
+      }
+}
+

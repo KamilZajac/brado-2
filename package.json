@@ -1,28 +1,36 @@
 {
-  "name": "brado-mono",
-  "private": true,
+  "name": "brado-2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "dev-frontend": "turbo run dev --filter frontend",
+    "dev-backend": "turbo run dev --filter backend",
+    "build:frontend": "turbo build --filter frontend",
+    "build:backend": "turbo build --filter backend",
+    "build:connector": "turbo build --filter connector",
+    "build:types": "turbo build --filter packages",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "devDependencies": {
-    "prettier": "^3.5.3",
-    "turbo": "^2.5.0",
-    "typescript": "5.8.2"
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.8.1",
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "@nestjs/core",
+      "@parcel/watcher",
+      "@serialport/bindings-cpp",
+      "@swc/core",
+      "better-sqlite3",
+      "esbuild",
+      "lmdb",
+      "msgpackr-extract"
+    ]
   },
-  "engines": {
-    "node": ">=18"
-  },
-  "packageManager": "npm@10.9.0",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "dependencies": {
-    "@brado/shared-models": "^1.0.0",
-    "@ionic/angular": "^8.5.4"
+    "ts-node": "^10.9.2",
+    "turbo": "2.5.2"
+
   }
 }
