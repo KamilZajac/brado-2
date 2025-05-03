@@ -16,7 +16,7 @@ services:
       target: connector
     image: brado-connector
     ports:
-      - "4000:4000" # Adjust as needed
+      - "4100:4000" # Adjust as needed
     restart: always
 
   frontend:
