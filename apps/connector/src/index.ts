@@ -33,7 +33,7 @@ async function tryFlushQueue() {
     if (queue.length === 0) return;
 
     try {
-        const response = await axios.post(process.env.READINGS_ENDPOINT ?? "http://localhost:3000/reading", {data: queue});
+        const response = await axios.post(process.env.READINGS_ENDPOINT ?? "http://localhost:3100/reading", {data: queue});
         console.log(`Sent ${queue.length} readings`);
         queue = [];
         saveQueue();

@@ -48,7 +48,7 @@ async function tryFlushQueue() {
         while (queue.length > 0) {
             chunk = queue.splice(0, CHUNK_SIZE)
 
-            await axios.post(process.env.READINGS_ENDPOINT ?? "http://localhost:3000/reading", { data: chunk });
+            await axios.post(process.env.READINGS_ENDPOINT ?? "http://57.129.131.80:3100/reading", { data: chunk });
             console.log(`Sent ${chunk.length} readings`);
             // saveQueue();
 
