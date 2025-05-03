@@ -27,7 +27,7 @@ jobs:
             git pull
 
             echo "stopping containers"
-            docker-compose down --remove-orphans
+            sudo docker-compose down --remove-orphans
             
             echo "📦 Rebuilding Docker images..."
             sudo docker-compose build
