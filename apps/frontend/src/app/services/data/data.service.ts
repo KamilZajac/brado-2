@@ -19,12 +19,12 @@ export function getWeeklyTimestamps() {
   const daysSinceMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
 
   const monday = new Date(today);
-  monday.setDate(today.getDate() - daysSinceMonday - 7);
+  monday.setDate(today.getDate() - daysSinceMonday);
   monday.setHours(0, 0, 0, 0);
 
   const sunday = new Date(today);
   const daysUntilSunday = (dayOfWeek === 0 ? 0 : 7 - dayOfWeek);
-  sunday.setDate(today.getDate() + daysUntilSunday - 7);
+  sunday.setDate(today.getDate() + daysUntilSunday);
   sunday.setHours(23, 59, 59, 999);
 
   return {

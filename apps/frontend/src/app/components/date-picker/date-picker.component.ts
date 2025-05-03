@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import {IonButton, IonDatetime, IonicModule, IonLabel, IonItem, IonInput, IonList, IonDatetimeButton, IonModal } from '@ionic/angular';
+import { IonicModule } from '@ionic/angular';
+import { IonButton, IonDatetime, IonModal, IonDatetimeButton} from '@ionic/angular/standalone';
 
 export interface TimeRange {
   from: string,
@@ -13,8 +14,7 @@ export interface TimeRange {
   selector: 'app-date-picker',
   templateUrl: './date-picker.component.html',
   styleUrls: ['./date-picker.component.scss'],
-  imports: [IonicModule, CommonModule, FormsModule
-    ]
+  imports: [IonicModule, CommonModule, FormsModule, IonButton, IonDatetime, IonModal, IonDatetimeButton]
 })
 export class DatePickerComponent  {
 

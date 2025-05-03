@@ -14,7 +14,6 @@ import {ChartComponent} from "../../components/chart/chart.component";
   styleUrls: ['./compare.component.scss'],
   imports: [
     DatePickerComponent,
-    LineChartComponent,
     KeyValuePipe,
     ReadingsToSeriesPipe,
     ChartComponent

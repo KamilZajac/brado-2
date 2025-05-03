@@ -26,6 +26,9 @@ jobs:
             echo "✅ Pulling latest code..."
             git pull
 
+            echo "stopping containers"
+            docker-compose down --remove-orphans
+            
             echo "📦 Rebuilding Docker images..."
             sudo docker-compose build
 
