@@ -7,7 +7,7 @@ services:
       target: backend
     image: brado-backend
     ports:
-      - "3000:3000" # Adjust to your NestJS port
+      - "3100:3000"
     restart: always
 
   connector:
