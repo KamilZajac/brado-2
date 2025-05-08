@@ -2,6 +2,8 @@ export type LiveReading = {
     timestamp: string,
     value: number;
     sensorId: number;
+    delta: number;
+    dailyTotal?: number; // virtual field
 }
 
 export type DataReadingWithDeltas = LiveReading & {
@@ -16,7 +18,7 @@ export type LiveUpdate = {
 }
 
 export type LiveSensorUpdate = {
-    readings: DataReadingWithDeltas[]
+    readings: LiveReading[]
     average5: number,
     average60 : number,
 }
@@ -26,5 +28,4 @@ export type HourlyReading = LiveReading &{
     max: number;
     min: number;
     average: number;
-    total: number;
 }

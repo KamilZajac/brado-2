@@ -12,5 +12,8 @@ bootstrapApplication(AppComponent, {
     provideIonicAngular(),
     provideHttpClient(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideIonicAngular({
+      useSetInputAPI: true, //  required for input signals on controller based modals.
+    })
   ],
 });

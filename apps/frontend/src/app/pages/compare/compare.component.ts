@@ -5,7 +5,7 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import { HourlyReading } from '@brado/types';
 import {LineChartComponent} from "../../components/line-chart/line-chart.component";
 import { KeyValuePipe } from '@angular/common';
-import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
+import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ChartComponent} from "../../components/chart/chart.component";
 
 @Component({
@@ -15,8 +15,7 @@ import {ChartComponent} from "../../components/chart/chart.component";
   imports: [
     DatePickerComponent,
     KeyValuePipe,
-    ReadingsToSeriesPipe,
-    ChartComponent
+    ChartComponent,
   ]
 })
 export class CompareComponent {
@@ -48,6 +47,7 @@ export class CompareComponent {
 
         })
 
+        console.log(this.readings)
         this.isDataLoaded = true
       });
   }

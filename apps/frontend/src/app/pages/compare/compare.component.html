@@ -4,7 +4,7 @@
 
       @for (keypar of readings | keyvalue ; track keypar.key) {
 
-        <app-chart [chartSeries]="keypar.value | readingsToSeries" />
+        <app-chart [dataMultiple]="keypar.value" />
 
       }
 }

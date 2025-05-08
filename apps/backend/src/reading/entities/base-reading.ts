@@ -12,4 +12,7 @@ export class BaseReading {
 
     @Column('bigint')
     timestamp: string;
+
+    @Column({ type: 'int' })
+    delta: number;
 }

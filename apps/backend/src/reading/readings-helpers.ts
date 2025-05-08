@@ -53,7 +53,7 @@ export class ReadingsHelpers {
                 sensorId: first.sensorId,
                 timestamp: hourTimestamp.toString(),
                 value: last.value,
-                total,
+                delta: total,
                 average,
                 min,
                 max,

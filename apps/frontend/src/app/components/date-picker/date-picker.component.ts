@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, LOCALE_ID, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
-import { IonButton, IonDatetime, IonModal, IonDatetimeButton} from '@ionic/angular/standalone';
+import { IonButton, IonDatetime, IonModal, IonDatetimeButton, IonList, IonItem, IonLabel, IonInput, ModalController} from '@ionic/angular/standalone';
+import {CalendarComponentOptions, CalendarModal, CalendarModalOptions, CalendarResult, IonRangeCalendarComponent } from '@googlproxer/ion-range-calendar';
 
 export interface TimeRange {
   from: string,
@@ -14,30 +14,39 @@ export interface TimeRange {
   selector: 'app-date-picker',
   templateUrl: './date-picker.component.html',
   styleUrls: ['./date-picker.component.scss'],
-  imports: [IonicModule, CommonModule, FormsModule, IonButton, IonDatetime, IonModal, IonDatetimeButton]
+  providers: [{ provide: LOCALE_ID, useValue: "pl" }],
+  imports: [ IonRangeCalendarComponent, CommonModule, FormsModule, IonButton, IonDatetime, IonInput, IonModal, IonDatetimeButton, IonList, IonItem, IonLabel]
 })
 export class DatePickerComponent  {
+  dateRanges: { from: string; to: string; }[] = [];
+  type: 'string' = 'string'; // 'string' | 'js-date' | 'time' | 'object'
+  optionsRange: CalendarModalOptions = {
+    pickMode: 'range',
+    weekdays: ['Nd', 'Pon', 'Wt', 'Śr', 'Czw', 'PT', 'Sob', ],
+    weekStart: 1,
+    canBackwardsSelected: true
+
+  };
+
+  constructor(public modalCtrl: ModalController) {}
 
   @Output() rangesChanged = new EventEmitter<TimeRange[]>();
 
-  // Todo fix typing here - no null
-  ranges: TimeRange[] = [
-
-  ];
 
   addRange() {
-    this.ranges.push({ from: new Date().toISOString(), to: new Date().toISOString(), color: '#0000ff' });
+    this.dateRanges.push(
+      { from: '',to: '' }    );
   }
 
   removeRange(index: number) {
-    this.ranges.splice(index, 1);
+    this.dateRanges.splice(index, 1);
     this.emitChanges();
   }
 
   emitChanges() {
-    console.log(this.ranges);
+    console.log(this.dateRanges);
 
-    const formattedRanges = this.ranges.map((range): TimeRange => {
+    const formattedRanges = this.dateRanges.map((range): TimeRange => {
       const from = new Date(range.from);
       from.setHours(0, 0, 0, 0);
 
@@ -47,10 +56,20 @@ export class DatePickerComponent  {
       return {
         from: from.getTime().toString(),
         to: to.getTime().toString(),
-        color: range.color}
+        color: ""
+      }
     })
 
+
+    console.log(
+      formattedRanges)
     this.rangesChanged.emit(formattedRanges);
   }
+
+
+
+
+
+
 
 }

@@ -1,0 +1,14 @@
+
+<div class="wrapper">
+
+<canvas baseChart
+        [data]="chartData"
+        [type]="'doughnut'"
+        [options]="chartOptions"
+>
+</canvas>
+
+  <div class="text">
+    {{value | number: '1.1-1'}} / {{target | number: '1.1-1'}}
+  </div>
+</div>

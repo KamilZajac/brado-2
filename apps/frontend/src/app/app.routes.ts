@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import {WeeklyComponent} from "./pages/charts/weekly.component";
+import {WeeklyComponent} from "./pages/weekly/weekly.component";
 import {LiveComponent} from "./pages/live/live.component";
 import {CompareComponent} from "./pages/compare/compare.component";
 

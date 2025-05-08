@@ -1,31 +1,24 @@
 import { Pipe, PipeTransform } from '@angular/core';
-import { ApexAxisChartSeries } from 'ng-apexcharts';
-import {LiveReading} from "@brado/types";
+import {HourlyReading, LiveReading} from "@brado/types";
 
 @Pipe({
   name: 'readingsToSeries',
   standalone: true
 })
 export class ReadingsToSeriesPipe implements PipeTransform {
-  transform(data: LiveReading[][]): ApexAxisChartSeries {
+  transform(data: LiveReading[]| HourlyReading[], key: string): any {
     if (!Array.isArray(data) || data.length === 0) return [];
 
-    // Bierzemy pierwszy zakres jako bazę do wyrównania
-    const referenceStart = +data[0][0]?.timestamp; // timestamp w ms
-
-    return data.map((series, index) => {
-      if (!series.length) return { name: `Sensor ${index + 1}`, data: [] };
-
-      const originalStart = +series[0].timestamp; // start danego zakresu
-
-      return {
-        name: `Sensor ${series[0]?.sensorId ?? index + 1}`,
-        data: series.map(reading => ({
-          x: referenceStart + (+reading.timestamp - originalStart), // przesunięty x
-          y: reading.value,
-          originalX: +reading.timestamp // zapamiętajmy oryginalny timestamp
+      return [
+        {
+        name: `Sensor ${data[0].sensorId}`,
+        data:  data.map(reading => ({
+          x: +reading.timestamp, // przesunięty x
+          y: reading.hasOwnProperty(key) ? (reading as any)[key] : reading.value,
+          data: {...reading}
         }))
-      };
-    });
+      }
+      ]
+
   }
 }

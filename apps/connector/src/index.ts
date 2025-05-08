@@ -28,17 +28,36 @@ function saveQueue() {
     fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2));
 }
 
+
 async function tryFlushQueue() {
+
+    queue = queue.map(reading => ({
+        ...reading,
+        timestamp: isNaN(reading.timestamp) ? new Date(reading.timestamp).getTime() : reading.timestamp
+    }))
 
     if (queue.length === 0) return;
 
+    const CHUNK_SIZE = 1000;
+    const TIMEOUT_MS = 1000;
+    let chunk: any[] = [];
+
+    console.log(chunk)
+
     try {
-        const response = await axios.post(process.env.READINGS_ENDPOINT ?? "http://localhost:3100/reading", {data: queue});
-        console.log(`Sent ${queue.length} readings`);
-        queue = [];
-        saveQueue();
+        while (queue.length > 0) {
+            chunk = queue.splice(0, CHUNK_SIZE)
+
+            await axios.post(process.env.READINGS_ENDPOINT ?? "http://localhost:3100/reading", {data: chunk});
+            console.log(`Sent ${chunk.length} readings`);
+            saveQueue();
+
+            await new Promise(resolve => setTimeout(resolve, TIMEOUT_MS));
+        }
     } catch (err) {
         console.log('Backend offline - will try again later...');
+        queue = [...chunk, ...queue];
+        saveQueue();
     }
 }
 
@@ -79,6 +98,7 @@ async function readSensors() {
                     sensorId: id,
                     value: val,
                     timestamp: nowDate.toString(),
+                    delta: -1
                 });
             } catch (err) {
                 console.error(`Błąd odczytu z licznika ${id}:`, (err as any).message);

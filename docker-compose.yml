@@ -9,6 +9,17 @@ services:
     ports:
       - "3100:3000"
     restart: always
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      NODE_ENV: "production"
+    networks:
+      - internal
 
   connector:
     build:
@@ -18,7 +29,8 @@ services:
     ports:
       - "4100:4000" # Adjust as needed
     restart: always
-
+    networks:
+      - internal
   frontend:
     build:
       context: .
@@ -30,16 +42,23 @@ services:
 
   postgres:
     image: postgres:15
-    container_name: postgres
-    restart: always
-    ports:
-      - "5432:5432"
+    container_name: brado_postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: brado
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-config/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./postgres-config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "hba_file=/etc/postgresql/pg_hba.conf"]
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
 
 volumes:
-  postgres-data:
+  pgdata:

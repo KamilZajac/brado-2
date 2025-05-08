@@ -12,7 +12,4 @@ export class HourlyReadingEntity extends BaseReading{
     @Column({ type: 'float' })
     average: number;
 
-    @Column({ type: 'int' })
-    total: number;
-
 }

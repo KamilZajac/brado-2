@@ -1,50 +1,126 @@
 import { Injectable } from '@nestjs/common';
-import {InjectRepository} from "@nestjs/typeorm";
-import {MoreThan, Repository, LessThan, MoreThanOrEqual, Between} from "typeorm";
-import {LiveReading, DataReadingWithDeltas, LiveUpdate, HourlyReading} from "@brado/types";
-import {ReadingsGateway} from "./readings.gateway";
-import {LiveReadingEntity} from "./entities/minute-reading.entity";
-import {ReadingsHelpers} from "./readings-helpers";
-import {HourlyReadingEntity} from "./entities/hourly-reading-entity";
+import { InjectRepository } from '@nestjs/typeorm';
+import {
+  MoreThan,
+  Repository,
+  LessThan,
+  MoreThanOrEqual,
+  Between,
+  In,
+} from 'typeorm';
+import {
+  LiveReading,
+  DataReadingWithDeltas,
+  LiveUpdate,
+  HourlyReading,
+} from '@brado/types';
+import { ReadingsGateway } from './readings.gateway';
+import { LiveReadingEntity } from './entities/minute-reading.entity';
+import { ReadingsHelpers } from './readings-helpers';
+import { HourlyReadingEntity } from './entities/hourly-reading-entity';
+import { firstValueFrom, forkJoin } from 'rxjs';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class ReadingService {
   constructor(
-      @InjectRepository(LiveReadingEntity)
-      private liveReadingsRepo: Repository<LiveReading>,
-      @InjectRepository(HourlyReadingEntity)
-      private hourlyReadingsRepo: Repository<HourlyReading>,
-      private readonly gateway: ReadingsGateway,
+    @InjectRepository(LiveReadingEntity)
+    private liveReadingsRepo: Repository<LiveReading>,
+    @InjectRepository(HourlyReadingEntity)
+    private hourlyReadingsRepo: Repository<HourlyReading>,
+    private readonly gateway: ReadingsGateway,
   ) {}
 
-  async addReading(readings:  [LiveReading]) {
-    console.log(readings)
-    const toSave = this.liveReadingsRepo.create(readings);
+  private dailyTotals = new Map<string, number>(); // key: `${sensorId}-${yyyy-mm-dd}`
 
-    try{
-      console.log(toSave[0])
+  private getDateKey(sensorId: number, timestamp: string): string {
+    const dateInPoland = DateTime.fromMillis(+timestamp, { zone: 'Europe/Warsaw' });
+    const ymd = dateInPoland.toFormat('yyyy-MM-dd');
+    console.log(dateInPoland)
+    return `${sensorId}-${ymd}`;
+  }
+
+  async addReading(readings: [LiveReading]) {
+    const uniqueSensorIds = Array.from(
+      new Set(readings.map((entity) => entity.sensorId)),
+    );
+    const readingsToSave: LiveReading[] = [];
+    const readingsWithTotals: LiveReading[] = []; // list of readings with today's total
+
+    const grouped = this.groupBySensorId(readings);
+
+    for (const sensorId of Object.keys(grouped)) {
+      const readings = grouped[sensorId].sort(
+        (a, b) => +a.timestamp - +b.timestamp,
+      );
+
+      const lastReading = await this.findLastBySensorId(+sensorId);
+      let lastValue = lastReading?.value ?? null;
+
+      for (const r of readings) {
+        let delta = 0;
+        if (lastValue !== null) {
+          delta = r.value >= lastValue ? r.value - lastValue : r.value;
+        }
+
+        const rToSave = {
+          sensorId: r.sensorId,
+          value: r.value,
+          delta,
+          timestamp: r.timestamp,
+        };
+
+        const dateKey = this.getDateKey(rToSave.sensorId, rToSave.timestamp);
+        const currentTotal = this.dailyTotals.get(dateKey) ?? 0;
+
+        readingsToSave.push(rToSave);
+
+        const rWithTotal = {
+          ...rToSave,
+          dailyTotal: (currentTotal) + delta,
+        }
+
+        readingsWithTotals.push();
+
+        this.dailyTotals.set(dateKey, rWithTotal.dailyTotal);
+        console.log('SETTING TOTAL', dateKey, rWithTotal.dailyTotal)
+
+        lastValue = r.value;
+      }
+    }
+
+    const toSave = this.liveReadingsRepo.create(readingsToSave);
+
+    // c = this.liveReadingsRepo.save(readings);
+
+    try {
       this.liveReadingsRepo.save(toSave);
 
-      const uniqueSensorIds = Array.from(new Set(toSave.map(entity => entity.sensorId)));
+      const average5 = await this.getAverageSpeedsLastXMinutes(
+        uniqueSensorIds,
+        5,
+      );
+      const average60 = await this.getAverageSpeedsLastXMinutes(
+        uniqueSensorIds,
+        60,
+      );
 
-      const average5 = await this.getAverageSpeedsLastXMinutes(uniqueSensorIds, 5);
-      const average60 = await this.getAverageSpeedsLastXMinutes(uniqueSensorIds, 60);
 
-      // Todo this should be calculated for the whole set
-      // const readingsWithDeltas = readings.map((async (reading) => this.calculateDeltasForNewReading(reading)));
-      const liveUpdate: LiveUpdate = {}
+      const liveUpdate: LiveUpdate = {};
 
-      uniqueSensorIds.forEach(id => {
+      uniqueSensorIds.forEach((id) => {
         liveUpdate[id] = {
           average5: average5[id],
           average60: average60[id],
-          readings: [] // readings.filter(reading => reading.sensorId === id) // Todo think about last reading for delta
-        }
-      })
+          readings: readingsWithTotals.filter(
+            (reading) => reading.sensorId === id,
+          ),
+        };
+      });
 
-      this.gateway.sendLifeUpdate(liveUpdate)
+      this.gateway.sendLifeUpdate(liveUpdate);
 
-      return 'ok'
+      return 'ok';
     } catch (error) {
       throw error;
     }
@@ -74,98 +150,126 @@ export class ReadingService {
       order: { timestamp: 'DESC' },
     });
 
-    if(!latestSensor1 || !latestSensor2) {
-      throw new Error('Nie ma')
+    if (!latestSensor1 || !latestSensor2) {
+      return { 1: 0, 2: 0 };
     }
 
-    return {1: latestSensor1.value, 2: latestSensor2.value};
+    return { 1: latestSensor1.value, 2: latestSensor2.value };
   }
 
   async getAverageSpeedsLastXMinutes(
-      sensorIds: number[],
-      minutes: number,
+    sensorIds: number[],
+    minutes: number,
   ): Promise<Record<number, number>> {
+    // Todo - reuse last 60min for last 5 min ( it's same data )
+
     const from = Date.now() - minutes * 60 * 1000;
 
-    // Get first and last value per sensor
-    const raw = await this.liveReadingsRepo
-        .createQueryBuilder('reading')
-        .select('reading.sensorId', 'sensorId')
-        .addSelect('MIN(reading.timestamp)', 'firstTimestamp')
-        .addSelect('MAX(reading.timestamp)', 'lastTimestamp')
-        .addSelect('MIN(reading.value)', 'firstValue')
-        .addSelect('MAX(reading.value)', 'lastValue')
-        .where('reading.sensorId IN (:...sensorIds)', { sensorIds })
-        .andWhere('reading.timestamp > :from', { from })
-        .groupBy('reading.sensorId')
-        .getRawMany();
+    const readings = await this.liveReadingsRepo.find({
+      where: {
+        timestamp: MoreThan(from.toString()),
+        sensorId: In(sensorIds),
+      },
+    });
 
+    if (readings.length === 0) {
+      return {};
+    }
 
-    // console.log(raw)
+    const groupedBySensor = readings.reduce(
+      (acc, reading) => {
+        if (!acc[reading.sensorId]) {
+          acc[reading.sensorId] = [];
+        }
+        acc[reading.sensorId].push(reading);
+        return acc;
+      },
+      {} as Record<number, LiveReading[]>,
+    );
 
     const result: Record<number, number> = {};
 
-    for (const row of raw) {
-      // Upewniamy się, że pracujemy na liczbach zamiast na obiektach Date
-      const timeDiff = row.lastTimestamp - row.firstTimestamp; // Różnica w ms
+    for (const sensorId of Object.keys(groupedBySensor)) {
+      const sensorReadings = groupedBySensor[+sensorId]; // Pobierz odczyty dla danego sensorId
+      const sumDelta = sensorReadings.reduce(
+        (sum, reading) => sum + (reading.delta || 0),
+        0,
+      );
+      const averageDelta = sumDelta / sensorReadings.length;
 
-      // Oblicz liczbę minut na podstawie różnicy czasu
-      const minutesElapsed = timeDiff / 1000 / 60; // ms -> s -> min
-      const valueDiff = row.lastValue - row.firstValue; // Różnica wartości
-
-      // Oblicz prędkość (średnia różnica wartości na minutę)
-      const speed = minutesElapsed > 0 ? Math.round(valueDiff / minutesElapsed) : 0;
-
-      result[row.sensorId] = speed;
+      result[+sensorId] = averageDelta; // Przechowaj średnią w obiekcie wynikowym
     }
-
 
     return result;
   }
 
   async getInitialLiveData(startOfTheDateTS: string) {
-    console.log('Getting initial live data', startOfTheDateTS)
-
-
-
-    // console.log(adjustTimezone(getStartOfToday()))
-
+    console.log('Getting initial live data', startOfTheDateTS);
 
     const todayData = await this.getAfterTime(startOfTheDateTS);
-    console.log('Got today data')
-    console.log(todayData)
 
-    if(!todayData.length) {
-      return []
+    const uniqueSensorIds = Array.from(
+      new Set(todayData.map((entity) => entity.sensorId)),
+    );
+
+    if (!todayData.length) {
+      return [];
     }
-    const uniqueSensorIds = Array.from(new Set(todayData.map(entity => entity.sensorId)));
 
-    const lastDayLastReadings = await this.getLatestReadingsBeforeDate(startOfTheDateTS, uniqueSensorIds)
+    const average5 = await this.getAverageSpeedsLastXMinutes(
+      uniqueSensorIds,
+      5,
+    );
+    const average60 = await this.getAverageSpeedsLastXMinutes(
+      uniqueSensorIds,
+      60,
+    );
 
-    const readingsWithDeltas = this.calculateDeltasForDataset(todayData, lastDayLastReadings)
+    const liveUpdate: LiveUpdate = {};
 
-    const average5 = await this.getAverageSpeedsLastXMinutes(uniqueSensorIds, 5);
-    const average60 = await this.getAverageSpeedsLastXMinutes(uniqueSensorIds, 60);
 
-    const liveUpdate: LiveUpdate = {}
 
-    uniqueSensorIds.forEach(id => {
+
+
+    uniqueSensorIds.forEach((id) => {
+      const todayWithTotal = this.attachRunningTotal(
+          todayData.filter((reading) => reading.sensorId === id),
+      );
+
+      const lastRWithTotal = todayWithTotal[todayWithTotal.length - 1];
+      const dateKey = this.getDateKey(lastRWithTotal.sensorId, lastRWithTotal.timestamp);
+
+      this.dailyTotals.set(dateKey, lastRWithTotal.dailyTotal ?? 0);
+
+      console.log('SETTING TOTAL', dateKey, lastRWithTotal.dailyTotal ?? 0)
+
       liveUpdate[id] = {
         average5: average5[id],
         average60: average60[id],
-        readings: readingsWithDeltas.filter(reading => reading.sensorId === id)
-      }
-    })
+        readings: todayWithTotal,
+      };
+    });
 
-    return liveUpdate
+    return liveUpdate;
   }
 
-  async  getLatestReadingsBeforeDate(startOfTheDateTS: string, sensorIds: number[]): Promise<LiveReading[]> {
+  attachRunningTotal(readings: LiveReading[]): LiveReading[] {
+    let dailyTotal = 0;
+    return readings.map((r) => {
+      dailyTotal += r.delta ?? 0;
+      return { ...r, dailyTotal };
+    });
+  }
+
+  async getLatestReadingsBeforeDate(
+    startOfTheDateTS: string,
+    sensorIds: number[],
+  ): Promise<LiveReading[]> {
     const readings: LiveReading[] = [];
 
     for (const sensorId of sensorIds) {
       const latestReading = await this.liveReadingsRepo.findOne({
-        where: { sensorId, timestamp: LessThan(startOfTheDateTS)  },
+        where: { sensorId, timestamp: LessThan(startOfTheDateTS) },
         order: { timestamp: 'DESC' },
       });
 
@@ -177,11 +281,9 @@ export class ReadingService {
     return readings;
   }
 
-
-
   calculateDeltasForDataset(
-      readings: LiveReading[],
-      lastDayReadings: LiveReading[], // one reading per sensor from last day
+    readings: LiveReading[],
+    lastDayReadings: LiveReading[], // one reading per sensor from last day
   ): DataReadingWithDeltas[] {
     readings.sort((a, b) => +a.timestamp - +b.timestamp);
 
@@ -203,7 +305,8 @@ export class ReadingService {
 
     for (const sensorId in readingsBySensor) {
       const sensorReadings = readingsBySensor[sensorId];
-      let previousValue: number | null = lastDayReadingMap.get(+sensorId) ?? null;
+      let previousValue: number | null =
+        lastDayReadingMap.get(+sensorId) ?? null;
       const todayStartValue: number = sensorReadings[0].value;
       let accumulatedDeltaToday = 0;
 
@@ -219,14 +322,12 @@ export class ReadingService {
 
         accumulatedDeltaToday += deltaFromPrevious;
 
-
         results.push({
           ...reading,
           previous: previousValue,
           deltaFromPrevious,
           todayStart: todayStartValue,
-              deltaToday: accumulatedDeltaToday,
-
+          deltaToday: accumulatedDeltaToday,
         });
 
         previousValue = reading.value;
@@ -236,34 +337,66 @@ export class ReadingService {
     return results;
   }
 
-
   async aggregate() {
     const liveReadings = await this.liveReadingsRepo.find({
       order: { timestamp: 'ASC' },
     });
 
-    const uniqueSensorIds = Array.from(new Set(liveReadings.map(entity => entity.sensorId)));
+    const uniqueSensorIds = Array.from(
+      new Set(liveReadings.map((entity) => entity.sensorId)),
+    );
 
-    const hourlyReadings =
-        uniqueSensorIds.map(sensorID =>
-      ReadingsHelpers.aggregateToHourlyReadings(liveReadings.filter(reading => reading.sensorId === +sensorID))).flat();
+    const hourlyReadings = uniqueSensorIds
+      .map((sensorID) =>
+        ReadingsHelpers.aggregateToHourlyReadings(
+          liveReadings.filter((reading) => reading.sensorId === +sensorID),
+        ),
+      )
+      .flat();
 
-
-    console.log(hourlyReadings[0])
+    console.log(hourlyReadings[0]);
     const toSave = this.hourlyReadingsRepo.create(hourlyReadings);
 
     try {
-      console.log(toSave[0])
+      console.log(toSave[0]);
       this.hourlyReadingsRepo.save(toSave);
-      return Promise.resolve("ok");
-
+      return Promise.resolve('ok');
     } catch (error) {
-      throw error
+      throw error;
     }
   }
 
-  getWeekly(startOfTheWeekTS: string) {
+  async findLastBySensorId(sensorId: number): Promise<LiveReading | null> {
+    return this.liveReadingsRepo
+      .createQueryBuilder('reading')
+      .where('reading.sensorId = :sensorId', { sensorId })
+      .orderBy('reading.timestamp', 'DESC')
+      .limit(1)
+      .getOne();
+  }
 
+  async findLastNBySensorId(
+    sensorId: number,
+    n: number,
+  ): Promise<LiveReading[]> {
+    return this.liveReadingsRepo
+      .createQueryBuilder('reading')
+      .where('reading.sensorId = :sensorId', { sensorId })
+      .orderBy('reading.timestamp', 'DESC')
+      .limit(n)
+      .getMany();
+  }
+
+  private groupBySensorId(
+    readings: LiveReading[],
+  ): Record<string, LiveReading[]> {
+    return readings.reduce(
+      (acc, reading) => {
+        (acc[reading.sensorId] = acc[reading.sensorId] || []).push(reading);
+        return acc;
+      },
+      {} as Record<string, LiveReading[]>,
+    );
   }
 
   getHourly(fromTS: string, toTS: string) {

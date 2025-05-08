@@ -8,7 +8,6 @@ import {SocketService} from "../../services/socket/socket.service";
 import {DataService} from "../../services/data/data.service";
 import { signal } from '@angular/core';
 import {firstValueFrom} from "rxjs";
-import { NgApexchartsModule } from 'ng-apexcharts';
 
 @Component({
   selector: 'app-live',
@@ -31,6 +30,7 @@ export class LiveComponent  implements OnInit {
 
     this.socketService.onLiveUpdate().subscribe(res => {
       this.mergeLiveUpdate(res);
+      console.log(res)
     })
   }
 

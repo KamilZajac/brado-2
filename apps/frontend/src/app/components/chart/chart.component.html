@@ -1,6 +1,37 @@
-<apx-chart
-  [series]="chartSeries"
-  [chart]="chart"
-  [xaxis]="xaxis"
->
-</apx-chart>
+<div class="row">
+<div class="chart-type-selector">
+  <button
+    class="button"
+    [class.active]="chartType === 'bar'"
+    (click)="selectChartType('bar')">
+    <i class="icon-bar"></i> Słupkowy
+  </button>
+  <button
+    class="button"
+    [class.active]="chartType === 'line'"
+    (click)="selectChartType('line')">
+    <i class="icon-line"></i> Liniowy
+  </button>
+</div>
+
+<div class="chart-type-selector">
+
+  @for (key of availableKeys; track key) {
+  <button
+    class="button"
+    [class.active]="keyToDisplay === key"
+    (click)="selectDataKey(key)">
+    <i class="icon-bar"></i> {{getKeyName(key)}}
+  </button>
+  }
+</div>
+
+</div>
+<div style="display: block;">
+  <canvas baseChart
+          [data]="chartData"
+          [options]="chartOptions"
+          [type]="chartType"
+          >
+  </canvas>
+</div>

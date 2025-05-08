@@ -1,40 +1,44 @@
 <div class="chart-grid">
 
-    @if(data && data.readings) {
-  <div class="chart-wrapper" #chartContainer>
-    <div class="chart-container">
-        <apx-chart
-          [series]="[percentage5]"
-          [chart]="gaugeChart"
-          [plotOptions]="gaugePlotOptions"
-          [labels]="['5 Min']"
-          [fill]=gaugeFill
-        ></apx-chart>
+  @if (data && data.readings) {
+    <div class="chart-wrapper" #chartContainer>
+      <div class="chart-container">
+        <!--        <apx-chart-->
+        <!--          [series]="[percentage5]"-->
+        <!--          [chart]="gaugeChart"-->
+        <!--          [plotOptions]="gaugePlotOptions"-->
+        <!--          [labels]="['5 Min']"-->
+        <!--          [fill]=gaugeFill-->
+        <!--        ></apx-chart>-->
 
+        <app-pie-chart
+          [value]="data.average5"
+          [disableAnimation]="true"
+          [target]="target / 60"
+        ></app-pie-chart>
+        <p>Średnia - 5min</p>
+
+      </div>
+
+      <div class="chart-container">
+
+        <app-pie-chart
+          [value]="data.average60"
+          [disableAnimation]="true"
+          [target]="target / 60"
+        ></app-pie-chart>
+        <p>Średnia - 60min</p>
+      </div>
     </div>
 
-    <div class="chart-container">
-        <apx-chart
-          [series]="[percentage60]"
-          [chart]="gaugeChart"
-          [plotOptions]="gaugePlotOptions"
-          [labels]="['60min']"
-          [fill]=gaugeFill
-        ></apx-chart>
+    <app-chart
+      [data]="data.readings"
+      [disableAnimation]="true"
+    >
+    </app-chart>
+  } @else {
 
-    </div>
-  </div>
-
-  <apx-chart
-    [series]="chartReadings"
-    [chart]="lineChart"
-    [xaxis]="lineXaxis"
-
-  >
-  </apx-chart>
-    } @else {
-
-      <p>Czekam na dane...</p>
-    }
+    <p>Czekam na dane...</p>
+  }
 
 </div>

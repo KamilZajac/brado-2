@@ -2,26 +2,15 @@ import {Component, OnInit, WritableSignal, ViewChildren} from '@angular/core';
 import {SocketService} from "../../services/socket/socket.service";
 import {firstValueFrom, Observable, Subject} from "rxjs";
 import {DataService, getWeeklyTimestamps} from "../../services/data/data.service";
-import {NgApexchartsModule} from "ng-apexcharts";
-import {
-  ChartComponent,
-  ApexAxisChartSeries,
-  ApexChart,
-  ApexXAxis,
-  ApexTitleSubtitle
-} from "ng-apexcharts";
+
 import {KeyValuePipe} from "@angular/common";
 import { signal } from '@angular/core';
 import {HourlyReading} from "@brado/types";
 import {LineChartComponent} from "../../components/line-chart/line-chart.component";
+import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
+import {ChartComponent} from "../../components/chart/chart.component";
+import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
 
-
-export type ChartOptions = {
-  series: ApexAxisChartSeries;
-  chart: ApexChart;
-  xaxis: ApexXAxis;
-  title: ApexTitleSubtitle;
-};
 
 // const getStartOfWeek = () => {
 //   const now = new Date();
@@ -42,12 +31,11 @@ export type ChartOptions = {
   templateUrl: './weekly.component.html',
   styleUrls: ['./weekly.component.scss'],
   providers: [DataService],
-  imports: [NgApexchartsModule, KeyValuePipe, LineChartComponent]
+  imports: [ KeyValuePipe, LineChartComponent, ChartComponent, ReadingsToSeriesPipe]
 })
 export class WeeklyComponent implements OnInit {
   weeklyReadings = signal<{ [key: string]: HourlyReading[] }>({});
 
-  public chartsData: Record<string, WritableSignal<ApexAxisChartSeries>> = {};
 
   // public chartOptions: {[key: string] : ChartOptions } = {};
 
