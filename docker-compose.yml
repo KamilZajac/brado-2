@@ -34,6 +34,11 @@ services:
     privileged: true
     networks:
       - internal
+    environment:
+      PORTNAME: ${PORTNAME}
+      STARTADDRESS: ${STARTADDRESS}
+      NUMBER_OF_REGISTERS: ${NUMBER_OF_REGISTERS}
+      READINGS_ENDPOINT: ${READINGS_ENDPOINT}
   frontend:
     build:
       context: .
