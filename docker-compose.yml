@@ -30,7 +30,7 @@ services:
       - "4100:4000" # Adjust as needed
     restart: always
     devices:
-      - /dev/ttyMOXA1:/dev/ttyMOXA1
+      - /dev/pts/1:/dev/ttyMOXA1
     privileged: true
     networks:
       - internal
