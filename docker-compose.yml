@@ -38,7 +38,7 @@ services:
       READINGS_ENDPOINT: ${READINGS_ENDPOINT}
   frontend:
     build:
-      context: .docker
+      context: .
       target: frontend
     image: brado-frontend
     ports:
