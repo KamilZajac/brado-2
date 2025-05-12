@@ -29,9 +29,6 @@ services:
     ports:
       - "4100:4000" # Adjust as needed
     restart: always
-    devices:
-      - /dev/pts/1:/dev/ttyMOXA1
-    privileged: true
     networks:
       - internal
     environment:
@@ -41,7 +38,7 @@ services:
       READINGS_ENDPOINT: ${READINGS_ENDPOINT}
   frontend:
     build:
-      context: .
+      context: .docker
       target: frontend
     image: brado-frontend
     ports:

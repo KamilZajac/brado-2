@@ -50,7 +50,12 @@ WORKDIR /app
 COPY --from=connector-builder /repo/node_modules ./node_modules
 COPY --from=connector-builder /repo/apps/connector/node_modules ./apps/connector/node_modules
 COPY --from=connector-builder /repo/apps/connector/dist ./apps/connector/dist
-CMD ["node", "apps/connector/dist/index.js"]
+#CMD ["node", "apps/connector/dist/index.js"]
+RUN apt-get update && \
+    apt-get install -y socat && \
+    rm -rf /var/lib/apt/lists/*
+CMD socat -d -d PTY,link=/tmp/ttyMOXA1,raw TCP:89.22.215.52:950 & \
+    node apps/connector/dist/index.js
 
 # --- frontend final image ---
 FROM nginx:alpine as frontend
