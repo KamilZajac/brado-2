@@ -24,7 +24,8 @@ jobs:
             cd ~/apps/brado
             echo "✅ Pulling latest code..."
             git pull
-            
+
+            sudo rm .env
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
             echo "POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}" >> .env
             echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env
