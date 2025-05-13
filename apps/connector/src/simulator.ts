@@ -53,7 +53,7 @@ async function tryFlushQueue() {
         while (queue.length > 0) {
             chunk = queue.splice(0, CHUNK_SIZE)
 
-            await axios.post(process.env.READINGS_ENDPOINT ?? "http://localhost:3000/reading", {data: chunk});
+            await axios.post(process.env.READINGS_ENDPOINT ?? "http://57.129.131.80:3100/reading", {data: chunk});
             console.log(`Sent ${chunk.length} readings`);
             saveQueue();
 
@@ -67,8 +67,8 @@ async function tryFlushQueue() {
 }
 
 async function addReading(datas: LiveReading[]) {
-    queue.push(...datas);
-    saveQueue();
+    // queue.push(...datas);
+    // saveQueue();
     await tryFlushQueue();
 }
 
@@ -81,18 +81,18 @@ async function start() {
 
         lastValues['1'] = lastValues['1'] + Math.floor(Math.random() * (90 - 70 + 1)) + 70;
         lastValues['2'] = lastValues['2'] + Math.floor(Math.random() * (90 - 70 + 1)) + 70;
-        datas.push({
-            sensorId: 1,
-            value: lastValues['1'],
-            timestamp: nowDate.getTime().toString(),
-            delta: -1
-        });
-        datas.push({
-            sensorId: 2,
-            value: lastValues['2'],
-            timestamp: nowDate.getTime().toString(),
-            delta: -1
-        });
+        // datas.push({
+        //     sensorId: 1,
+        //     value: lastValues['1'],
+        //     timestamp: nowDate.getTime().toString(),
+        //     delta: -1
+        // });
+        // datas.push({
+        //     sensorId: 2,
+        //     value: lastValues['2'],
+        //     timestamp: nowDate.getTime().toString(),
+        //     delta: -1
+        // });
 
 
         console.log(datas)
@@ -113,7 +113,7 @@ async function loadLatest() {
 
 }
 
-loadLatest().then(() => {
+// loadLatest().then(() => {
     start();
-})
+// })
 

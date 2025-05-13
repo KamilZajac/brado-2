@@ -54,8 +54,11 @@ COPY --from=connector-builder /repo/apps/connector/dist ./apps/connector/dist
 RUN apt-get update && \
     apt-get install -y socat && \
     rm -rf /var/lib/apt/lists/*
-CMD socat -d -d PTY,link=/tmp/ttyMOXA1,raw TCP:89.22.215.52:950 & \
-    node apps/connector/dist/index.js
+
+COPY --from=connector-builder /repo/connector_entrypoint.sh ./connector_entrypoint.sh
+RUN chmod +x ./connector_entrypoint.sh
+
+ENTRYPOINT ["./connector_entrypoint.sh"]
 
 # --- frontend final image ---
 FROM nginx:alpine as frontend
