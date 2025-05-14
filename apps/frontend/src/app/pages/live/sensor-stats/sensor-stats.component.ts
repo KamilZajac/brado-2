@@ -10,7 +10,7 @@ import {PieChartComponent} from "../../../components/pie-chart/pie-chart.compone
   imports: [ChartComponent, PieChartComponent]
 })
 export class SensorStatsComponent {
-  public target = 5000;
+  public hourlyTarget = 5000;
 
   @ViewChild('chartContainer', {static: true}) chartContainer!: ElementRef<HTMLDivElement>;
 

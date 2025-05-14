@@ -1,10 +1,23 @@
-@if (weeklyReadings() | keyvalue ; as readings) {
+<ion-content class="gray-bg">
+<!--  <div class="sensor-grid">-->
+
+  @if (weeklyReadings() | keyvalue ; as readings) {
 
     @for (keypar of readings; track keypar.key) {
 
-        <app-chart [data]="keypar.value" />
+          <div class="sensor-card">
+
+          <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" />
+
+          </div>
+
+
+
 
     }
 
 }
+
+<!--  </div>-->
+</ion-content>
 

@@ -2,8 +2,8 @@ import {Component, Input, OnInit, ViewChild} from '@angular/core';
 import {HourlyReading, LiveReading} from "@brado/types";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
-import {BarController, BarElement, CategoryScale, ChartData, ChartOptions } from 'chart.js';
-import { BaseChartDirective } from 'ng2-charts';
+import {BarController, BarElement, CategoryScale, ChartData, ChartOptions} from 'chart.js';
+import {BaseChartDirective} from 'ng2-charts';
 import {
   Chart as ChartJS,
   LineElement,
@@ -52,20 +52,31 @@ export class ChartComponent implements OnInit {
   @Input() data: HourlyReading[] | LiveReading[] = [];
   @Input() dataMultiple: HourlyReading[][] | LiveReading[][] = [];
   @Input() disableAnimation = false;
-
+  @Input() isLive = false;
+  @Input() hourlyTarget = 5000;
 
   @Input() chartType: 'line' | 'bar' = 'line';
-  @Input() keyToDisplay: 'total' | 'value' | 'average' = 'value';
-
+  @Input() keyToDisplay: 'total' | 'value' | 'average' | 'delta' | 'dailyTotal' = 'value';
 
   chartData!: ChartData<'line'>;
   chartOptions: ChartOptions = {}
 
 
+
   ngOnInit() {
+    this.buildChartOptions()
+
     this.prepareChart();
 
-    console.log(this.disableAnimation)
+
+    console.log(this.chartOptions)
+  }
+
+  ngOnChanges() {
+    this.prepareChart();
+  }
+
+  buildChartOptions () {
     this.chartOptions = {
       responsive: true,
       animation: {
@@ -77,21 +88,26 @@ export class ChartComponent implements OnInit {
         },
         annotation: {
           annotations: {
-            thresholdLine: {
-              type: 'line',
-              yMin: 80, // ← your value here
-              yMax: 80, // ← same as yMin for horizontal line
-              borderColor: 'red',
-              borderWidth: 2,
-              borderDash: [6, 6], // optional dashed line
-              label: {
-                display: true,
-                content: 'Cel',
-                position: 'start',
-                backgroundColor: 'rgba(255,0,0,0.1)',
-                color:'#000'
+            ...(this.getTarget ? {
+              thresholdLine: {
+                type: 'line',
+
+                yMin: this.getTarget,
+                yMax: this.getTarget,
+
+                borderColor: 'red',
+                borderWidth: 2,
+                borderDash: [6, 6], // optional dashed line
+                label: {
+                  display: true,
+                  content: 'Cel',
+                  position: 'start',
+                  backgroundColor: 'rgba(255,0,0,0.1)',
+                  color: '#000'
+                }
               }
-            }
+
+            } : {} ),
           },
         },
         tooltip: {
@@ -117,12 +133,12 @@ export class ChartComponent implements OnInit {
         x: {
           type: 'time',  // this now works
           time: {
-            unit: 'minute',
+            unit: 'hour',
             tooltipFormat: 'yyyy-MM-dd HH:mm:ss',
             displayFormats: {
-              minute: 'HH:mm',
+              // minute: 'HH:mm',
               hour: 'HH:mm',
-              second: 'HH:mm:ss'
+              // second: 'HH:mm:ss'
             }
           },
           title: {
@@ -138,19 +154,14 @@ export class ChartComponent implements OnInit {
         }
       }
     };
-
-  }
-
-  ngOnChanges() {
-    this.prepareChart();
   }
 
   prepareChart() {
 
     let datasets: any = [];
 
-    if(this.dataMultiple.length > 0) {
-      datasets = (this.dataMultiple .map((dataset, index) => ({
+    if (this.dataMultiple.length > 0) {
+      datasets = (this.dataMultiple.map((dataset, index) => ({
         label: `Dataset ${index + 1}`,
         data: dataset.map((read) => ({
           x: +read.timestamp,
@@ -161,9 +172,10 @@ export class ChartComponent implements OnInit {
         borderColor: this.getColorForIndex(index), // Funkcja pomocnicza, aby nadać różne kolory
         backgroundColor: this.getColorForIndex(index),
       })))
-    };
+    }
+    ;
     if (this.data.length > 0) {
-      datasets =  [
+      datasets = [
         {
           label: 'Sensor Values',
           data: (this.data).map((read) => ({
@@ -178,17 +190,18 @@ export class ChartComponent implements OnInit {
       ]
     }
 
-    console.log(datasets)
+    // console.log(datasets)
     this.chartData = {
       datasets
     }
 
-    console.log(this.chartData  )
+    // console.log(this.chartData)
   }
 
 
   selectChartType(type: 'bar' | 'line') {
     this.chartType = type;
+
   }
 
   getColorForIndex(index: number): string {
@@ -197,15 +210,46 @@ export class ChartComponent implements OnInit {
   }
 
 
+  get getTarget() {
+
+
+    // if (this.isLive) {
+      switch (this.keyToDisplay) {
+        case 'value':
+          return null;
+        case 'delta':
+          return this.isLive ? this.hourlyTarget / 60 : this.hourlyTarget
+        case 'dailyTotal':
+          return this.hourlyTarget * 8
+        case 'average':
+          return this.hourlyTarget / 60
+        default:
+          return 0
+
+
+      }
+    // }
+
+    // if (this.keyToDisplay == 'average') {
+    //
+    //
+    // }
+    // console.log(this.keyToDisplay)
+    // return 80;
+  }
+
+
   public get availableKeys(): string[] {
-    console.log(this.data)
-    const arr = this.dataMultiple.length > 0 ? [...this.dataMultiple[0]]: [...this.data];
-    return Object.keys([...arr ][0]).filter(k => allowedKeys.includes(k))
+    // console.log(this.data)
+    const arr = this.dataMultiple.length > 0 ? [...this.dataMultiple[0]] : [...this.data];
+    return Object.keys([...arr][0]).filter(k => allowedKeys.includes(k))
   }
 
   selectDataKey(key: any) {
     this.keyToDisplay = key;
     this.prepareChart();
+    this.buildChartOptions()
+
   }
 
   getKeyName(key: string) {

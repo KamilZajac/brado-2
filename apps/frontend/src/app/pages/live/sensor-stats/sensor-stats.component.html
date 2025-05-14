@@ -3,29 +3,23 @@
   @if (data && data.readings) {
     <div class="chart-wrapper" #chartContainer>
       <div class="chart-container">
-        <!--        <apx-chart-->
-        <!--          [series]="[percentage5]"-->
-        <!--          [chart]="gaugeChart"-->
-        <!--          [plotOptions]="gaugePlotOptions"-->
-        <!--          [labels]="['5 Min']"-->
-        <!--          [fill]=gaugeFill-->
-        <!--        ></apx-chart>-->
 
         <app-pie-chart
           [value]="data.average5"
           [disableAnimation]="true"
-          [target]="target / 60"
+          [target]="hourlyTarget / 60"
         ></app-pie-chart>
         <p>Średnia - 5min</p>
 
       </div>
+
 
       <div class="chart-container">
 
         <app-pie-chart
           [value]="data.average60"
           [disableAnimation]="true"
-          [target]="target / 60"
+          [target]="hourlyTarget / 60"
         ></app-pie-chart>
         <p>Średnia - 60min</p>
       </div>
@@ -34,6 +28,7 @@
     <app-chart
       [data]="data.readings"
       [disableAnimation]="true"
+      [isLive]="true"
     >
     </app-chart>
   } @else {

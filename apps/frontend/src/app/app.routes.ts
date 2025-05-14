@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import {WeeklyComponent} from "./pages/weekly/weekly.component";
 import {LiveComponent} from "./pages/live/live.component";
 import {CompareComponent} from "./pages/compare/compare.component";
+import {SettingsComponent} from "./pages/settings/settings.component";
 
 export const routes: Routes = [
   {
@@ -20,6 +21,10 @@ export const routes: Routes = [
   {
     path: 'compare',
     component: CompareComponent,
+  },
+  {
+    path: 'settings',
+    component: SettingsComponent,
   },
 
 ];

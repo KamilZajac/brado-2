@@ -1,0 +1,35 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Ustawienia</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list>
+    <!-- Pole wprowadzania dla Hourly Target -->
+    <ion-item>
+      <ion-label position="stacked">Cel godzinowy</ion-label>
+      <ion-input type="number" [(ngModel)]="hourlyTarget" placeholder="Wprowadź cel godzinowy"></ion-input>
+    </ion-item>
+
+    <!-- Pole wprowadzania dla Daily Target -->
+    <ion-item>
+      <ion-label position="stacked">Cel dzienny</ion-label>
+      <ion-input type="number" [(ngModel)]="dailyTarget" placeholder="Wprowadź cel dzienny"></ion-input>
+    </ion-item>
+
+    <!-- Dynamicznie generowane pola dla sensorów -->
+
+    @for (id of sensorIds; track id) {
+
+    <ion-item >
+      <ion-label position="stacked">Sensor-{{ id }}</ion-label>
+      <ion-input [(ngModel)]="sensorValues[id]" placeholder="Wprowadź nazwę dla sensora"></ion-input>
+    </ion-item>
+
+    }
+
+  </ion-list>
+
+  <ion-button expand="block" (click)="saveSettings()">Zapisz ustawienia</ion-button>
+</ion-content>

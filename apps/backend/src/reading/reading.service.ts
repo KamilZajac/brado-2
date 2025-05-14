@@ -18,7 +18,6 @@ import { ReadingsGateway } from './readings.gateway';
 import { LiveReadingEntity } from './entities/minute-reading.entity';
 import { ReadingsHelpers } from './readings-helpers';
 import { HourlyReadingEntity } from './entities/hourly-reading-entity';
-import { firstValueFrom, forkJoin } from 'rxjs';
 import { DateTime } from 'luxon';
 
 @Injectable()
@@ -78,7 +77,7 @@ export class ReadingService {
         const rWithTotal = {
           ...rToSave,
           dailyTotal: (currentTotal) + delta,
-        }
+        };
 
         readingsWithTotals.push();
 

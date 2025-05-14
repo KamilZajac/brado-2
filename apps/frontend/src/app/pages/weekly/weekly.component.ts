@@ -10,6 +10,7 @@ import {LineChartComponent} from "../../components/line-chart/line-chart.compone
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ChartComponent} from "../../components/chart/chart.component";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
+import { IonContent } from '@ionic/angular/standalone';
 
 
 // const getStartOfWeek = () => {
@@ -31,10 +32,11 @@ import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
   templateUrl: './weekly.component.html',
   styleUrls: ['./weekly.component.scss'],
   providers: [DataService],
-  imports: [ KeyValuePipe, LineChartComponent, ChartComponent, ReadingsToSeriesPipe]
+  imports: [ KeyValuePipe, IonContent, ChartComponent, ReadingsToSeriesPipe]
 })
 export class WeeklyComponent implements OnInit {
   weeklyReadings = signal<{ [key: string]: HourlyReading[] }>({});
+  hourlyTarget = 5000;
 
 
   // public chartOptions: {[key: string] : ChartOptions } = {};

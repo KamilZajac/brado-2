@@ -1,6 +1,6 @@
 .row {
   display: flex;
-
+  margin-bottom: 1rem;
   justify-content: space-between;
 }
 .chart-type-selector {
@@ -37,4 +37,9 @@
       color: white;
     }
   }
+}
+
+
+canvas {
+  max-height: 300px;
 }
