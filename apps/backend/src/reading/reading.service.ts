@@ -33,9 +33,11 @@ export class ReadingService {
   private dailyTotals = new Map<string, number>(); // key: `${sensorId}-${yyyy-mm-dd}`
 
   private getDateKey(sensorId: number, timestamp: string): string {
-    const dateInPoland = DateTime.fromMillis(+timestamp, { zone: 'Europe/Warsaw' });
+    const dateInPoland = DateTime.fromMillis(+timestamp, {
+      zone: 'Europe/Warsaw',
+    });
     const ymd = dateInPoland.toFormat('yyyy-MM-dd');
-    console.log(dateInPoland)
+    console.log(dateInPoland);
     return `${sensorId}-${ymd}`;
   }
 
@@ -76,13 +78,13 @@ export class ReadingService {
 
         const rWithTotal = {
           ...rToSave,
-          dailyTotal: (currentTotal) + delta,
+          dailyTotal: currentTotal + delta,
         };
 
         readingsWithTotals.push();
 
         this.dailyTotals.set(dateKey, rWithTotal.dailyTotal);
-        console.log('SETTING TOTAL', dateKey, rWithTotal.dailyTotal)
+        console.log('SETTING TOTAL', dateKey, rWithTotal.dailyTotal);
 
         lastValue = r.value;
       }
@@ -103,7 +105,6 @@ export class ReadingService {
         uniqueSensorIds,
         60,
       );
-
 
       const liveUpdate: LiveUpdate = {};
 
@@ -226,21 +227,20 @@ export class ReadingService {
 
     const liveUpdate: LiveUpdate = {};
 
-
-
-
-
     uniqueSensorIds.forEach((id) => {
       const todayWithTotal = this.attachRunningTotal(
-          todayData.filter((reading) => reading.sensorId === id),
+        todayData.filter((reading) => reading.sensorId === id),
       );
 
       const lastRWithTotal = todayWithTotal[todayWithTotal.length - 1];
-      const dateKey = this.getDateKey(lastRWithTotal.sensorId, lastRWithTotal.timestamp);
+      const dateKey = this.getDateKey(
+        lastRWithTotal.sensorId,
+        lastRWithTotal.timestamp,
+      );
 
       this.dailyTotals.set(dateKey, lastRWithTotal.dailyTotal ?? 0);
 
-      console.log('SETTING TOTAL', dateKey, lastRWithTotal.dailyTotal ?? 0)
+      console.log('SETTING TOTAL', dateKey, lastRWithTotal.dailyTotal ?? 0);
 
       liveUpdate[id] = {
         average5: average5[id],
@@ -353,12 +353,10 @@ export class ReadingService {
       )
       .flat();
 
-    console.log(hourlyReadings[0]);
     const toSave = this.hourlyReadingsRepo.create(hourlyReadings);
 
     try {
-      console.log(toSave[0]);
-      this.hourlyReadingsRepo.save(toSave);
+      this.hourlyReadingsRepo.upsert(toSave, ['timestamp', 'sensorId']);
       return Promise.resolve('ok');
     } catch (error) {
       throw error;
@@ -398,12 +396,43 @@ export class ReadingService {
     );
   }
 
-  getHourly(fromTS: string, toTS: string) {
-    return this.hourlyReadingsRepo.find({
+  async getHourly(fromTS: string, toTS: string) {
+    const readings = await this.hourlyReadingsRepo.find({
       where: {
         timestamp: Between(fromTS, toTS),
       },
       order: { timestamp: 'ASC' },
     });
+
+    const uniqueSensorIds = Array.from(
+      new Set(readings.map((entity) => entity.sensorId)),
+    );
+
+    uniqueSensorIds.forEach((sensorId) => {
+      let currentlyCalculatedDate = '';
+      let currentSum = 0;
+
+      readings
+        .filter((r) => r.sensorId === sensorId)
+          .sort((a,b) => +a.timestamp - +b.timestamp)
+        .forEach((r) => {
+          const dt = ReadingsHelpers.tsToPolishDate(+r.timestamp).toFormat(
+            'dd-MM-yyyy',
+          );
+
+
+          if (currentlyCalculatedDate !== dt) {
+            currentlyCalculatedDate = dt;
+            console.log(dt)
+
+            currentSum = 0;
+          }
+          currentSum += r.delta;
+          r.dailyTotal = currentSum;
+        });
+    });
+
+
+    return readings;
   }
 }

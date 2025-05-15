@@ -1,7 +1,8 @@
-import {Column, Entity } from "typeorm";
+import {Column, Entity, Unique } from "typeorm";
 import {BaseReading} from "./base-reading";
 
 @Entity('hourly_reading')
+@Unique(['sensorId', 'timestamp'])
 export class HourlyReadingEntity extends BaseReading{
     @Column({ type: 'int' })
     min: number;

@@ -23,6 +23,7 @@ const typeormConf = {
     database: process.env.POSTGRES_DB,
     entities: [HourlyReadingEntity, LiveReadingEntity, SettingsEntity],
     synchronize: true,
+    // logging: true,
 }
 
 if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
