@@ -3,6 +3,7 @@ import {WeeklyComponent} from "./pages/weekly/weekly.component";
 import {LiveComponent} from "./pages/live/live.component";
 import {CompareComponent} from "./pages/compare/compare.component";
 import {SettingsComponent} from "./pages/settings/settings.component";
+import {SettingsResolver} from "./services/settings/settings.service";
 
 export const routes: Routes = [
   {
@@ -25,6 +26,9 @@ export const routes: Routes = [
   {
     path: 'settings',
     component: SettingsComponent,
+    resolve: {
+      settings: SettingsResolver
+    }
   },
 
 ];

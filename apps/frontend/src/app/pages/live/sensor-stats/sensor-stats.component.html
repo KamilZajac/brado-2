@@ -2,8 +2,9 @@
 
   @if (data && data.readings) {
     <div class="chart-wrapper" #chartContainer>
-      <div class="chart-container">
+      <p>{{sensorName}}</p>
 
+      <div class="chart-container">
         <app-pie-chart
           [value]="data.average5"
           [disableAnimation]="true"
@@ -29,6 +30,7 @@
       [data]="data.readings"
       [disableAnimation]="true"
       [isLive]="true"
+      [hourlyTarget]="hourlyTarget"
     >
     </app-chart>
   } @else {

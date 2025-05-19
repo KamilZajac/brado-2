@@ -29,3 +29,10 @@ export type HourlyReading = LiveReading &{
     min: number;
     average: number;
 }
+
+
+
+export interface SettingsRequest {
+    hourlyTarget: number;
+    sensorNames: string[];
+}

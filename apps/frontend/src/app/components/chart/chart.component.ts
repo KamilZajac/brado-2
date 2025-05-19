@@ -19,8 +19,11 @@ import {
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
 
+
+
 import 'chartjs-adapter-date-fns';
 import annotationPlugin from 'chartjs-plugin-annotation';
+import {hourlyBackgroundPlugin} from "./plugins/background-plugin";
 
 ChartJS.register(
   LineController,
@@ -36,7 +39,8 @@ ChartJS.register(
   Legend,
   Filler,
   zoomPlugin,
-  annotationPlugin
+  annotationPlugin,
+  hourlyBackgroundPlugin
 );
 
 const allowedKeys = ['delta', 'value', 'average', 'dailyTotal'];
@@ -53,22 +57,18 @@ export class ChartComponent implements OnInit {
   @Input() dataMultiple: HourlyReading[][] | LiveReading[][] = [];
   @Input() disableAnimation = false;
   @Input() isLive = false;
-  @Input() hourlyTarget = 5000;
+  @Input() hourlyTarget = 0;
 
   @Input() chartType: 'line' | 'bar' = 'line';
   @Input() keyToDisplay: 'total' | 'value' | 'average' | 'delta' | 'dailyTotal' = 'value';
 
   chartData!: ChartData<'line'>;
   chartOptions: ChartOptions = {}
-
-
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
 
   ngOnInit() {
     this.buildChartOptions()
-
     this.prepareChart();
-
-
     console.log(this.chartOptions)
   }
 
@@ -83,6 +83,9 @@ export class ChartComponent implements OnInit {
         duration: this.disableAnimation ? 0 : 2000,
       },
       plugins: {
+        hourlyBackground: {
+          hourlyTarget: this.hourlyTarget
+        },
         legend: {
           display: false,
         },
@@ -113,8 +116,30 @@ export class ChartComponent implements OnInit {
         tooltip: {
           mode: 'index',
           intersect: false,
+          callbacks: {
+            title: (tooltipItems) => {
+              // Show the timestamp (x value)
+              const item = tooltipItems[0];
+              const date = new Date(item.parsed.x);
+              return date.toLocaleString(); // or format as needed
+            },
+            label: (tooltipItem) => {
+              const y = tooltipItem.parsed.y;
+              return `Wartość: ${y}`;
+            },
+            afterLabel: (tooltipItem) => {
+              console.log(tooltipItem)
+              const data = (tooltipItem.raw as {data: LiveReading})?.data
+              return `Δ Delta: ${data?.delta} \nSuma: ${data?.dailyTotal}`;
+            }
+          }
         },
         zoom: {
+          pan: {
+            enabled: true,
+            mode: 'xy', // horizontal only
+            modifierKey: 'shift', // Optional: hold Ctrl while dragging to pan
+          },
           zoom: {
             wheel: {
               enabled: true,
@@ -173,7 +198,7 @@ export class ChartComponent implements OnInit {
         backgroundColor: this.getColorForIndex(index),
       })))
     }
-    ;
+
     if (this.data.length > 0) {
       datasets = [
         {
@@ -181,6 +206,7 @@ export class ChartComponent implements OnInit {
           data: (this.data).map((read) => ({
             x: +read.timestamp,
             y: +(read as any)[this.keyToDisplay],
+            data: read
           })),
           fill: false,
           tension: 0.1,
@@ -194,8 +220,6 @@ export class ChartComponent implements OnInit {
     this.chartData = {
       datasets
     }
-
-    // console.log(this.chartData)
   }
 
 
@@ -211,7 +235,9 @@ export class ChartComponent implements OnInit {
 
 
   get getTarget() {
-
+      if(!this.hourlyTarget) {
+        return 0
+      }
 
     // if (this.isLive) {
       switch (this.keyToDisplay) {
@@ -264,6 +290,11 @@ export class ChartComponent implements OnInit {
     } else {
       return key
     }
+  }
+
+  onChartDoubleClick() {
+    this.chart?.chart?.resetZoom();
+
   }
 }
 

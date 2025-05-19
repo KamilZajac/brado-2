@@ -1,19 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
 
-import {BarController, BarElement, CategoryScale, ChartData, ChartOptions } from 'chart.js';
+import { ChartData } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import {
   Chart as ChartJS,
-  LineElement,
-  PointElement,
-  LinearScale,
-  TimeScale,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  LineController,
-  LineOptions,
   DoughnutController,
   ArcElement,
 } from 'chart.js';

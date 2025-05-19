@@ -1,6 +1,7 @@
-import { Controller, Get, Post , Body} from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { SettingsEntity } from './entities/setting.entity';
+import { SettingsRequest } from '@brado/types';
 
 @Controller('settings')
 export class SettingsController {
@@ -9,20 +10,14 @@ export class SettingsController {
   @Post()
   async saveSettings(
     @Body()
-    body: {
-      hourlyTarget: number;
-      dailyTarget: number;
-      sensors: string[];
-    },
+    body: SettingsRequest,
   ): Promise<SettingsEntity> {
     return this.settingsService.saveSettings(body);
   }
 
   @Get()
   async getSettings(): Promise<SettingsEntity | null> {
-    // Pobierz aktualne ustawienia (załóżmy, że jest tylko jeden zestaw ustawień w tabeli)
-    console.log(await this.settingsService.getSettings())
+    console.log(await this.settingsService.getSettings());
     return this.settingsService.getSettings();
   }
-
 }
