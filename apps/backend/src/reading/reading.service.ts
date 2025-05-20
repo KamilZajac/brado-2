@@ -357,7 +357,7 @@ export class ReadingService {
 
     try {
       this.hourlyReadingsRepo.upsert(toSave, ['timestamp', 'sensorId']);
-      return Promise.resolve('ok');
+      return Promise.resolve('Aggregated');
     } catch (error) {
       throw error;
     }

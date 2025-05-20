@@ -1,52 +1,52 @@
-import {Module} from '@nestjs/common';
-import {AppController} from './app.controller';
-import {AppService} from './app.service';
-import {DataController} from "./data/data.controller";
-import {DataService} from "./data/data.service";
-import {ReadingModule} from './reading/reading.module';
-import {DataModule} from "./data/data.module";
-import {TypeOrmModule} from "@nestjs/typeorm";
-import {HourlyReadingEntity} from "./reading/entities/hourly-reading-entity";
-import {LiveReadingEntity} from "./reading/entities/minute-reading.entity";
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { DataController } from './data/data.controller';
+import { DataService } from './data/data.service';
+import { ReadingModule } from './reading/reading.module';
+import { DataModule } from './data/data.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { HourlyReadingEntity } from './reading/entities/hourly-reading-entity';
+import { LiveReadingEntity } from './reading/entities/minute-reading.entity';
 import { SettingsModule } from './settings/settings.module';
 
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import {SettingsEntity} from "./settings/entities/setting.entity";
+import { SettingsEntity } from './settings/entities/setting.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 const typeormConf = {
-    type: 'postgres',
-    host: process.env.POSTGRES_HOST,
-    port: +(process.env.POSTGRES_PORT || 5432),
-    username: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB,
-    entities: [HourlyReadingEntity, LiveReadingEntity, SettingsEntity],
-    synchronize: true,
-    // logging: true,
-}
+  type: 'postgres',
+  host: process.env.POSTGRES_HOST,
+  port: +(process.env.POSTGRES_PORT || 5432),
+  username: process.env.POSTGRES_USER,
+  password: process.env.POSTGRES_PASSWORD,
+  database: process.env.POSTGRES_DB,
+  entities: [HourlyReadingEntity, LiveReadingEntity, SettingsEntity],
+  synchronize: true,
+  // logging: true,
+};
 
 if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
-    typeormConf.host = 'localhost';
-    typeormConf.username = 'brado';
-    typeormConf.password = 'brado';
-    typeormConf.database = 'brado';
+  typeormConf.host = 'localhost';
+  typeormConf.username = 'brado';
+  typeormConf.password = 'brado';
+  typeormConf.database = 'brado';
 
-    dotenv.config({path: path.resolve(__dirname, '../../../.env')});
+  dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 }
 
-console.log(typeormConf
-)
+console.log(typeormConf);
 
 @Module({
-    imports: [
-        ReadingModule,
-        DataModule,
-        TypeOrmModule.forRoot(typeormConf as any),
-        SettingsModule,
-    ],
-    controllers: [AppController, DataController],
-    providers: [AppService, DataService],
+  imports: [
+    ReadingModule,
+    DataModule,
+    TypeOrmModule.forRoot(typeormConf as any),
+    SettingsModule,
+    ScheduleModule.forRoot(),
+  ],
+  controllers: [AppController, DataController],
+  providers: [AppService, DataService],
 })
-export class AppModule {
-}
+export class AppModule {}
