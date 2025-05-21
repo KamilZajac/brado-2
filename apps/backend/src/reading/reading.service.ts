@@ -1,13 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  MoreThan,
-  Repository,
-  LessThan,
-  MoreThanOrEqual,
-  Between,
-  In,
-} from 'typeorm';
+import { MoreThan, Repository, LessThan, Between, In } from 'typeorm';
 import {
   LiveReading,
   DataReadingWithDeltas,
@@ -19,6 +12,7 @@ import { LiveReadingEntity } from './entities/minute-reading.entity';
 import { ReadingsHelpers } from './readings-helpers';
 import { HourlyReadingEntity } from './entities/hourly-reading-entity';
 import { DateTime } from 'luxon';
+import { exportToExcel } from './export.helper';
 
 @Injectable()
 export class ReadingService {
@@ -414,16 +408,15 @@ export class ReadingService {
 
       readings
         .filter((r) => r.sensorId === sensorId)
-          .sort((a,b) => +a.timestamp - +b.timestamp)
+        .sort((a, b) => +a.timestamp - +b.timestamp)
         .forEach((r) => {
           const dt = ReadingsHelpers.tsToPolishDate(+r.timestamp).toFormat(
             'dd-MM-yyyy',
           );
 
-
           if (currentlyCalculatedDate !== dt) {
             currentlyCalculatedDate = dt;
-            console.log(dt)
+            console.log(dt);
 
             currentSum = 0;
           }
@@ -432,7 +425,12 @@ export class ReadingService {
         });
     });
 
-
     return readings;
+  }
+
+  async exportData(fromTS: string, toTS: string): Promise<Buffer> {
+    const hourly = await this.getHourly(fromTS, toTS);
+
+    return exportToExcel(hourly);
   }
 }
