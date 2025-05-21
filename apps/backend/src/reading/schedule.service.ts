@@ -1,14 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import {ReadingService} from "./reading.service";
+import { ReadingService } from './reading.service';
 
 @Injectable()
-export class ScheduleService {
+export class ScheduleService implements OnModuleInit {
+  onModuleInit() {
+    console.log('Cron service initialized');
+  }
+
   private readonly logger = new Logger(ScheduleService.name);
 
   constructor(private readingService: ReadingService) {}
 
-  @Cron(CronExpression.EVERY_30_SECONDS)
+  @Cron('0 15 * * *', {
+    timeZone: 'Europe/Warsaw', // or your desired TZ
+  })
   handleCron() {
     this.readingService
       .aggregate()
