@@ -36,11 +36,13 @@ jobs:
             echo "NUMBER_OF_REGISTERS=${{ secrets.NUMBER_OF_REGISTERS }}" >> .env
             echo "READINGS_ENDPOINT=${{ secrets.READINGS_ENDPOINT }}" >> .env
 
-            echo "stopping containers"
-            sudo docker-compose down --remove-orphans
-            
-            echo "📦 Rebuilding Docker images..."
-            sudo docker-compose build
-
-            echo "🔁 Restarting containers..."
-            sudo docker-compose up -d
+#            echo "stopping containers"
+#            sudo docker-compose down --remove-orphans
+#
+#            echo "📦 Rebuilding Docker images..."
+#            sudo docker-compose build
+#
+#            echo "🔁 Restarting containers..."
+#            sudo docker-compose up -d
+              sudo docker-compose build backend frontend
+              sudo docker-compose up -d backend frontend

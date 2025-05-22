@@ -54,4 +54,12 @@ export class DataService {
     return this.http.get<HourlyReading[]>(environment.apiUrl + `/reading/hourly/${fromTS}/${toTS}`)
   }
 
+  public exportData(fromTS: number, toTS: number) {
+    return this.http.get(environment.apiUrl + `/reading/export/${fromTS}/${toTS}`, {
+      responseType: 'blob',
+    });
+  }
+
+
+
 }

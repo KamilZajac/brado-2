@@ -9,12 +9,14 @@
 
           <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" />
 
+
           </div>
 
 
 
 
     }
+    <button class="button active"  (click)="exportDataToExcel()">Export</button>
 
 }
 

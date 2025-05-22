@@ -92,4 +92,16 @@ export class WeeklyComponent implements OnInit {
   //   this.totalProductionPerSensor = Array.from(uniqueSensors).map(sensor => [sensor, Math.max(...this.data.filter(r => r.sensorId === sensor).map(r => r.value))])
   //   console.log(this.totalProductionPerSensor)
   // }
+  exportDataToExcel() {
+    const {from, to } = getWeeklyTimestamps()
+
+    this.dataService.exportData(from, to).subscribe((blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'report.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
+  }
 }
