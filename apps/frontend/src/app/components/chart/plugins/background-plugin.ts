@@ -12,6 +12,10 @@ export const hourlyBackgroundPlugin: any = {
 
     const hourlyTarget = options?.hourlyTarget || 0;
 
+    if(!hourlyTarget) {
+      return
+    }
+
     const dataset = chart.data.datasets[0];
     if (!dataset || !Array.isArray(dataset.data)) return;
 

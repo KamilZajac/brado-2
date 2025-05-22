@@ -45,6 +45,12 @@ ChartJS.register(
 
 const allowedKeys = ['delta', 'value', 'average', 'dailyTotal'];
 
+interface Series {
+  x: number;
+  y: number | null;
+  data: Partial<HourlyReading | LiveReading>
+}
+
 @Component({
   selector: 'app-chart',
   templateUrl: './chart.component.html',
@@ -115,7 +121,7 @@ export class ChartComponent implements OnInit {
         },
         tooltip: {
           mode: 'index',
-          intersect: false,
+          intersect: true,
           callbacks: {
             title: (tooltipItems) => {
               // Show the timestamp (x value)
@@ -128,9 +134,8 @@ export class ChartComponent implements OnInit {
               return `Wartość: ${y}`;
             },
             afterLabel: (tooltipItem) => {
-              console.log(tooltipItem)
               const data = (tooltipItem.raw as {data: LiveReading})?.data
-              return `Δ Delta: ${data?.delta} \nSuma: ${data?.dailyTotal}`;
+              return `Δ Delta: ${data?.delta} \nSuma: ${data?.dailyTotal} \nData: ${new Date(+data?.timestamp).toLocaleString()}`;
             }
           }
         },
@@ -186,15 +191,30 @@ export class ChartComponent implements OnInit {
     let datasets: any = [];
 
     if (this.dataMultiple.length > 0) {
-      datasets = (this.dataMultiple.map((dataset, index) => ({
-        label: `Dataset ${index + 1}`,
-        data: dataset.map((read) => ({
+
+      const baseStartTimestamp = +this.dataMultiple[0][0].timestamp
+
+      let normalizedSeries: Series[][] = this.dataMultiple.map(readings => {
+        const series = readings.map((read) => ({
           x: +read.timestamp,
-          y: +read.value
-        })),
+          y: +read.value,
+          data: read
+        }));
+        return this.normalizeDatasetToBaseStart(series, baseStartTimestamp)
+      })
+
+      console.log('STEP1')
+      console.log(JSON.parse(JSON.stringify(normalizedSeries)))
+      console.log('STEP2')
+      normalizedSeries = this.fillMissingTimestampsWithNullsAndData(normalizedSeries);
+      console.log(JSON.parse(JSON.stringify(normalizedSeries)))
+
+      datasets = (normalizedSeries.map((dataset, index) => ({
+        label: `Dataset ${index + 1}`,spanGaps: true,
+        data: dataset.map((read) => (read)),
         fill: false,
         tension: 0.1,
-        borderColor: this.getColorForIndex(index), // Funkcja pomocnicza, aby nadać różne kolory
+        borderColor: this.getColorForIndex(index),
         backgroundColor: this.getColorForIndex(index),
       })))
     }
@@ -216,7 +236,6 @@ export class ChartComponent implements OnInit {
       ]
     }
 
-    // console.log(datasets)
     this.chartData = {
       datasets
     }
@@ -256,14 +275,52 @@ export class ChartComponent implements OnInit {
       }
     // }
 
-    // if (this.keyToDisplay == 'average') {
-    //
-    //
-    // }
-    // console.log(this.keyToDisplay)
-    // return 80;
+
   }
 
+
+  normalizeDatasetToBaseStart(
+    dataset: Series[],
+    baseStart: number
+  ): Series[] {
+    if (!dataset.length) return [];
+
+    const originalStart = dataset[0].x;
+
+    return dataset.map(point => ({
+      x: baseStart + (+point.x - +originalStart),
+      y: point.y,
+      data: point.data
+    }));
+  }
+
+
+  fillMissingTimestampsWithNullsAndData(datasets: Series[][]): Series[][] {
+    // 1. Collect all unique timestamps
+    const allTimestamps = new Set<number>();
+    datasets.forEach(dataset => {
+      dataset.forEach(point => allTimestamps.add(point.x));
+    });
+
+    const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
+
+    // 2. Normalize each dataset
+    const normalized = datasets.map(dataset => {
+      const pointMap = new Map<number, Series>();
+      dataset.forEach(point => pointMap.set(point.x, point));
+
+      return sortedTimestamps.map(x => {
+        const existing = pointMap.get(x);
+        if (existing) {
+          return { ...existing };
+        } else {
+          return { x, y: null, data: {} };
+        }
+      });
+    });
+
+    return normalized;
+  }
 
   public get availableKeys(): string[] {
     // console.log(this.data)
@@ -286,7 +343,7 @@ export class ChartComponent implements OnInit {
     } else if (key === 'value') {
       return 'Licznik'
     } else if (key === 'dailyTotal') {
-      return 'Dziś'
+      return 'Dziennie'
     } else {
       return key
     }
@@ -294,7 +351,6 @@ export class ChartComponent implements OnInit {
 
   onChartDoubleClick() {
     this.chart?.chart?.resetZoom();
-
   }
 }
 

@@ -1,31 +1,75 @@
-<ion-button expand="block" color="primary" (click)="emitChanges()" [disabled]="dateRanges.length === 0">
-  ➕ Porównaj!
-</ion-button>
+<!--<ion-button expand="block" color="primary" (click)="emitChanges()" [disabled]="dateRanges.length === 0">-->
+<!--  ➕ Porównaj!-->
+<!--</ion-button>-->
 
 
 
-<!--<ion-list>-->
-  <div *ngFor="let range of dateRanges; let i = index" class="ion-margin-bottom">
+<!--&lt;!&ndash;<ion-list>&ndash;&gt;-->
+<!--  <div *ngFor="let range of dateRanges; let i = index" class="ion-margin-bottom">-->
 
 
-    <ion-range-calendar
-      [(ngModel)]="dateRanges[i]"
-      [options]="optionsRange"
-      [type]="'js-date'"
-      [format]="'yyyy-MM-dd'">
-    </ion-range-calendar>
+<!--    <ion-range-calendar-->
+<!--      [(ngModel)]="dateRanges[i]"-->
+<!--      [options]="optionsRange"-->
+<!--      [type]="'js-date'"-->
+<!--      [format]="'yyyy-MM-dd'"-->
+<!--    >-->
+<!--    </ion-range-calendar>-->
 
-    <hr>
-    <ion-button expand="full" color="danger" (click)="removeRange(i)">
-      Usuń zakres
-    </ion-button>
-    <hr>
+<!--    <hr>-->
+<!--    <ion-button expand="full" color="danger" (click)="removeRange(i)">-->
+<!--      Usuń zakres-->
+<!--    </ion-button>-->
+<!--    <hr>-->
+
+<!--  </div>-->
+
+
+
+
+<!--<ion-button expand="block" color="primary" (click)="addRange()">-->
+<!--  ➕ Dodaj nowy zakres-->
+<!--</ion-button>-->
+<ion-content class="gray-bg ion-padding">
+
+  <ion-button expand="block" color="success" class="ion-margin-top" (click)="emitChanges()">
+    Wyświetl dane
+  </ion-button>
+  <div *ngFor="let range of dateRanges; let i = index" class="range-row ion-margin-top">
+
+    <ion-grid>
+      <ion-row align-items-center class="sensor-card">
+
+        <!-- Left column: Name + Delete -->
+        <ion-col size="3" class="ion-text-center">
+          <div class="range-label">
+            Zakres {{ i + 1 }}
+          </div>
+          <ion-button size="small" color="danger" (click)="removeRange(i)">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+
+        <!-- Right column: Calendar -->
+        <ion-col size="9">
+          <ion-range-calendar
+            [(ngModel)]="dateRanges[i]"
+            [options]="optionsRange"
+            [type]="'js-date'"
+            [format]="'yyyy-MM-dd'">
+          </ion-range-calendar>
+        </ion-col>
+
+      </ion-row>
+    </ion-grid>
 
   </div>
+  <!-- Add Range Button -->
+  <ion-button expand="block" color="primary" (click)="addRange()">
+    Dodaj nowy zakres
+  </ion-button>
+
+  <!-- Compare Button -->
 
 
-
-
-<ion-button expand="block" color="primary" (click)="addRange()">
-  ➕ Dodaj nowy zakres
-</ion-button>
+</ion-content>

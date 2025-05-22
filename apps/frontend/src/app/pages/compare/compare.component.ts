@@ -7,6 +7,7 @@ import {LineChartComponent} from "../../components/line-chart/line-chart.compone
 import { KeyValuePipe } from '@angular/common';
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ChartComponent} from "../../components/chart/chart.component";
+import { IonContent } from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-compare',
@@ -16,6 +17,7 @@ import {ChartComponent} from "../../components/chart/chart.component";
     DatePickerComponent,
     KeyValuePipe,
     ChartComponent,
+    IonContent
   ]
 })
 export class CompareComponent {

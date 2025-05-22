@@ -1,11 +1,17 @@
+<ion-content class="gray-bg">
+
 @if (!isDataLoaded) {
 <app-date-picker (rangesChanged)="runCompare($event)"></app-date-picker>
 } @else {
 
       @for (keypar of readings | keyvalue ; track keypar.key) {
+        <div class="sensor-card">
 
         <app-chart [dataMultiple]="keypar.value" />
+
+        </div>
 
       }
 }
 
+</ion-content>
