@@ -1,0 +1,30 @@
+<ion-header translucent>
+  <ion-toolbar>
+    <ion-title>Logowanie</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">Anuluj</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form (ngSubmit)="login()" [formGroup]="form">
+    <ion-item>
+      <ion-label position="stacked">Login</ion-label>
+      <ion-input formControlName="username" autocomplete="username"></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Hasło</ion-label>
+      <ion-input type="password" formControlName="password" autocomplete="current-password"></ion-input>
+    </ion-item>
+
+    <ion-button
+      expand="block"
+      type="submit"
+      [disabled]="form.invalid || loading"
+      class="ion-margin-top">
+      {{ loading ? 'Logowanie...' : 'Zaloguj się' }}
+    </ion-button>
+  </form>
+</ion-content>

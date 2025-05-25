@@ -16,7 +16,6 @@ export class SettingsService {
   public settings = this.settingsSignal;
 
   constructor(private http: HttpClient) {
-    console.log('INIT KURWA')
   }
 
   saveSettings(settings: SettingsRequest): Observable<any> {

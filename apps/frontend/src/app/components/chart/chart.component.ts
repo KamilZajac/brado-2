@@ -24,6 +24,8 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import {hourlyBackgroundPlugin} from "./plugins/background-plugin";
+import { IonButton, IonRow, ModalController } from '@ionic/angular/standalone';
+import {TextInputModalComponent} from "../text-input-modal/text-input-modal.component";
 
 ChartJS.register(
   LineController,
@@ -55,8 +57,8 @@ interface Series {
   selector: 'app-chart',
   templateUrl: './chart.component.html',
   styleUrls: ['./chart.component.scss'],
-  imports: [BaseChartDirective],
-  providers: [ReadingsToSeriesMultiplePipe, ReadingsToSeriesPipe]
+  imports: [BaseChartDirective, IonButton, IonRow],
+  providers: [ReadingsToSeriesMultiplePipe, ReadingsToSeriesPipe, ModalController]
 })
 export class ChartComponent implements OnInit {
   @Input() data: HourlyReading[] | LiveReading[] = [];
@@ -71,6 +73,10 @@ export class ChartComponent implements OnInit {
   chartData!: ChartData<'line'>;
   chartOptions: ChartOptions = {}
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+  isAnnotationMode = false;
+
+  constructor(private modalCtrl: ModalController) {
+  }
 
   ngOnInit() {
     this.buildChartOptions()
@@ -203,11 +209,7 @@ export class ChartComponent implements OnInit {
         return this.normalizeDatasetToBaseStart(series, baseStartTimestamp)
       })
 
-      console.log('STEP1')
-      console.log(JSON.parse(JSON.stringify(normalizedSeries)))
-      console.log('STEP2')
       normalizedSeries = this.fillMissingTimestampsWithNullsAndData(normalizedSeries);
-      console.log(JSON.parse(JSON.stringify(normalizedSeries)))
 
       datasets = (normalizedSeries.map((dataset, index) => ({
         label: `Dataset ${index + 1}`,spanGaps: true,
@@ -351,6 +353,43 @@ export class ChartComponent implements OnInit {
 
   onChartDoubleClick() {
     this.chart?.chart?.resetZoom();
+  }
+
+  onChartClick(event: any) {
+    if(!this.isAnnotationMode) {
+      return
+    }
+    const chartInstance = this.chart?.chart;
+    if (!chartInstance) return;
+
+    const clickX = event.event.x ?? 0;
+
+    const xScale = chartInstance.scales['x'];
+    const xValue = xScale.getValueForPixel(clickX);
+
+    if(xValue) {
+      this.isAnnotationMode=false;
+      this.openTextInputModal()
+
+    }
+  }
+
+  async openTextInputModal() {
+    const modal = await this.modalCtrl.create({
+      component: TextInputModalComponent,
+      componentProps: {
+        message: 'Proszę podać nazwę porównania:'
+      }
+    });
+
+    await modal.present();
+
+    const { data, role } = await modal.onDidDismiss();
+
+    if (role === 'confirm' && data) {
+      console.log('User input:', data);
+
+    }
   }
 }
 

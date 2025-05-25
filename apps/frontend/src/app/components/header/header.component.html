@@ -1,0 +1,18 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Brado-2</ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button *ngIf="!loggedIn()" (click)="login()">
+        Zaloguj się
+      </ion-button>
+
+
+      <p class="ion-margin-end"> {{ username() }}</p>
+
+      <ion-button *ngIf="loggedIn()" (click)="logout()" color="danger">
+        Wyloguj
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>

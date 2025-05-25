@@ -32,8 +32,28 @@
           [data]="chartData"
           [options]="chartOptions"
           [type]="chartType"
-          (dblclick)="onChartDoubleClick()">
-
+          (dblclick)="onChartDoubleClick()"
+          (chartClick)="onChartClick($event)"
   >
   </canvas>
+
+  <ion-row  class="flex ion-justify-content-end ion-align-items-center">
+    @if(isAnnotationMode) {
+      <span class="ion-margin-end">Kliknij wybrane miejsce na wykresie</span>
+    }
+    <button
+      class="button active"
+      [class.warning]="isAnnotationMode"
+
+      (click)="isAnnotationMode = !isAnnotationMode">
+      @if(isAnnotationMode) {
+        Anuluj
+      }@else {
+       Dodaj adnotacje
+      }
+
+    </button>
+
+  </ion-row >
+
 </div>

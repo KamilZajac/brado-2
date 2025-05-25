@@ -1,16 +1,21 @@
-import { Controller, Get, Post, Body, Param, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ReadingService } from './reading.service';
 import { LiveReading } from '@brado/types';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('reading')
+@UseGuards(AuthGuard('jwt'))
 export class ReadingController {
   constructor(private readonly readingsService: ReadingService) {}
-
-  @Post()
-  add(@Body() readings: { data: [LiveReading] }) {
-    return this.readingsService.addReading(readings.data);
-  }
 
   @Get()
   getAll() {
@@ -32,12 +37,6 @@ export class ReadingController {
     return this.readingsService.getHourly(fromTS, toTS);
   }
 
-  // test only
-  @Get('latest')
-  getLatest(): Promise<{ 1: number; 2: number }> {
-    return this.readingsService.getLatest();
-  }
-
   @Get('aggregate')
   aggregate(): Promise<string> {
     return this.readingsService.aggregate();
@@ -51,8 +50,27 @@ export class ReadingController {
   ) {
     const buffer = await this.readingsService.exportData(fromTS, toTS);
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader('Content-Disposition', 'attachment; filename="report.xlsx"');
     res.send(buffer);
+  }
+}
+
+@Controller('connector-reading')
+export class ConnectorReadingController {
+  constructor(private readonly readingsService: ReadingService) {}
+
+  @Post()
+  add(@Body() readings: { data: [LiveReading] }) {
+    return this.readingsService.addReading(readings.data);
+  }
+
+  // test only
+  @Get('latest')
+  getLatest(): Promise<{ 1: number; 2: number }> {
+    return this.readingsService.getLatest();
   }
 }

@@ -1,0 +1,21 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Dodaj adnotację</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cancel()">Anuluj</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <p>{{ message }}</p>
+
+  <ion-item>
+    <ion-label position="stacked">Wpisz treść adnotacji</ion-label>
+    <ion-input [(ngModel)]="userInput" placeholder=""></ion-input>
+  </ion-item>
+
+  <button  (click)="confirm()" class="button active ion-margin-top">
+    OK
+  </button>
+</ion-content>

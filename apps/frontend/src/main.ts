@@ -1,19 +1,22 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { RouteReuseStrategy, provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
-import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
-
+import { IonicRouteStrategy, ModalController, provideIonicAngular } from '@ionic/angular/standalone';
+import { HTTP_INTERCEPTORS, withInterceptors } from '@angular/common/http'; // Import HTTP_INTERCEPTORS
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import {provideHttpClient} from "@angular/common/http";
+import {authInterceptor} from "./app/services/auth/auth.interceptor";
 
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
-    provideIonicAngular(),
-    provideHttpClient(),
-    provideRouter(routes, withPreloading(PreloadAllModules)),
     provideIonicAngular({
       useSetInputAPI: true, //  required for input signals on controller based modals.
-    })
+    }),
+    provideHttpClient(
+      withInterceptors([authInterceptor]),
+    ),
+    provideRouter(routes, withPreloading(PreloadAllModules)),
+
   ],
 });

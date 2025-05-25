@@ -1,10 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { DataController } from './data/data.controller';
-import { DataService } from './data/data.service';
 import { ReadingModule } from './reading/reading.module';
-import { DataModule } from './data/data.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HourlyReadingEntity } from './reading/entities/hourly-reading-entity';
 import { LiveReadingEntity } from './reading/entities/minute-reading.entity';
@@ -14,6 +10,9 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { SettingsEntity } from './settings/entities/setting.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { UserEntity } from './users/entities/users.entity';
 
 const typeormConf = {
   type: 'postgres',
@@ -22,7 +21,12 @@ const typeormConf = {
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   database: process.env.POSTGRES_DB,
-  entities: [HourlyReadingEntity, LiveReadingEntity, SettingsEntity],
+  entities: [
+    HourlyReadingEntity,
+    LiveReadingEntity,
+    SettingsEntity,
+    UserEntity,
+  ],
   synchronize: true,
   // logging: true,
 };
@@ -41,12 +45,13 @@ console.log(typeormConf);
 @Module({
   imports: [
     ReadingModule,
-    DataModule,
     TypeOrmModule.forRoot(typeormConf as any),
     SettingsModule,
     ScheduleModule.forRoot(),
+    AuthModule,
+    UsersModule,
   ],
-  controllers: [AppController, DataController],
-  providers: [AppService, DataService],
+  controllers: [AppController],
+  providers: [],
 })
 export class AppModule {}
