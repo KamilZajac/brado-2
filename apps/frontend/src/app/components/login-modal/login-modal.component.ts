@@ -48,7 +48,10 @@ export class LoginModalComponent {
   }
 
   private async toast(message: string) {
-    const toast = await this.toastCtrl.create({ message, duration: 2000 });
-    toast.present();
+    setTimeout(() => {
+      console.log('Creating toast:', message);
+
+      this.toastCtrl.create({ message, duration: 2000 }).then(t => t.present());
+    }, 100);
   }
 }

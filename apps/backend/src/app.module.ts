@@ -13,6 +13,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { UserEntity } from './users/entities/users.entity';
+import { AnnotationModule } from './annotation/annotation.module';
 
 const typeormConf = {
   type: 'postgres',
@@ -50,6 +51,7 @@ console.log(typeormConf);
     ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
+    AnnotationModule,
   ],
   controllers: [AppController],
   providers: [],
