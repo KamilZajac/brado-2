@@ -38,14 +38,3 @@ export interface SettingsRequest {
 }
 
 
-export enum UserRole {
-    SUPER_ADMIN = 'super_admin',
-    ADMIN = 'admin',
-    WORKER = 'worker'
-}
-
-export interface User {
-    id: number;
-    username: string;
-    role: UserRole;
-}

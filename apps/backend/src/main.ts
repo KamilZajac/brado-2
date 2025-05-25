@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { UsersService } from './users/user.service';
-import {UserRole} from "@brado/types";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -29,7 +28,7 @@ async function bootstrap() {
     const user = await usersService.createUser(
       username,
       password,
-      UserRole.ADMIN,
+      'super_admin' as any,
     );
     console.log(`Admin user created: ${user.username}`);
   }

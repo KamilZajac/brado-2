@@ -1,5 +1,16 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { UserRole } from '@brado/types';
+
+export enum UserRole {
+  SUPER_ADMIN = 'super_admin',
+  ADMIN = 'admin',
+  WORKER = 'worker',
+}
+
+export interface User {
+  id: number;
+  username: string;
+  role: UserRole;
+}
 
 @Entity()
 export class UserEntity {
