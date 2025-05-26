@@ -1,16 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-
-export enum UserRole {
-  SUPER_ADMIN = 'super_admin',
-  ADMIN = 'admin',
-  WORKER = 'worker',
-}
-
-export interface User {
-  id: number;
-  username: string;
-  role: UserRole;
-}
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { AnnotationEntity } from '../../annotation/entities/annotation.entity';
+import { UserRole } from '@brado/types';
 
 @Entity()
 export class UserEntity {
@@ -29,4 +19,7 @@ export class UserEntity {
     default: UserRole.WORKER,
   })
   role: UserRole;
+
+  @OneToMany(() => AnnotationEntity, (annotation) => annotation.user)
+  annotations: AnnotationEntity[];
 }

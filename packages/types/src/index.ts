@@ -38,3 +38,23 @@ export interface SettingsRequest {
 }
 
 
+export enum UserRole {
+    SUPER_ADMIN = 'super_admin',
+    ADMIN = 'admin',
+    WORKER = 'worker',
+}
+
+export interface User {
+    id: number;
+    username: string;
+    role: UserRole;
+}
+
+export interface Annotation {
+    id: number;
+    timestamp: string;
+    value: number;
+    text: string;
+    sensorId: number;
+    user: User;
+}

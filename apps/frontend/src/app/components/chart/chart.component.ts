@@ -1,5 +1,5 @@
 import {Component, Input, OnInit, ViewChild} from '@angular/core';
-import {HourlyReading, LiveReading} from "@brado/types";
+import {Annotation, HourlyReading, LiveReading} from "@brado/types";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
 import {BarController, BarElement, CategoryScale, ChartData, ChartOptions} from 'chart.js';
@@ -18,14 +18,12 @@ import {
   LineOptions
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
-
-
-
 import 'chartjs-adapter-date-fns';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import {hourlyBackgroundPlugin} from "./plugins/background-plugin";
-import { IonButton, IonRow, ModalController } from '@ionic/angular/standalone';
+import { IonButton, IonRow, ModalController, ToastController } from '@ionic/angular/standalone';
 import {TextInputModalComponent} from "../text-input-modal/text-input-modal.component";
+import {AnnotationService} from "../../services/annotation/annotation.service";
 
 ChartJS.register(
   LineController,
@@ -66,6 +64,7 @@ export class ChartComponent implements OnInit {
   @Input() disableAnimation = false;
   @Input() isLive = false;
   @Input() hourlyTarget = 0;
+  @Input() annotations: Annotation[] = [];
 
   @Input() chartType: 'line' | 'bar' = 'line';
   @Input() keyToDisplay: 'total' | 'value' | 'average' | 'delta' | 'dailyTotal' = 'value';
@@ -75,13 +74,15 @@ export class ChartComponent implements OnInit {
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   isAnnotationMode = false;
 
-  constructor(private modalCtrl: ModalController) {
+  constructor(private modalCtrl: ModalController, private annotationService: AnnotationService, private toastCtrl: ToastController) {
   }
 
   ngOnInit() {
     this.buildChartOptions()
     this.prepareChart();
-    console.log(this.chartOptions)
+
+    console.log('adnotacje')
+    console.log(this.annotations)
   }
 
   ngOnChanges() {
@@ -246,12 +247,11 @@ export class ChartComponent implements OnInit {
 
   selectChartType(type: 'bar' | 'line') {
     this.chartType = type;
-
   }
 
   getColorForIndex(index: number): string {
     const colors = ['#3b82f6', '#34d399', '#f97316', '#e11d48', '#8b5cf6'];
-    return colors[index % colors.length]; // Wybieraj kolory cyklicznie
+    return colors[index % colors.length];
   }
 
 
@@ -275,9 +275,6 @@ export class ChartComponent implements OnInit {
 
 
       }
-    // }
-
-
   }
 
 
@@ -330,6 +327,10 @@ export class ChartComponent implements OnInit {
     return Object.keys([...arr][0]).filter(k => allowedKeys.includes(k))
   }
 
+  public get sensorId(): number {
+    return this.dataMultiple.length > 0 ? this.dataMultiple[0][0].sensorId : this.data[0].sensorId
+  }
+
   selectDataKey(key: any) {
     this.keyToDisplay = key;
     this.prepareChart();
@@ -363,22 +364,25 @@ export class ChartComponent implements OnInit {
     if (!chartInstance) return;
 
     const clickX = event.event.x ?? 0;
+    const clickY = event.event.y ?? 0;
 
     const xScale = chartInstance.scales['x'];
     const xValue = xScale.getValueForPixel(clickX);
 
+    const yScale = chartInstance.scales['y'];
+    const yValue = yScale.getValueForPixel(clickY) || 0
+
     if(xValue) {
       this.isAnnotationMode=false;
-      this.openTextInputModal()
-
+      this.openTextInputModal(xValue, yValue)
     }
   }
 
-  async openTextInputModal() {
+  async openTextInputModal(xValue: number, yValue: number) {
     const modal = await this.modalCtrl.create({
       component: TextInputModalComponent,
       componentProps: {
-        message: 'Proszę podać nazwę porównania:'
+        message: `Wpisz treść adnotacji ( x: ${new Date(xValue).toLocaleString()}  y: ${yValue.toFixed(0)} ):`
       }
     });
 
@@ -387,9 +391,27 @@ export class ChartComponent implements OnInit {
     const { data, role } = await modal.onDidDismiss();
 
     if (role === 'confirm' && data) {
-      console.log('User input:', data);
 
+      const annotation: Partial<Annotation> = {
+        sensorId: this.sensorId,
+        timestamp: Math.floor(xValue).toString(),
+        value: Math.floor(yValue),
+        text: data
+      }
+
+      this.annotationService.createAnnotation(annotation).subscribe({
+        next: (res) => {
+          this.toast('Dodano adnotację')
+        },
+        error: (err) => {
+          this.toast('Wystąpił błąd')
+        },
+      });
     }
+  }
+
+  private async toast(message: string) {
+    this.toastCtrl.create({ message, duration: 2000 }).then(t => t.present());
   }
 }
 

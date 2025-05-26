@@ -1,26 +1,85 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAnnotationDto } from './dto/create-annotation.dto';
-import { UpdateAnnotationDto } from './dto/update-annotation.dto';
+import { AnnotationEntity } from './entities/annotation.entity';
+import { InjectRepository} from '@nestjs/typeorm';
+import { Repository, MoreThan, Between } from 'typeorm';
+import { Annotation, User } from '@brado/types';
+
+// import { Annotation } from '@brado/types';
 
 @Injectable()
 export class AnnotationService {
-  create(createAnnotationDto: CreateAnnotationDto) {
-    return 'This action adds a new annotation';
+  constructor(
+    @InjectRepository(AnnotationEntity)
+    private readonly annotationRepository: Repository<AnnotationEntity>,
+  ) {}
+
+  async create(user: User, data: Partial<Annotation>): Promise<Annotation> {
+    const annotation = this.annotationRepository.create({
+      ...data,
+      user: { id: user.id },
+    });
+    return await this.annotationRepository.save(annotation);
   }
 
-  findAll() {
-    return `This action returns all annotation`;
+  async findAllByUser(user: User): Promise<Annotation[]> {
+    return this.annotationRepository.find({
+      where: { user: { id: user.id } },
+      relations: ['user'],
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} annotation`;
+  getAfterTime(date: string) {
+    return this.annotationRepository.find({
+      where: {
+        timestamp: MoreThan(date),
+      },
+      order: { timestamp: 'ASC' },
+    });
   }
 
-  update(id: number, updateAnnotationDto: UpdateAnnotationDto) {
-    return `This action updates a #${id} annotation`;
+  getBetween(fromTS: string, toTS: string) {
+    return this.annotationRepository.find({
+      where: {
+        timestamp: Between(fromTS, toTS),
+      },
+      order: { timestamp: 'ASC' },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} annotation`;
+  async findOneById(id: number, user: User): Promise<AnnotationEntity | null> {
+    return this.annotationRepository.findOne({
+      where: { id, user },
+      relations: ['user'],
+    });
+  }
+
+  async update(
+    id: number,
+    user: User,
+    data: { value?: number; text?: string },
+  ): Promise<AnnotationEntity> {
+    const annotation = await this.findOneById(id, user);
+
+    if (!annotation) {
+      throw new Error(
+        'Annotation not found or you do not have access to update this annotation',
+      );
+    }
+
+    Object.assign(annotation, data); // Merge new data
+    return this.annotationRepository.save(annotation);
+  }
+
+  async delete(id: number, user: User): Promise<boolean> {
+    const annotation = await this.findOneById(id, user);
+
+    if (!annotation) {
+      throw new Error(
+        'Annotation not found or you do not have access to delete this annotation',
+      );
+    }
+
+    await this.annotationRepository.remove(annotation);
+    return true;
   }
 }

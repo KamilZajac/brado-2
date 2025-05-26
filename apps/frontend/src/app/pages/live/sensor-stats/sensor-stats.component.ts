@@ -1,5 +1,5 @@
 import {AfterViewInit, Component, ElementRef, Input, OnInit, ViewChild} from '@angular/core';
-import {LiveSensorUpdate} from "@brado/types";
+import {Annotation, LiveSensorUpdate} from "@brado/types";
 import {ChartComponent} from "../../../components/chart/chart.component";
 import {PieChartComponent} from "../../../components/pie-chart/pie-chart.component";
 
@@ -13,6 +13,7 @@ export class SensorStatsComponent {
   @ViewChild('chartContainer', {static: true}) chartContainer!: ElementRef<HTMLDivElement>;
 
   @Input({required: true}) data!: LiveSensorUpdate;
+  @Input() annotations: Annotation[] = [];
   @Input({required: true}) sensorID!: string;
   @Input() hourlyTarget= 0;
   @Input() sensorName= '';

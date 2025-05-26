@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { ModalController, ToastController } from '@ionic/angular';
+import { ModalController, ToastController } from '@ionic/angular/standalone';
 import {AuthService} from "../../services/auth/auth.service";
 import { IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonItem, IonLabel,IonInput } from '@ionic/angular/standalone';
 import {FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -11,11 +11,8 @@ import {FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } f
   providers: [ModalController]}
 )
 export class LoginModalComponent {
-
   loading = false;
-
   form!: FormGroup;
-
 
   constructor(
     private fb: FormBuilder,
@@ -48,10 +45,6 @@ export class LoginModalComponent {
   }
 
   private async toast(message: string) {
-    setTimeout(() => {
-      console.log('Creating toast:', message);
-
       this.toastCtrl.create({ message, duration: 2000 }).then(t => t.present());
-    }, 100);
   }
 }

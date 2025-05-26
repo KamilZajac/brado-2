@@ -1,34 +1,69 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { AnnotationService } from './annotation.service';
-import { CreateAnnotationDto } from './dto/create-annotation.dto';
-import { UpdateAnnotationDto } from './dto/update-annotation.dto';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import {Annotation, User} from '@brado/types';
+import { AuthGuard } from '@nestjs/passport';
 
+@UseGuards(AuthGuard('jwt'))
 @Controller('annotation')
 export class AnnotationController {
   constructor(private readonly annotationService: AnnotationService) {}
 
   @Post()
-  create(@Body() createAnnotationDto: CreateAnnotationDto) {
-    return this.annotationService.create(createAnnotationDto);
+  async createAnnotation(
+    @Request() req,
+    @Body() body: Partial<Annotation>,
+  ) {
+    const user: User = req.user; // Get user data from JWT
+    return this.annotationService.create(user, body);
   }
 
   @Get()
-  findAll() {
-    return this.annotationService.findAll();
+  async getAllAnnotations(@Request() req) {
+    const user: User = req.user;
+    return this.annotationService.findAllByUser(user);
   }
+
+
+  @Get('after/:timestamp')
+  getAfter(@Param('timestamp') ts: string) {
+    return this.annotationService.getAfterTime(ts);
+  }
+
+  @Get('between/:fromTS/:toTS')
+  getFromTo(@Param('fromTS') fromTS: string, @Param('toTS') toTS: string) {
+    return this.annotationService.getBetween(fromTS, toTS);
+  }
+
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.annotationService.findOne(+id);
+  async getAnnotationById(@Request() req, @Param('id') id: number) {
+    const user: User = req.user;
+    return this.annotationService.findOneById(id, user);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAnnotationDto: UpdateAnnotationDto) {
-    return this.annotationService.update(+id, updateAnnotationDto);
+  @Put(':id')
+  async updateAnnotation(
+    @Request() req,
+    @Param('id') id: number,
+    @Body() body: { value?: number; text?: string },
+  ) {
+    const user: User = req.user;
+    return this.annotationService.update(id, user, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.annotationService.remove(+id);
+  async deleteAnnotation(@Request() req, @Param('id') id: number) {
+    const user: User = req.user;
+    return this.annotationService.delete(id, user);
   }
 }

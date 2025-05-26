@@ -1,11 +1,13 @@
 <ion-content class="gray-bg">
   <div class="sensor-grid">
 
-    @if (liveSensors() | keyvalue ; as sensors) {
+    @if (liveSensors() | keyvalue; as sensors) {
       @if (sensors.length > 0) {
         @for (keypar of sensors; track keypar.key) {
           <div class="sensor-card">
-            <app-sensor-stats [hourlyTarget]="hourlyTarget" [sensorName]="getSensorName(keypar.key)" [data]="keypar.value" [sensorID]="keypar.key"></app-sensor-stats>
+            <app-sensor-stats [hourlyTarget]="hourlyTarget" [sensorName]="getSensorName(keypar.key)"
+                              [data]="keypar.value" [sensorID]="keypar.key"
+                              [annotations]="groupedAnnotations[+keypar.key]"></app-sensor-stats>
           </div>
         }
       } @else {
@@ -16,7 +18,6 @@
     }
 
   </div>
-
 
 
 </ion-content>

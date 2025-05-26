@@ -22,6 +22,7 @@ COPY . .
 RUN cd packages/types && pnpm run build && cd /repo
 
 
+
 # --- backend build ---
 FROM base as backend-builder
 RUN pnpm run build:backend
@@ -38,6 +39,7 @@ RUN pnpm run build:frontend
 FROM node:20-slim as backend
 WORKDIR /app
 
+COPY --from=backend-builder /repo/packages/types/dist ./packages/types/
 COPY --from=backend-builder /repo/node_modules ./node_modules
 COPY --from=backend-builder /repo/apps/backend/node_modules ./apps/backend/node_modules
 COPY --from=backend-builder /repo/apps/backend/dist ./apps/backend/dist
@@ -47,6 +49,8 @@ CMD ["node", "apps/backend/dist/main.js"]
 # --- connector final image ---
 FROM node:20-slim as connector
 WORKDIR /app
+
+COPY --from=connector-builder /repo/packages/types/dist ./packages/types/
 COPY --from=connector-builder /repo/node_modules ./node_modules
 COPY --from=connector-builder /repo/apps/connector/node_modules ./apps/connector/node_modules
 COPY --from=connector-builder /repo/apps/connector/dist ./apps/connector/dist
@@ -62,5 +66,6 @@ ENTRYPOINT ["./connector_entrypoint.sh"]
 
 # --- frontend final image ---
 FROM nginx:alpine as frontend
+COPY --from=frontend-builder /repo/packages/types/dist ./packages/types/
 COPY --from=frontend-builder /repo/apps/frontend/www /usr/share/nginx/html
 COPY --from=frontend-builder /repo/apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf

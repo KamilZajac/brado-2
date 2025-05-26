@@ -2,13 +2,14 @@ import { Component, effect, OnInit } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { IonCard } from '@ionic/angular/standalone';
 import {SensorStatsComponent} from "./sensor-stats/sensor-stats.component";
-import {LiveUpdate} from "@brado/types";
+import {Annotation, LiveUpdate} from "@brado/types";
 import { KeyValuePipe } from '@angular/common';
 import {SocketService} from "../../services/socket/socket.service";
-import {DataService} from "../../services/data/data.service";
+import {DataService, getStartOfToday} from "../../services/data/data.service";
 import { signal } from '@angular/core';
 import {firstValueFrom} from "rxjs";
 import {SettingsService} from "../../services/settings/settings.service";
+import {AnnotationService} from "../../services/annotation/annotation.service";
 
 @Component({
   selector: 'app-live',
@@ -22,8 +23,9 @@ export class LiveComponent  implements OnInit {
 
   public hourlyTarget = 0;
   public sensorNames: { [key: number]: string } = {};
+  public groupedAnnotations: { [p: number]: Annotation[] } = {}
 
-  constructor(private socketService: SocketService, private dataService: DataService, private settingsService: SettingsService ) {
+  constructor(private socketService: SocketService, private dataService: DataService, private settingsService: SettingsService, private annotationService: AnnotationService ) {
     effect(() => {
       const settings = this.settingsService.settings();
       if (settings) {
@@ -38,6 +40,7 @@ export class LiveComponent  implements OnInit {
 
   ngOnInit() {
     this.initLiveData();
+    this.getAnnotations()
 
     this.socketService.onLiveUpdate().subscribe(res => {
       this.mergeLiveUpdate(res);
@@ -80,5 +83,17 @@ export class LiveComponent  implements OnInit {
 
   getSensorName(key: string) {
     return this.sensorNames[+key] || 'Sensor ' + key;
+  }
+
+  private async getAnnotations() {
+    const annotations = await firstValueFrom(this.annotationService.getAnnotationsAfter(getStartOfToday()))
+    const grouped: {[key: number]: Annotation[]} = {};
+
+    annotations.forEach(annotation => {
+      grouped[annotation.sensorId] = [...(grouped[annotation.sensorId] || []), annotation]
+    })
+
+    this.groupedAnnotations = grouped
+    console.log(this.groupedAnnotations)
   }
 }

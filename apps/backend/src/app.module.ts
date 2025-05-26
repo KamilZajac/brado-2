@@ -14,6 +14,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { UserEntity } from './users/entities/users.entity';
 import { AnnotationModule } from './annotation/annotation.module';
+import {AnnotationEntity} from "./annotation/entities/annotation.entity";
 
 const typeormConf = {
   type: 'postgres',
@@ -27,6 +28,7 @@ const typeormConf = {
     LiveReadingEntity,
     SettingsEntity,
     UserEntity,
+      AnnotationEntity
   ],
   synchronize: true,
   // logging: true,

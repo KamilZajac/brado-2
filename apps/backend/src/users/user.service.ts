@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import {UserEntity, UserRole} from './entities/users.entity';
+import {UserEntity} from './entities/users.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
+import {UserRole} from "@brado/types";
 
 @Injectable()
 export class UsersService {

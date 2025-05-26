@@ -37,5 +37,5 @@ jobs:
             echo "READINGS_ENDPOINT=${{ secrets.READINGS_ENDPOINT }}" >> .env
 
             sudo docker-compose down --remove-orphans
-            sudo docker-compose build
+            sudo docker-compose build backend frontend
             sudo docker-compose up -d
