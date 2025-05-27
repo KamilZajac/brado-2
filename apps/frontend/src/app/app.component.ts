@@ -30,7 +30,12 @@ import {
   warningOutline,
   warningSharp,
   bookmarkOutline,
-  bookmarkSharp
+  bookmarkSharp,
+  pulseOutline,
+  calendarOutline,
+  gitCompareOutline,
+  personOutline,
+  settingsOutline
 } from 'ionicons/icons';
 import {SettingsService} from "./services/settings/settings.service";
 import {HeaderComponent} from "./components/header/header.component";
@@ -44,29 +49,21 @@ import {HeaderComponent} from "./components/header/header.component";
 })
 export class AppComponent implements OnInit {
   public appPages = [
-    {title: 'Na żywo', url: '/live', icon: 'mail'},
-    {title: 'Tydzień', url: '/weekly', icon: 'paper-plane'},
-    {title: 'Porównaj', url: '/compare', icon: 'paper-plane'},
-    {title: 'Ustawienia', url: '/settings', icon: 'paper-plane'},
+    {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
+    {title: 'Tydzień', url: '/weekly', icon: 'calendar-outline'},
+    {title: 'Porównaj', url: '/compare', icon: 'git-compare-outline'},
+    {title: 'Użytkownicy', url: '/users', icon: 'person-outline'},
+    {title: 'Ustawienia', url: '/settings', icon: 'settings-outline'},
   ];
 
   constructor(private settingsService: SettingsService) {
 
     addIcons({
-      mailOutline,
-      mailSharp,
-      paperPlaneOutline,
-      paperPlaneSharp,
-      heartOutline,
-      heartSharp,
-      archiveOutline,
-      archiveSharp,
-      trashOutline,
-      trashSharp,
-      warningOutline,
-      warningSharp,
-      bookmarkOutline,
-      bookmarkSharp
+      calendarOutline,
+      pulseOutline,
+      gitCompareOutline,
+      personOutline,
+      settingsOutline
     });
   }
 

@@ -7,7 +7,10 @@
           <div class="sensor-card">
             <app-sensor-stats [hourlyTarget]="hourlyTarget" [sensorName]="getSensorName(keypar.key)"
                               [data]="keypar.value" [sensorID]="keypar.key"
-                              [annotations]="groupedAnnotations[+keypar.key]"></app-sensor-stats>
+                              [annotations]="groupedAnnotations()[+keypar.key]"
+                              (reloadAnnotations)="getAnnotations()"
+
+            ></app-sensor-stats>
           </div>
         }
       } @else {
@@ -19,5 +22,8 @@
 
   </div>
 
+  <ion-row class="ion-row-flex flex ion-justify-content-end ion-margin-end">
+    <button class="button active" (click)="exportDataToExcel()">Eksportuj do Excel</button>
+  </ion-row>
 
 </ion-content>

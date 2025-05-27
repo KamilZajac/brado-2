@@ -31,11 +31,11 @@
       [disableAnimation]="true"
       [isLive]="true"
       [hourlyTarget]="hourlyTarget"
-      [annotations]="annotations"
+      [annotations]="annotations()"
+      (reloadAnnotations)="onReloadAnnotations()"
     >
     </app-chart>
   } @else {
-
     <p>Czekam na dane...</p>
   }
 

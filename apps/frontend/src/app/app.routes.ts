@@ -4,6 +4,7 @@ import {LiveComponent} from "./pages/live/live.component";
 import {CompareComponent} from "./pages/compare/compare.component";
 import {SettingsComponent} from "./pages/settings/settings.component";
 import {SettingsResolver} from "./services/settings/settings.service";
+import {UsersComponent} from "./pages/users/users.component";
 
 export const routes: Routes = [
   {
@@ -22,6 +23,10 @@ export const routes: Routes = [
   {
     path: 'compare',
     component: CompareComponent,
+  },
+  {
+    path: 'users',
+    component: UsersComponent,
   },
   {
     path: 'settings',

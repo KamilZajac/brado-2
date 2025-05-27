@@ -1,4 +1,4 @@
-import {Component, Input, OnInit, ViewChild} from '@angular/core';
+import {Component, effect, EventEmitter, input, Input, OnInit, Output, ViewChild} from '@angular/core';
 import {Annotation, HourlyReading, LiveReading} from "@brado/types";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
@@ -21,9 +21,10 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import {hourlyBackgroundPlugin} from "./plugins/background-plugin";
-import { IonButton, IonRow, ModalController, ToastController } from '@ionic/angular/standalone';
+import {AlertController, IonButton, IonRow, ModalController, ToastController} from '@ionic/angular/standalone';
 import {TextInputModalComponent} from "../text-input-modal/text-input-modal.component";
 import {AnnotationService} from "../../services/annotation/annotation.service";
+import { firstValueFrom } from 'rxjs';
 
 ChartJS.register(
   LineController,
@@ -51,6 +52,7 @@ interface Series {
   data: Partial<HourlyReading | LiveReading>
 }
 
+
 @Component({
   selector: 'app-chart',
   templateUrl: './chart.component.html',
@@ -64,7 +66,7 @@ export class ChartComponent implements OnInit {
   @Input() disableAnimation = false;
   @Input() isLive = false;
   @Input() hourlyTarget = 0;
-  @Input() annotations: Annotation[] = [];
+  annotations = input<Annotation[]>()
 
   @Input() chartType: 'line' | 'bar' = 'line';
   @Input() keyToDisplay: 'total' | 'value' | 'average' | 'delta' | 'dailyTotal' = 'value';
@@ -73,27 +75,57 @@ export class ChartComponent implements OnInit {
   chartOptions: ChartOptions = {}
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   isAnnotationMode = false;
+  isAnnotationVisible = true;
 
-  constructor(private modalCtrl: ModalController, private annotationService: AnnotationService, private toastCtrl: ToastController) {
+  @Output() reloadAnnotations = new EventEmitter()
+
+  constructor(private modalCtrl: ModalController, private annotationService: AnnotationService, private toastCtrl: ToastController,private alertController: AlertController) {
+    effect(() => {
+      console.log(this.annotations())
+      if (this.annotations()?.length) {
+        this.buildChartOptions()
+      }
+    })
   }
 
   ngOnInit() {
     this.buildChartOptions()
     this.prepareChart();
-
-    console.log('adnotacje')
-    console.log(this.annotations)
   }
 
   ngOnChanges() {
     this.prepareChart();
   }
 
-  buildChartOptions () {
+  buildChartOptions() {
+    const annotations: any = {};
+
+    if(this.isAnnotationVisible) {
+      this.annotations()?.forEach((pt, i) => {
+        annotations[`point${i}`] = {
+          type: 'line',
+          id: pt.id,
+          borderColor: 'red',
+          borderWidth: 1,
+          label: {
+            display: true,
+            content: [pt.text, '- '+pt.user.username],
+            position: 'end',
+            backgroundColor: 'rgba(255,0,0,0.1)',
+            color: '#000',
+          },
+          scaleID: 'x',
+          value: +pt.timestamp
+        };
+      });
+    }
+
+    console.log(annotations)
+
     this.chartOptions = {
       responsive: true,
       animation: {
-        duration: this.disableAnimation ? 0 : 2000,
+        duration: 0,
       },
       plugins: {
         hourlyBackground: {
@@ -103,6 +135,9 @@ export class ChartComponent implements OnInit {
           display: false,
         },
         annotation: {
+          interaction: {
+            mode: 'point'  // <-- this is crucial
+          },
           annotations: {
             ...(this.getTarget ? {
               thresholdLine: {
@@ -123,7 +158,8 @@ export class ChartComponent implements OnInit {
                 }
               }
 
-            } : {} ),
+            } : {}),
+            ...annotations
           },
         },
         tooltip: {
@@ -141,7 +177,7 @@ export class ChartComponent implements OnInit {
               return `Wartość: ${y}`;
             },
             afterLabel: (tooltipItem) => {
-              const data = (tooltipItem.raw as {data: LiveReading})?.data
+              const data = (tooltipItem.raw as { data: LiveReading })?.data
               return `Δ Delta: ${data?.delta} \nSuma: ${data?.dailyTotal} \nData: ${new Date(+data?.timestamp).toLocaleString()}`;
             }
           }
@@ -213,7 +249,7 @@ export class ChartComponent implements OnInit {
       normalizedSeries = this.fillMissingTimestampsWithNullsAndData(normalizedSeries);
 
       datasets = (normalizedSeries.map((dataset, index) => ({
-        label: `Dataset ${index + 1}`,spanGaps: true,
+        label: `Dataset ${index + 1}`, spanGaps: true,
         data: dataset.map((read) => (read)),
         fill: false,
         tension: 0.1,
@@ -256,25 +292,25 @@ export class ChartComponent implements OnInit {
 
 
   get getTarget() {
-      if(!this.hourlyTarget) {
-        return 0
-      }
+    if (!this.hourlyTarget) {
+      return 0
+    }
 
     // if (this.isLive) {
-      switch (this.keyToDisplay) {
-        case 'value':
-          return null;
-        case 'delta':
-          return this.isLive ? this.hourlyTarget / 60 : this.hourlyTarget
-        case 'dailyTotal':
-          return this.hourlyTarget * 8
-        case 'average':
-          return this.hourlyTarget / 60
-        default:
-          return 0
+    switch (this.keyToDisplay) {
+      case 'value':
+        return null;
+      case 'delta':
+        return this.isLive ? this.hourlyTarget / 60 : this.hourlyTarget
+      case 'dailyTotal':
+        return this.hourlyTarget * 8
+      case 'average':
+        return this.hourlyTarget / 60
+      default:
+        return 0
 
 
-      }
+    }
   }
 
 
@@ -311,9 +347,9 @@ export class ChartComponent implements OnInit {
       return sortedTimestamps.map(x => {
         const existing = pointMap.get(x);
         if (existing) {
-          return { ...existing };
+          return {...existing};
         } else {
-          return { x, y: null, data: {} };
+          return {x, y: null, data: {}};
         }
       });
     });
@@ -352,12 +388,60 @@ export class ChartComponent implements OnInit {
     }
   }
 
-  onChartDoubleClick() {
+  async onChartDoubleClick(event: MouseEvent) {
+    const { offsetX, offsetY } = event;
+    const annotations = this.chart?.options?.plugins?.annotation?.annotations;
+
+    if (!annotations) return;
+
+    for (const [key, ann] of Object.entries(annotations)) {
+      if (ann?.type === 'line' && ann.scaleID && ann.value != null) {
+        // @ts-ignore
+        const scale =this.chart?.chart.scales['x']
+        const x = scale?.getPixelForValue(ann.value as number) || 0;
+
+        const isNearLine = Math.abs(offsetX - x) < 5; // 5px tolerance
+        if (isNearLine && ann.id) {
+          const confirmed = await this.showConfirmAlert();
+
+          if(confirmed) {
+            const success = await firstValueFrom(this.annotationService.deleteAnnotation(+ann.id));
+            if(success) {
+              this.reloadAnnotations.emit()
+            }
+          }
+        }
+      }
+    }
+
     this.chart?.chart?.resetZoom();
   }
 
+  async showConfirmAlert(): Promise<boolean> {
+    const alert = await this.alertController.create({
+      header: 'Usunąć annotacje?',
+      buttons: [
+        {
+          text: 'Nie',
+          role: 'cancel',
+          handler: () => false
+        },
+        {
+          text: 'Tak',
+          handler: () => true
+        }
+      ]
+    });
+
+    await alert.present();
+
+    // Wait for alert dismissal and return result
+    const { role } = await alert.onDidDismiss();
+    return role !== 'cancel'; // returns true if "Yes" clicked
+  }
+
   onChartClick(event: any) {
-    if(!this.isAnnotationMode) {
+    if (!this.isAnnotationMode) {
       return
     }
     const chartInstance = this.chart?.chart;
@@ -372,8 +456,8 @@ export class ChartComponent implements OnInit {
     const yScale = chartInstance.scales['y'];
     const yValue = yScale.getValueForPixel(clickY) || 0
 
-    if(xValue) {
-      this.isAnnotationMode=false;
+    if (xValue) {
+      this.isAnnotationMode = false;
       this.openTextInputModal(xValue, yValue)
     }
   }
@@ -388,7 +472,7 @@ export class ChartComponent implements OnInit {
 
     await modal.present();
 
-    const { data, role } = await modal.onDidDismiss();
+    const {data, role} = await modal.onDidDismiss();
 
     if (role === 'confirm' && data) {
 
@@ -401,7 +485,10 @@ export class ChartComponent implements OnInit {
 
       this.annotationService.createAnnotation(annotation).subscribe({
         next: (res) => {
-          this.toast('Dodano adnotację')
+          this.toast('Dodano adnotację');
+          this.reloadAnnotations.emit()
+          console.log('emitted from chart')
+
         },
         error: (err) => {
           this.toast('Wystąpił błąd')
@@ -411,7 +498,12 @@ export class ChartComponent implements OnInit {
   }
 
   private async toast(message: string) {
-    this.toastCtrl.create({ message, duration: 2000 }).then(t => t.present());
+    this.toastCtrl.create({message, duration: 2000}).then(t => t.present());
+  }
+
+  toggleAnnotations() {
+    this.isAnnotationVisible = !this.isAnnotationVisible;
+    this.buildChartOptions()
   }
 }
 

@@ -5,11 +5,12 @@ import {SensorStatsComponent} from "./sensor-stats/sensor-stats.component";
 import {Annotation, LiveUpdate} from "@brado/types";
 import { KeyValuePipe } from '@angular/common';
 import {SocketService} from "../../services/socket/socket.service";
-import {DataService, getStartOfToday} from "../../services/data/data.service";
+import {DataService, getStartOfToday, getWeeklyTimestamps} from "../../services/data/data.service";
 import { signal } from '@angular/core';
 import {firstValueFrom} from "rxjs";
 import {SettingsService} from "../../services/settings/settings.service";
 import {AnnotationService} from "../../services/annotation/annotation.service";
+import {ChartWrapperDirective} from "../../directives/chart-wrapper.directive";
 
 @Component({
   selector: 'app-live',
@@ -18,14 +19,14 @@ import {AnnotationService} from "../../services/annotation/annotation.service";
   imports: [IonicModule, SensorStatsComponent, KeyValuePipe],
 
 })
-export class LiveComponent  implements OnInit {
+export class LiveComponent extends ChartWrapperDirective implements OnInit {
   liveSensors = signal<LiveUpdate>({});
 
   public hourlyTarget = 0;
   public sensorNames: { [key: number]: string } = {};
-  public groupedAnnotations: { [p: number]: Annotation[] } = {}
 
-  constructor(private socketService: SocketService, private dataService: DataService, private settingsService: SettingsService, private annotationService: AnnotationService ) {
+  constructor(private socketService: SocketService, private dataService: DataService, private settingsService: SettingsService, annotationService: AnnotationService ) {
+    super(annotationService)
     effect(() => {
       const settings = this.settingsService.settings();
       if (settings) {
@@ -38,9 +39,9 @@ export class LiveComponent  implements OnInit {
 
   }
 
-  ngOnInit() {
+  override ngOnInit() {
+    super.ngOnInit()
     this.initLiveData();
-    this.getAnnotations()
 
     this.socketService.onLiveUpdate().subscribe(res => {
       this.mergeLiveUpdate(res);
@@ -85,15 +86,18 @@ export class LiveComponent  implements OnInit {
     return this.sensorNames[+key] || 'Sensor ' + key;
   }
 
-  private async getAnnotations() {
-    const annotations = await firstValueFrom(this.annotationService.getAnnotationsAfter(getStartOfToday()))
-    const grouped: {[key: number]: Annotation[]} = {};
 
-    annotations.forEach(annotation => {
-      grouped[annotation.sensorId] = [...(grouped[annotation.sensorId] || []), annotation]
-    })
+  exportDataToExcel() {
 
-    this.groupedAnnotations = grouped
-    console.log(this.groupedAnnotations)
+    this.dataService.exportLiveData( getStartOfToday()).subscribe((blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'report.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
   }
+
+
 }

@@ -60,6 +60,12 @@ export class DataService {
     });
   }
 
+  public exportLiveData(fromTS: number) {
+    return this.http.get(environment.apiUrl + `/reading/export-live/${fromTS}`, {
+      responseType: 'blob',
+    });
+  }
+
 
 
 }

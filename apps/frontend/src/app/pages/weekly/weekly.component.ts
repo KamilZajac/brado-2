@@ -5,12 +5,14 @@ import {DataService, getWeeklyTimestamps} from "../../services/data/data.service
 
 import {KeyValuePipe} from "@angular/common";
 import { signal } from '@angular/core';
-import {HourlyReading} from "@brado/types";
+import {Annotation, HourlyReading} from "@brado/types";
 import {LineChartComponent} from "../../components/line-chart/line-chart.component";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ChartComponent} from "../../components/chart/chart.component";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
-import { IonContent } from '@ionic/angular/standalone';
+import { IonContent, IonRow } from '@ionic/angular/standalone';
+import {AnnotationService} from "../../services/annotation/annotation.service";
+import {ChartWrapperDirective} from "../../directives/chart-wrapper.directive";
 
 
 // const getStartOfWeek = () => {
@@ -32,51 +34,36 @@ import { IonContent } from '@ionic/angular/standalone';
   templateUrl: './weekly.component.html',
   styleUrls: ['./weekly.component.scss'],
   providers: [DataService],
-  imports: [ KeyValuePipe, IonContent, ChartComponent, ReadingsToSeriesPipe]
+  imports: [ KeyValuePipe, IonContent, ChartComponent, IonRow]
 })
-export class WeeklyComponent implements OnInit {
+export class WeeklyComponent extends ChartWrapperDirective implements OnInit {
   weeklyReadings = signal<{ [key: string]: HourlyReading[] }>({});
   hourlyTarget = 5000;
 
-
+  override mode: 'weekly' | 'live' = 'weekly';
   // public chartOptions: {[key: string] : ChartOptions } = {};
 
   public totalProductionPerSensor: number[][] = [];
 
 
-  constructor(private socketService: SocketService, private dataService: DataService ) {
-
-
-  }
-
-
-
-
-  public ngOnInit(): void {
-
-    console.log('AAAA')
-    this.getWeeklyData();
-
-
+  constructor(private socketService: SocketService, private dataService: DataService , annotationService: AnnotationService) {
+    super(annotationService)
 
   }
 
-
-
+  public override ngOnInit(): void {
+    super.ngOnInit();
+    this.getWeeklyData()
+  }
 
 
   private async getWeeklyData() {
 
     const {from, to } = getWeeklyTimestamps()
-    console.log(getWeeklyTimestamps())
     const hourlyData = await firstValueFrom(this.dataService.getHourlyBetween(from, to));
-    console.log(hourlyData)
     this.weeklyReadings.update(() => {
-
       const uniqueSensors = Array.from(new Set(hourlyData.map(r => r.sensorId)));
-
       const sensorObject: {[key: string]: HourlyReading[]} = {};
-
       uniqueSensors.forEach(sensor => {
         sensorObject[sensor] = hourlyData.filter(r => r.sensorId === sensor);
       })
@@ -85,13 +72,7 @@ export class WeeklyComponent implements OnInit {
     });
 
   }
-  //
-  // public setTotalProductionPerSensor() : void{
-  //   const uniqueSensors = new Set(this.data.map(r => r.sensorId));
-  //   console.log(uniqueSensors)
-  //   this.totalProductionPerSensor = Array.from(uniqueSensors).map(sensor => [sensor, Math.max(...this.data.filter(r => r.sensorId === sensor).map(r => r.value))])
-  //   console.log(this.totalProductionPerSensor)
-  // }
+
   exportDataToExcel() {
     const {from, to } = getWeeklyTimestamps()
 
@@ -104,4 +85,5 @@ export class WeeklyComponent implements OnInit {
       window.URL.revokeObjectURL(url);
     });
   }
+
 }

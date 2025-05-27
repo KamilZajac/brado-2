@@ -34,6 +34,7 @@ export class AnnotationService {
         timestamp: MoreThan(date),
       },
       order: { timestamp: 'ASC' },
+      relations: ['user'],
     });
   }
 
@@ -43,6 +44,7 @@ export class AnnotationService {
         timestamp: Between(fromTS, toTS),
       },
       order: { timestamp: 'ASC' },
+      relations: ['user'],
     });
   }
 

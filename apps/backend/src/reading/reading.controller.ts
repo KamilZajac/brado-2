@@ -57,6 +57,18 @@ export class ReadingController {
     res.setHeader('Content-Disposition', 'attachment; filename="report.xlsx"');
     res.send(buffer);
   }
+
+  @Get('export-live/:fromTS')
+  async exportLive(@Param('fromTS') fromTS: string, @Res() res: Response) {
+    const buffer = await this.readingsService.exportLiveData(fromTS);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="report.xlsx"');
+    res.send(buffer);
+  }
 }
 
 @Controller('connector-reading')

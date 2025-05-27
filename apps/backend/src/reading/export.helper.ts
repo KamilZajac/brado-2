@@ -2,7 +2,7 @@
 import * as ExcelJS from 'exceljs';
 import * as fs from 'fs';
 import * as path from 'path';
-import { HourlyReading } from '@brado/types';
+import {HourlyReading, LiveReading} from '@brado/types';
 import { DateTime } from 'luxon';
 
 function formatTimestampToPolish(msTimestamp: number): string {
@@ -12,11 +12,12 @@ function formatTimestampToPolish(msTimestamp: number): string {
 }
 
 export async function exportToExcel(
-  readings: HourlyReading[],
+  readings: HourlyReading[] | LiveReading[],
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
 
   const uniqueSensorIds = Array.from(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     new Set(readings.map((entity) => entity.sensorId)),
   );
 

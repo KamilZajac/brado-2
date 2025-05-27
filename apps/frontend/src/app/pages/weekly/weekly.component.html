@@ -1,25 +1,21 @@
 <ion-content class="gray-bg">
-<!--  <div class="sensor-grid">-->
+  <!--  <div class="sensor-grid">-->
 
-  @if (weeklyReadings() | keyvalue ; as readings) {
+  @if (weeklyReadings() | keyvalue; as readings) {
 
     @for (keypar of readings; track keypar.key) {
 
-          <div class="sensor-card">
+      <div class="sensor-card">
 
-          <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" />
-
-
-          </div>
-
-
-
-
+        <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" [annotations]="groupedAnnotations()[+keypar.key]"
+                   (reloadAnnotations)="getAnnotations()"/>
+      </div>
     }
-    <button class="button active"  (click)="exportDataToExcel()">Export</button>
 
-}
-
-<!--  </div>-->
+    <ion-row class="ion-row-flex flex ion-justify-content-end ion-margin-end">
+      <button class="button active" (click)="exportDataToExcel()">Eksportuj do Excel</button>
+    </ion-row>
+  }
+  <!--  </div>-->
 </ion-content>
 

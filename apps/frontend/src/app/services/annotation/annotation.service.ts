@@ -16,6 +16,10 @@ export class AnnotationService {
     return this.http.post<Annotation>(environment.apiUrl + '/annotation', annotation);
   }
 
+  deleteAnnotation(id: number): Observable<any> {
+    return this.http.delete(environment.apiUrl + '/annotation/' + id);
+  }
+
   getAnnotationsBetween(fromTS: number, toTS: number): Observable<Annotation[]> {
     return this.http.get<Annotation[]>(environment.apiUrl + `/annotation/between/${fromTS}/${toTS}`);
   }

@@ -197,7 +197,7 @@ export class ReadingService {
     return result;
   }
 
-  async getInitialLiveData(startOfTheDateTS: string) {
+  async getInitialLiveData(startOfTheDateTS: string): Promise<LiveUpdate> {
     console.log('Getting initial live data', startOfTheDateTS);
 
     const todayData = await this.getAfterTime(startOfTheDateTS);
@@ -207,7 +207,7 @@ export class ReadingService {
     );
 
     if (!todayData.length) {
-      return [];
+      return {}
     }
 
     const average5 = await this.getAverageSpeedsLastXMinutes(
@@ -432,5 +432,11 @@ export class ReadingService {
     const hourly = await this.getHourly(fromTS, toTS);
 
     return exportToExcel(hourly);
+  }
+
+  async exportLiveData(fromTS: string): Promise<Buffer> {
+    const liveData = await this.getAfterTime(fromTS);
+
+    return exportToExcel(liveData);
   }
 }
