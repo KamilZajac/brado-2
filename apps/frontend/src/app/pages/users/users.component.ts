@@ -1,16 +1,17 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { IonContent, ModalController } from '@ionic/angular/standalone';
+import {  ModalController } from '@ionic/angular/standalone';
 import {UsersStore} from "../../services/users/users.store";
 import {User, UserRole} from "@brado/types";
 import { IonicModule } from '@ionic/angular';
-import {AsyncPipe, NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import {AddUserModalComponent} from "../../components/add-new-user-modal/add-new-user-modal.component";
 
 @Component({
   selector: 'app-users',
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
-  imports: [NgFor, NgIf, IonicModule]
+  imports: [NgFor, NgIf, IonicModule],
+  providers: [ModalController]
 })
 export class UsersComponent  implements OnInit {
 

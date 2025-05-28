@@ -1,16 +1,29 @@
 import { Component } from '@angular/core';
-import { ModalController, IonicModule } from '@ionic/angular';
+import { ModalController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import {
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToolbar
+} from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-add-user-modal',
   template: `
     <ion-header>
       <ion-toolbar>
-        <ion-title>Add User</ion-title>
+        <ion-title>Dodaj użytkownika</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="dismiss()">Close</ion-button>
+          <ion-button (click)="dismiss()">Zamknij</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -37,10 +50,11 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } 
         </ion-item>
 
         <ion-button expand="block" type="submit" [disabled]="form.invalid">Zapisz</ion-button>
+
       </form>
     </ion-content>
   `,
-  imports: [CommonModule, IonicModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, IonToolbar, IonButtons, IonTitle, IonContent, IonItem, IonLabel, IonSelect, IonSelectOption, IonButton, IonHeader, IonInput],
 })
 export class AddUserModalComponent {
   form: FormGroup;
