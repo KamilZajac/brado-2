@@ -5,6 +5,7 @@ import {CompareComponent} from "./pages/compare/compare.component";
 import {SettingsComponent} from "./pages/settings/settings.component";
 import {SettingsResolver} from "./services/settings/settings.service";
 import {UsersComponent} from "./pages/users/users.component";
+import {LoginComponent} from "./pages/login/login.component";
 
 export const routes: Routes = [
   {
@@ -27,6 +28,10 @@ export const routes: Routes = [
   {
     path: 'users',
     component: UsersComponent,
+  },
+  {
+    path: 'login',
+    component: LoginComponent,
   },
   {
     path: 'settings',

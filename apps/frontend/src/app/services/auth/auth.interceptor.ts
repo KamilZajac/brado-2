@@ -12,10 +12,13 @@ import { from, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import {LoginModalComponent} from "../../components/login-modal/login-modal.component";
 import {AuthUiService} from "./auth-ui-service";
+import { Router } from '@angular/router';
 
 export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: HttpHandlerFn) => {
   const authService = inject(AuthService);
   const authUiService = inject(AuthUiService);
+  const router = inject(Router);
+
 
   const token = authService.getToken();
   const cloned = token
@@ -25,16 +28,19 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   return next(cloned).pipe(
     catchError((err: HttpErrorResponse) => {
       if (err.status === 401) {
-        return from(authUiService.openLoginModal()).pipe(
-          switchMap(success => {
-            if (success) {
-              const newToken = authService.getToken();
-              const retry = req.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } });
-              return next(retry);
-            }
-            return throwError(() => err);
-          })
-        );
+
+        router.navigate(['/login']);
+
+        // return from(authUiService.openLoginModal()).pipe(
+        //   switchMap(success => {
+        //     if (success) {
+        //       const newToken = authService.getToken();
+        //       const retry = req.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } });
+        //       return next(retry);
+        //     }
+        //     return throwError(() => err);
+        //   })
+        // );
       }
       return throwError(() => err);
     })

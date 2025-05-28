@@ -1,3 +1,32 @@
-<ion-content>
-  Zarządzanie użytkownikami
+
+
+<ion-content class="ion-padding">
+  <ion-spinner *ngIf="usersStore.loading()"></ion-spinner>
+
+
+  <ion-row>
+    <button  class="button active" (click)="openAddUserModal()">
+      + Dodaj użytkownika
+    </button>
+  </ion-row>
+  <ion-list *ngIf="!usersStore.loading()">
+    <ion-item *ngFor="let user of usersStore.users()">
+      <ion-label>
+        <h2>{{ user.username }}</h2>
+      </ion-label>
+      <ion-select
+        interface="popover"
+        [value]="user.role"
+        (ionChange)="onRoleChange(user, $event.detail.value)"
+      >
+        <ion-select-option *ngFor="let role of roles" [value]="role">
+          {{ role }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+  </ion-list>
+
+  <div *ngIf="usersStore.error()" class="error">
+    <ion-text color="danger">{{ usersStore.error() }}</ion-text>
+  </div>
 </ion-content>

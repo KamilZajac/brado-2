@@ -50,6 +50,12 @@ export interface User {
     role: UserRole;
 }
 
+export interface CreateUser {
+    username: string;
+    role: UserRole;
+    password: string;
+}
+
 export interface Annotation {
     id: number;
     timestamp: string;

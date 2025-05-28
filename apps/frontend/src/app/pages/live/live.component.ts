@@ -43,6 +43,7 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
     super.ngOnInit()
     this.initLiveData();
 
+    console.log('Loadin')
     this.socketService.onLiveUpdate().subscribe(res => {
       this.mergeLiveUpdate(res);
       console.log(res)
@@ -76,8 +77,6 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
           updated[key] = newData[key];
         }
       }
-
-      console.log(updated)
       return updated;
     });
   }

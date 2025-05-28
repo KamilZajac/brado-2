@@ -1,7 +1,8 @@
-import { Injectable } from "@angular/core";
+import {computed, Injectable, Signal, signal } from "@angular/core";
 import {environment} from "../../../environments/environment";
 import { HttpClient } from "@angular/common/http";
 import { jwtDecode } from "jwt-decode";
+import {User} from "@brado/types";
 
 export interface JwtPayload {
   sub: number;
@@ -13,6 +14,11 @@ export interface JwtPayload {
 export class AuthService {
   private tokenKey = 'auth_token';
 
+  private readonly _currentUser = signal<User | null>(null);
+  readonly currentUser: Signal<User | null> = computed(() => this._currentUser());
+
+
+
   constructor(private http: HttpClient) {}
 
   login(username: string, password: string): Promise<string> {
@@ -20,18 +26,15 @@ export class AuthService {
       .then(res => {
         const token = res.access_token;
         localStorage.setItem(this.tokenKey, token);
+
+        this._currentUser.set(jwtDecode<User>(token))
         return token;
       });
   }
 
-  getCurrentUser(): JwtPayload | null {
+  getCurrentUser(): void{
     const token = this.getToken();
-    if (!token) return null;
-    try {
-      return jwtDecode<JwtPayload>(token);
-    } catch {
-      return null;
-    }
+    this._currentUser.set(token ? jwtDecode<User>(token) : null)
   }
 
   getToken(): string | null {
@@ -40,5 +43,6 @@ export class AuthService {
 
   logout() {
     localStorage.removeItem(this.tokenKey);
+    this._currentUser.set(null)
   }
 }

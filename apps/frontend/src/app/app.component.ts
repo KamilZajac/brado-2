@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, effect, OnInit} from '@angular/core';
 import {RouterLink, RouterLinkActive} from '@angular/router';
 import {
   IonApp,
@@ -39,6 +39,8 @@ import {
 } from 'ionicons/icons';
 import {SettingsService} from "./services/settings/settings.service";
 import {HeaderComponent} from "./components/header/header.component";
+import {AuthService} from "./services/auth/auth.service";
+import {UserRole} from "@brado/types";
 
 @Component({
   selector: 'app-root',
@@ -48,15 +50,36 @@ import {HeaderComponent} from "./components/header/header.component";
   imports: [HeaderComponent, RouterLink, RouterLinkActive, IonApp, IonSplitPane, IonMenu, IonContent, IonList, IonListHeader, IonNote, IonMenuToggle, IonItem, IonIcon, IonLabel, IonRouterLink, IonRouterOutlet],
 })
 export class AppComponent implements OnInit {
-  public appPages = [
-    {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
-    {title: 'Tydzień', url: '/weekly', icon: 'calendar-outline'},
-    {title: 'Porównaj', url: '/compare', icon: 'git-compare-outline'},
-    {title: 'Użytkownicy', url: '/users', icon: 'person-outline'},
-    {title: 'Ustawienia', url: '/settings', icon: 'settings-outline'},
-  ];
 
-  constructor(private settingsService: SettingsService) {
+  currentUser = this.auth.currentUser
+
+  appPages =  [
+          {title: 'Login', url: '/login', icon: 'settings-outline'},
+        ]
+
+  constructor(private settingsService: SettingsService, private auth: AuthService) {
+    effect(() => {
+         const user = this.currentUser();
+      console.log(user)
+        if(user && user.username) {
+
+          this.appPages = [
+            {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
+            ...user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN ? [
+              {title: 'Tydzień', url: '/weekly', icon: 'calendar-outline'},
+              {title: 'Porównaj', url: '/compare', icon: 'git-compare-outline'},
+              {title: 'Użytkownicy', url: '/users', icon: 'person-outline'},
+              {title: 'Ustawienia', url: '/settings', icon: 'settings-outline'},
+            ] : []
+          ];
+        } else {
+          this.appPages = [
+            {title: 'Login', url: '/login', icon: 'settings-outline'},
+          ]
+        }
+
+      console.log(this.appPages);
+    });
 
     addIcons({
       calendarOutline,
@@ -70,6 +93,13 @@ export class AppComponent implements OnInit {
 
   public ngOnInit() {
     this.settingsService.fetchSettings().then()
+    this.auth.getCurrentUser()
   }
+
+  // public get appPages(){
+  //   const user = this.auth.currentUser();
+  //
+
+  // }
 }
 
