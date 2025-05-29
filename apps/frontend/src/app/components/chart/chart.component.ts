@@ -439,10 +439,15 @@ export class ChartComponent implements OnInit {
     if (!annotations) return;
 
     for (const [key, ann] of Object.entries(annotations)) {
-      if (ann?.type === 'line' && ann.scaleID && ann.value != null) {
+      if (ann?.type === 'line' && (ann.value != null || ann.xMin != null)) {
+        console.log(ann)
+
         // @ts-ignore
         const scale =this.chart?.chart.scales['x']
-        const x = scale?.getPixelForValue(ann.value as number) || 0;
+        const x = scale?.getPixelForValue( ann.xMin as number || ann.value as number) || 0;
+        console.log()
+        console.log(x)
+        console.log(offsetX)
 
         const isNearLine = Math.abs(offsetX - x) < 5; // 5px tolerance
         if (isNearLine && ann.id) {
@@ -450,6 +455,7 @@ export class ChartComponent implements OnInit {
 
           if(confirmed) {
             const success = await firstValueFrom(this.annotationService.deleteAnnotation(+ann.id));
+            console.log(success)
             if(success) {
               this.reloadAnnotations.emit()
             }
@@ -524,16 +530,16 @@ export class ChartComponent implements OnInit {
         text: data,
       }
 
-
-      console.log(annotation)
       this.annotationService.createAnnotation(annotation).subscribe({
         next: (res) => {
           this.toast('Dodano adnotację');
           this.reloadAnnotations.emit()
-          console.log('emitted from chart')
+          this.newAnnotation = null
 
         },
         error: (err) => {
+          this.newAnnotation = null
+
           this.toast('Wystąpił błąd')
         },
       });
