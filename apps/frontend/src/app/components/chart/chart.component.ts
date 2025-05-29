@@ -1,30 +1,39 @@
 import {Component, effect, EventEmitter, input, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {Annotation, HourlyReading, LiveReading} from "@brado/types";
+import {Annotation, AnnotationType, HourlyReading, LiveReading, User} from "@brado/types";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
-import {BarController, BarElement, CategoryScale, ChartData, ChartOptions} from 'chart.js';
-import {BaseChartDirective} from 'ng2-charts';
 import {
+  BarController,
+  BarElement,
+  CategoryScale,
   Chart as ChartJS,
+  ChartData,
+  ChartOptions,
+  Filler,
+  Legend,
+  LinearScale,
+  LineController,
   LineElement,
   PointElement,
-  LinearScale,
   TimeScale,
   Title,
-  Tooltip,
-  Legend,
-  Filler,
-  LineController,
-  LineOptions
+  Tooltip
 } from 'chart.js';
+import {BaseChartDirective} from 'ng2-charts';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import {hourlyBackgroundPlugin} from "./plugins/background-plugin";
-import {AlertController, IonButton, IonRow, ModalController, ToastController} from '@ionic/angular/standalone';
+import {
+  ActionSheetController,
+  AlertController,
+  IonRow,
+  ModalController,
+  ToastController
+} from '@ionic/angular/standalone';
 import {TextInputModalComponent} from "../text-input-modal/text-input-modal.component";
 import {AnnotationService} from "../../services/annotation/annotation.service";
-import { firstValueFrom } from 'rxjs';
+import {firstValueFrom} from 'rxjs';
 
 ChartJS.register(
   LineController,
@@ -57,7 +66,7 @@ interface Series {
   selector: 'app-chart',
   templateUrl: './chart.component.html',
   styleUrls: ['./chart.component.scss'],
-  imports: [BaseChartDirective, IonButton, IonRow],
+  imports: [BaseChartDirective, IonRow],
   providers: [ReadingsToSeriesMultiplePipe, ReadingsToSeriesPipe, ModalController]
 })
 export class ChartComponent implements OnInit {
@@ -74,12 +83,22 @@ export class ChartComponent implements OnInit {
   chartData!: ChartData<'line'>;
   chartOptions: ChartOptions = {}
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
-  isAnnotationMode = false;
+
   isAnnotationVisible = true;
+
+  newAnnotation: Annotation|null = null;
+  annotationType = AnnotationType;
 
   @Output() reloadAnnotations = new EventEmitter()
 
-  constructor(private modalCtrl: ModalController, private annotationService: AnnotationService, private toastCtrl: ToastController,private alertController: AlertController) {
+  constructor(
+    private modalCtrl: ModalController,
+    private annotationService: AnnotationService,
+    private toastCtrl: ToastController,
+    private alertController: AlertController,
+    private actionSheetCtrl: ActionSheetController
+
+  ) {
     effect(() => {
       console.log(this.annotations())
       if (this.annotations()?.length) {
@@ -102,7 +121,32 @@ export class ChartComponent implements OnInit {
 
     if(this.isAnnotationVisible) {
       this.annotations()?.forEach((pt, i) => {
-        annotations[`point${i}`] = {
+
+        console.log(this.chartData.datasets[0])
+
+        const chartValues = this.chartData.datasets[0].data.map((item:any) => item.y)
+        console.log(chartValues)
+        const average = chartValues.reduce((a, b) => a + b) / chartValues.length;
+        annotations[`point${i}`] = pt.to_timestamp ?
+          {
+              type: 'line',
+              borderColor: 'green',
+              id: pt.id,
+              borderWidth: 1,
+              label: {
+                display: true,
+                backgroundColor: pt.type === AnnotationType.ACCIDENT_FROM_TO ? 'rgba(255, 99, 132, 0.3)' : 'rgba(75, 192, 192, 0.15)',
+                borderRadius: 0,
+                color: '#333',
+                content: [pt.type === AnnotationType.ACCIDENT_FROM_TO ? 'Awaria' : 'Przerwa',  pt.text, '- '+pt.user.username],
+              },
+              xMax: +pt.from_timestamp,
+              xMin: +pt.to_timestamp,
+              xScaleID: 'x',
+              yMax: average,
+              yMin: average,
+              yScaleID: 'y'
+          } : {
           type: 'line',
           id: pt.id,
           borderColor: 'red',
@@ -115,7 +159,7 @@ export class ChartComponent implements OnInit {
             color: '#000',
           },
           scaleID: 'x',
-          value: +pt.timestamp
+          value: +pt.from_timestamp
         };
       });
     }
@@ -441,7 +485,7 @@ export class ChartComponent implements OnInit {
   }
 
   onChartClick(event: any) {
-    if (!this.isAnnotationMode) {
+    if (!this.newAnnotation) {
       return
     }
     const chartInstance = this.chart?.chart;
@@ -457,16 +501,15 @@ export class ChartComponent implements OnInit {
     const yValue = yScale.getValueForPixel(clickY) || 0
 
     if (xValue) {
-      this.isAnnotationMode = false;
-      this.openTextInputModal(xValue, yValue)
+      this.addValueToNewAnnotation(xValue)
     }
   }
 
-  async openTextInputModal(xValue: number, yValue: number) {
+  async openNewAnnotationModal() {
     const modal = await this.modalCtrl.create({
       component: TextInputModalComponent,
       componentProps: {
-        message: `Wpisz treść adnotacji ( x: ${new Date(xValue).toLocaleString()}  y: ${yValue.toFixed(0)} ):`
+        message: `Wpisz treść adnotacji (opcjonalnie):`
       }
     });
 
@@ -474,15 +517,15 @@ export class ChartComponent implements OnInit {
 
     const {data, role} = await modal.onDidDismiss();
 
-    if (role === 'confirm' && data) {
+    if (role === 'confirm' ) {
 
       const annotation: Partial<Annotation> = {
-        sensorId: this.sensorId,
-        timestamp: Math.floor(xValue).toString(),
-        value: Math.floor(yValue),
-        text: data
+        ...this.newAnnotation,
+        text: data,
       }
 
+
+      console.log(annotation)
       this.annotationService.createAnnotation(annotation).subscribe({
         next: (res) => {
           this.toast('Dodano adnotację');
@@ -504,6 +547,94 @@ export class ChartComponent implements OnInit {
   toggleAnnotations() {
     this.isAnnotationVisible = !this.isAnnotationVisible;
     this.buildChartOptions()
+  }
+
+ async presentAnnotationOptions() {
+    const newAnnotation: Annotation = {
+      from_timestamp: "",
+      sensorId: this.sensorId,
+      text: "",
+      type:1,
+      user: {} as User,
+      id: -1
+    };
+
+    const startAddingAnnotation = (): void => {
+      this.newAnnotation = newAnnotation;
+      console.log(this.newAnnotation);
+   }
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: 'Wybierz typ adnotacji',
+      buttons: [
+        {
+          text: 'Przerwa ( od - do )',
+          handler: () => {
+            newAnnotation.type = AnnotationType.BREAK_FROM_TO;
+            startAddingAnnotation()
+          }
+        },
+        {
+          text: 'Awaria',
+          handler: () => {
+            newAnnotation.type = AnnotationType.ACCIDENT
+            startAddingAnnotation()
+
+          }
+        },
+        {
+          text: 'Awaria ( od - do )',
+          handler: () => {
+            newAnnotation.type = AnnotationType.ACCIDENT_FROM_TO;
+            startAddingAnnotation()
+
+          }
+        },
+        {
+          text: 'Własna',
+          handler: () => {
+            newAnnotation.type = AnnotationType.CUSTOM;
+            startAddingAnnotation()
+          }
+        },
+        {
+          text: 'Anuluj',
+          icon: 'close',
+          role: 'cancel'
+        }
+      ]
+    });
+
+    await actionSheet.present();
+
+   console.log(newAnnotation);
+  }
+
+  protected readonly AnnotationType = AnnotationType;
+
+  private addValueToNewAnnotation(xValue: number) {
+    if(!this.newAnnotation) {
+      return
+    }
+
+    if(this.newAnnotation.from_timestamp.length === 0 ) {
+      console.log('tutaj 1')
+      this.newAnnotation.from_timestamp = Math.round(xValue).toString()
+    } else {
+      console.log('tutaj 2')
+
+      this.newAnnotation.to_timestamp = Math.round(xValue).toString()
+    }
+
+    console.log(this.newAnnotation);
+
+    if(
+      this.newAnnotation.type === AnnotationType.CUSTOM ||
+      this.newAnnotation.type === AnnotationType.ACCIDENT ||
+      this.newAnnotation.to_timestamp) {
+
+      this.openNewAnnotationModal()
+
+    }
   }
 }
 

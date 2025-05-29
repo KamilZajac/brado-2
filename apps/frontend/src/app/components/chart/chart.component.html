@@ -52,23 +52,32 @@
       adnotacje
 
     </button>
-    @if(isAnnotationMode) {
-      <span class="ion-margin-end">Kliknij wybrane miejsce na wykresie</span>
+    @if(newAnnotation) {
+      @if (newAnnotation.type === AnnotationType.BREAK_FROM_TO || newAnnotation.type === AnnotationType.ACCIDENT_FROM_TO) {
+        <span class="ion-margin-end">
+          {{newAnnotation.from_timestamp.length === 0 ? 'Wybierz początek adnotacji' : 'Wybierz koniec adnotacji'}}
+        </span>
+      } @else {
+        <span class="ion-margin-end">Kliknij wybrane miejsce na wykresie</span>
+      }
     }
 
 
-    <button
-      class="button active"
-      [class.warning]="isAnnotationMode"
+    @if(!newAnnotation) {
+      <button
+        class="button active"
+        (click)="presentAnnotationOptions()">
+        Dodaj Adnotacje
+      </button>
 
-      (click)="isAnnotationMode = !isAnnotationMode">
-      @if(isAnnotationMode) {
+    } @else {
+      <button
+        class="button active warning"
+        (click)="newAnnotation = null">
         Anuluj
-      }@else {
-       Dodaj adnotacje
-      }
+      </button>
 
-    </button>
+    }
 
   </ion-row >
 

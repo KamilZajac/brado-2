@@ -58,9 +58,15 @@ export interface CreateUser {
 
 export interface Annotation {
     id: number;
-    timestamp: string;
-    value: number;
+    from_timestamp: string;
+    to_timestamp?: string;
     text: string;
     sensorId: number;
     user: User;
+    type: AnnotationType;
+}
+
+
+export enum AnnotationType {
+    BREAK_FROM_TO, ACCIDENT, ACCIDENT_FROM_TO, CUSTOM
 }

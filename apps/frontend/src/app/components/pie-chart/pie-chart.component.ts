@@ -29,6 +29,7 @@ export class PieChartComponent implements OnInit {
 
   chartOptions = {};
 
+
   public ngOnInit() {
     this.chartOptions = {
       cutout: 50,
@@ -40,15 +41,7 @@ export class PieChartComponent implements OnInit {
   }
 
   public get chartData(): ChartData<'doughnut'> {
-    const getColor = (): string => {
-      const diff = Math.abs(this.value - this.target);
-      const percentage = diff / this.target;
-      const normalizedPercentage = Math.min(percentage, 1);
 
-      const red = Math.round(255 * normalizedPercentage);
-      const green = Math.round(255 * (1 - normalizedPercentage));
-      return `rgb(${red}, ${green}, 0)`;
-    }
     const percentage = Math.min(this.value, this.target) / this.target;
     const remaining = 1 - percentage;
 
@@ -56,7 +49,7 @@ export class PieChartComponent implements OnInit {
       datasets: [{
         data: [percentage * 100, remaining * 100],
         backgroundColor: [
-          getColor(),
+          this.Color,
           'rgb(255,255,255)'
         ],
         hoverOffset: 4
@@ -64,7 +57,19 @@ export class PieChartComponent implements OnInit {
     };
   };
 
-  constructor() { }
+
+  public get Color  (): string {
+    const diff = Math.abs(this.value - this.target);
+    const percentage = diff / this.target;
+    const normalizedPercentage = Math.min(percentage, 1);
+
+    const red = Math.round(255 * normalizedPercentage);
+    const green = Math.round(255 * (1 - normalizedPercentage));
+    return `rgb(${red}, ${green}, 0)`;
+  }
+  public get percentage (): number {
+    return Math.round(this.value / this.target * 100);
+  }
 
 
 

@@ -11,7 +11,9 @@
   <div class="text">
 
     @if(value) {
-      {{value | number: '1.1-1'}} / {{target | number: '1.1-1'}}
+      <span>{{value | number: '1.1-1'}} / {{target | number: '1.1-1'}}</span>
+      <br>
+      <span [style.color]="Color">{{percentage}}%</span>
     } @else {
       <p>Czekam na dane</p>
     }

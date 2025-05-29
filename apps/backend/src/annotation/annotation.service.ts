@@ -31,9 +31,9 @@ export class AnnotationService {
   getAfterTime(date: string) {
     return this.annotationRepository.find({
       where: {
-        timestamp: MoreThan(date),
+        from_timestamp: MoreThan(date),
       },
-      order: { timestamp: 'ASC' },
+      order: { from_timestamp: 'ASC' },
       relations: ['user'],
     });
   }
@@ -41,9 +41,9 @@ export class AnnotationService {
   getBetween(fromTS: string, toTS: string) {
     return this.annotationRepository.find({
       where: {
-        timestamp: Between(fromTS, toTS),
+        from_timestamp: Between(fromTS, toTS),
       },
-      order: { timestamp: 'ASC' },
+      order: { from_timestamp: 'ASC' },
       relations: ['user'],
     });
   }
