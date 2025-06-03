@@ -1,6 +1,8 @@
 
 <div class="wrapper">
-
+  @if(value) {
+  <span class="text-values">{{value | number: '1.1-1'}} / {{target | number: '1.1-1'}}</span>
+  }
 <canvas baseChart
         [data]="chartData"
         [type]="'doughnut'"
@@ -11,7 +13,6 @@
   <div class="text">
 
     @if(value) {
-      <span>{{value | number: '1.1-1'}} / {{target | number: '1.1-1'}}</span>
       <br>
       <span [style.color]="Color">{{percentage}}%</span>
     } @else {

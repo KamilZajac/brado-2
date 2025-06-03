@@ -4,14 +4,18 @@
   .text {
     position: absolute;
     left: 50%;
-    top:50%;
+    top:47%;
     transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
+    font-size: 18px;
 
     span {
       white-space: nowrap;
       display: block;
     }
+  }
+  .text-values {
+    font-size: 13px;
   }
 }

@@ -41,6 +41,7 @@ import {SettingsService} from "./services/settings/settings.service";
 import {HeaderComponent} from "./components/header/header.component";
 import {AuthService} from "./services/auth/auth.service";
 import {UserRole} from "@brado/types";
+import {DataStore} from "./services/data/data.store";
 
 @Component({
   selector: 'app-root',
@@ -57,11 +58,11 @@ export class AppComponent implements OnInit {
           {title: 'Login', url: '/login', icon: 'settings-outline'},
         ]
 
-  constructor(private settingsService: SettingsService, private auth: AuthService) {
+  constructor(private settingsService: SettingsService, private auth: AuthService, private dataStore: DataStore) {
     effect(() => {
          const user = this.currentUser();
-      console.log(user)
         if(user && user.username) {
+
 
           this.appPages = [
             {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
@@ -92,7 +93,11 @@ export class AppComponent implements OnInit {
 
 
   public ngOnInit() {
-    this.settingsService.fetchSettings().then()
+    this.settingsService.fetchSettings().then(() => {
+      if(this.currentUser()) {
+        this.dataStore.loadInitialLiveData();
+      }
+    })
     this.auth.getCurrentUser()
   }
 

@@ -1,5 +1,5 @@
 import {AfterViewInit, Component, ElementRef, EventEmitter, input, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {Annotation, LiveSensorUpdate} from "@brado/types";
+import {Annotation, GrowingAverage, LiveReading, LiveSensorUpdate} from "@brado/types";
 import {ChartComponent} from "../../../components/chart/chart.component";
 import {PieChartComponent} from "../../../components/pie-chart/pie-chart.component";
 
@@ -27,8 +27,21 @@ export class SensorStatsComponent {
 
 
   onReloadAnnotations() {
-    console.log('reload form sensordstsat')
-
     this.reloadAnnotations.emit()
+  }
+
+  public get growingAverage(): GrowingAverage {
+
+    const lastReading = this.data.readings[this.data.readings.length - 1];
+
+    if(!lastReading || !lastReading.growingAverage) {
+      return {
+        estimatedProduction: 0,
+        realProduction: 0
+      } as GrowingAverage;
+    }
+
+    console.log(lastReading.growingAverage);
+    return lastReading.growingAverage;
   }
 }

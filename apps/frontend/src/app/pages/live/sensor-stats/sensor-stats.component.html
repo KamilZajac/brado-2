@@ -5,13 +5,17 @@
       <p>{{sensorName}}</p>
 
       <div class="chart-container">
-        <app-pie-chart
-          [value]="data.average5"
-          [disableAnimation]="true"
-          [target]="hourlyTarget / 60"
-        ></app-pie-chart>
-        <p>Średnia - 5min</p>
+        @if (growingAverage) {
 
+        <app-pie-chart
+          [value]="growingAverage.realProduction"
+          [disableAnimation]="true"
+          [target]="growingAverage.estimatedProduction"
+        ></app-pie-chart>
+        <p>Narastająca</p>
+        } @else {
+          czekam na dane
+        }
       </div>
 
 

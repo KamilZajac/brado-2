@@ -6,13 +6,15 @@ import {
   DataReadingWithDeltas,
   LiveUpdate,
   HourlyReading,
+  GrowingAverage,
 } from '@brado/types';
 import { ReadingsGateway } from './readings.gateway';
 import { LiveReadingEntity } from './entities/minute-reading.entity';
 import { ReadingsHelpers } from './readings-helpers';
 import { HourlyReadingEntity } from './entities/hourly-reading-entity';
 import { DateTime } from 'luxon';
-import { exportToExcel } from './export.helper';
+import {exportToExcel, exportToExcelLive} from './export.helper';
+import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
 export class ReadingService {
@@ -22,6 +24,7 @@ export class ReadingService {
     @InjectRepository(HourlyReadingEntity)
     private hourlyReadingsRepo: Repository<HourlyReading>,
     private readonly gateway: ReadingsGateway,
+    private settingsService: SettingsService,
   ) {}
 
   private dailyTotals = new Map<string, number>(); // key: `${sensorId}-${yyyy-mm-dd}`
@@ -78,7 +81,6 @@ export class ReadingService {
         readingsWithTotals.push();
 
         this.dailyTotals.set(dateKey, rWithTotal.dailyTotal);
-        console.log('SETTING TOTAL', dateKey, rWithTotal.dailyTotal);
 
         lastValue = r.value;
       }
@@ -91,10 +93,10 @@ export class ReadingService {
     try {
       this.liveReadingsRepo.save(toSave);
 
-      const average5 = await this.getAverageSpeedsLastXMinutes(
-        uniqueSensorIds,
-        5,
-      );
+      // const average5 = await this.getAverageSpeedsLastXMinutes(
+      //   uniqueSensorIds,
+      //   5,
+      // );
       const average60 = await this.getAverageSpeedsLastXMinutes(
         uniqueSensorIds,
         60,
@@ -104,7 +106,7 @@ export class ReadingService {
 
       uniqueSensorIds.forEach((id) => {
         liveUpdate[id] = {
-          average5: average5[id],
+          growingAverage: {} as GrowingAverage, // Todo
           average60: average60[id],
           readings: readingsWithTotals.filter(
             (reading) => reading.sensorId === id,
@@ -151,12 +153,76 @@ export class ReadingService {
     return { 1: latestSensor1.value, 2: latestSensor2.value };
   }
 
+  async getAverageIncreasing(
+    timestamp: string,
+  ): Promise<Record<number, GrowingAverage>> {
+    const target = await this.settingsService.getSettings();
+
+    const targetPerMinute = target.hourlyTarget / 60;
+
+    const subQuery = this.liveReadingsRepo
+      .createQueryBuilder('sub')
+      .select('MIN(sub.id)', 'minId')
+      .where('sub.delta > :threshold', { threshold: 5 })
+      .andWhere('sub.timestamp > :timestamp', { timestamp })
+      .groupBy('sub.sensorId');
+
+    const firstReadings = await this.liveReadingsRepo
+      .createQueryBuilder('reading')
+      .where(`reading.id IN (${subQuery.getQuery()})`)
+      .setParameters(subQuery.getParameters())
+      .getMany();
+
+    const latestReading = await this.liveReadingsRepo
+      .createQueryBuilder('r')
+      .orderBy('r.timestamp', 'DESC')
+      .getOne();
+
+    const now = new Date().getTime();
+
+    const referenceTime = latestReading ? +latestReading.timestamp : now;
+
+    const result: GrowingAverage[] = await Promise.all(
+      firstReadings.map(async (reading) => {
+        const sumResult = await this.liveReadingsRepo
+          .createQueryBuilder('r')
+          .select('SUM(r.delta)', 'sum')
+          .where('r.sensorId = :sensorId', { sensorId: reading.sensorId })
+          .andWhere('r.timestamp >= :timestamp', {
+            timestamp: reading.timestamp,
+          })
+          .getRawOne();
+
+        const minutesSinceFirstReading = Math.floor(
+          (referenceTime - +reading.timestamp) / 60000,
+        );
+
+        const estimatedProduction = minutesSinceFirstReading * targetPerMinute;
+
+        return {
+          sensorId: reading.sensorId,
+          estimatedProduction: estimatedProduction,
+          realProduction: +sumResult.sum,
+          fromTime: reading.timestamp,
+          endTime: referenceTime.toString(),
+        };
+      }),
+    );
+
+    const resultRecord: Record<number, GrowingAverage> = {};
+
+    result.forEach((gav) => {
+      resultRecord[gav.sensorId] = gav;
+    });
+
+    console.log(resultRecord);
+    return resultRecord;
+  }
+
   async getAverageSpeedsLastXMinutes(
     sensorIds: number[],
     minutes: number,
   ): Promise<Record<number, number>> {
-    // Todo - reuse last 60min for last 5 min ( it's same data )
-
     const from = Date.now() - minutes * 60 * 1000;
 
     const readings = await this.liveReadingsRepo.find({
@@ -207,17 +273,22 @@ export class ReadingService {
     );
 
     if (!todayData.length) {
-      return {}
+      return {};
     }
 
-    const average5 = await this.getAverageSpeedsLastXMinutes(
-      uniqueSensorIds,
-      5,
-    );
+    // const average5 = await this.getAverageSpeedsLastXMinutes(
+    //   uniqueSensorIds,
+    //   5,
+    // );
+
     const average60 = await this.getAverageSpeedsLastXMinutes(
       uniqueSensorIds,
       60,
     );
+
+    console.log('AVERAGE50');
+    console.log(average60);
+    const growingAverage = await this.getAverageIncreasing(startOfTheDateTS);
 
     const liveUpdate: LiveUpdate = {};
 
@@ -234,10 +305,8 @@ export class ReadingService {
 
       this.dailyTotals.set(dateKey, lastRWithTotal.dailyTotal ?? 0);
 
-      console.log('SETTING TOTAL', dateKey, lastRWithTotal.dailyTotal ?? 0);
-
       liveUpdate[id] = {
-        average5: average5[id],
+        growingAverage: growingAverage[id],
         average60: average60[id],
         readings: todayWithTotal,
       };
@@ -430,13 +499,16 @@ export class ReadingService {
 
   async exportData(fromTS: string, toTS: string): Promise<Buffer> {
     const hourly = await this.getHourly(fromTS, toTS);
+    const settings = await this.settingsService.getSettings();
 
-    return exportToExcel(hourly);
+    return exportToExcel(hourly, settings);
+
   }
 
   async exportLiveData(fromTS: string): Promise<Buffer> {
-    const liveData = await this.getAfterTime(fromTS);
+    const liveData = await this.getInitialLiveData(fromTS);
+    const settings = await this.settingsService.getSettings();
 
-    return exportToExcel(liveData);
+    return exportToExcelLive(liveData, settings);
   }
 }

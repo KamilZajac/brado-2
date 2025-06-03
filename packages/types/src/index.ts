@@ -4,6 +4,7 @@ export type LiveReading = {
     sensorId: number;
     delta: number;
     dailyTotal?: number; // virtual field
+    growingAverage?: GrowingAverage; // virtual
 }
 
 export type DataReadingWithDeltas = LiveReading & {
@@ -19,7 +20,7 @@ export type LiveUpdate = {
 
 export type LiveSensorUpdate = {
     readings: LiveReading[]
-    average5: number,
+    growingAverage: GrowingAverage
     average60 : number,
 }
 
@@ -66,6 +67,14 @@ export interface Annotation {
     type: AnnotationType;
 }
 
+
+export interface GrowingAverage {
+    sensorId:  number;
+    estimatedProduction: number;
+    realProduction: number;
+    fromTime: string,
+    endTime: string,
+}
 
 export enum AnnotationType {
     BREAK_FROM_TO, ACCIDENT, ACCIDENT_FROM_TO, CUSTOM

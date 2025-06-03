@@ -1,4 +1,4 @@
-import { Component, effect, OnInit } from '@angular/core';
+import {Component, effect, inject, OnInit} from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { IonCard } from '@ionic/angular/standalone';
 import {SensorStatsComponent} from "./sensor-stats/sensor-stats.component";
@@ -11,6 +11,8 @@ import {firstValueFrom} from "rxjs";
 import {SettingsService} from "../../services/settings/settings.service";
 import {AnnotationService} from "../../services/annotation/annotation.service";
 import {ChartWrapperDirective} from "../../directives/chart-wrapper.directive";
+import {UsersStore} from "../../services/users/users.store";
+import {DataStore} from "../../services/data/data.store";
 
 @Component({
   selector: 'app-live',
@@ -20,12 +22,12 @@ import {ChartWrapperDirective} from "../../directives/chart-wrapper.directive";
 
 })
 export class LiveComponent extends ChartWrapperDirective implements OnInit {
-  liveSensors = signal<LiveUpdate>({});
+  dataStore = inject(DataStore)
 
   public hourlyTarget = 0;
   public sensorNames: { [key: number]: string } = {};
 
-  constructor(private socketService: SocketService, private dataService: DataService, private settingsService: SettingsService, annotationService: AnnotationService ) {
+  constructor( private dataService: DataService, private settingsService: SettingsService, annotationService: AnnotationService ) {
     super(annotationService)
     effect(() => {
       const settings = this.settingsService.settings();
@@ -41,44 +43,7 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
 
   override ngOnInit() {
     super.ngOnInit()
-    this.initLiveData();
-
-    console.log('Loadin')
-    this.socketService.onLiveUpdate().subscribe(res => {
-      this.mergeLiveUpdate(res);
-      console.log(res)
-    })
-  }
-
-  private async initLiveData() {
-    const liveData = await firstValueFrom(this.dataService.getInitialLiveData());
-
-    this.liveSensors.update(() => liveData);
-
-      // this.initLiveCharts();
-    // this.setTotalProductionPerSensor();
-    // this.dataLoaded = true;
-  }
-
-
-  mergeLiveUpdate(newData: LiveUpdate) {
-    this.liveSensors.update(current => {
-      const updated = { ...current };
-
-      for (const key in newData) {
-        if (updated[key]) {
-          updated[key] = {
-            readings: [...updated[key].readings, ...newData[key].readings],
-            average5: newData[key].average5,
-            average60: newData[key].average60
-          };
-        } else {
-          // new sensor data
-          updated[key] = newData[key];
-        }
-      }
-      return updated;
-    });
+    this.dataStore.loadInitialLiveData();
   }
 
   getSensorName(key: string) {
@@ -97,6 +62,5 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
       window.URL.revokeObjectURL(url);
     });
   }
-
 
 }

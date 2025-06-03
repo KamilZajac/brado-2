@@ -26,7 +26,7 @@ export class SettingsService {
 
     this.http.get<SettingsRequest>(environment.apiUrl + '/settings').subscribe(settings => {
       this.settingsSignal.set(settings);
-      console.log('loaded')
+      localStorage.setItem('settings', JSON.stringify(settings)); // Todo do it better
 
     })
 
