@@ -23,7 +23,8 @@
     "express": "^5.1.0",
     "modbus-serial": "8.0.20-no-serial-port",
     "serialport": "^13.0.0",
-    "tsc": "^2.0.4"
+    "tsc": "^2.0.4",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

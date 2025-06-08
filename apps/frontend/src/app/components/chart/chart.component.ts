@@ -1,5 +1,5 @@
 import {Component, effect, EventEmitter, input, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {Annotation, AnnotationType, HourlyReading, LiveReading, User} from "@brado/types";
+import {Annotation, AnnotationType, HourlyReading, LiveReading, TempReading, User} from "@brado/types";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
 import {
@@ -71,6 +71,7 @@ interface Series {
 })
 export class ChartComponent implements OnInit {
   @Input() data: HourlyReading[] | LiveReading[] = [];
+  @Input() temperature: TempReading[] = [];
   @Input() dataMultiple: HourlyReading[][] | LiveReading[][] = [];
   @Input() disableAnimation = false;
   @Input() isLive = false;
@@ -100,7 +101,6 @@ export class ChartComponent implements OnInit {
 
   ) {
     effect(() => {
-      console.log(this.annotations())
       if (this.annotations()?.length) {
         this.buildChartOptions()
       }
@@ -122,10 +122,7 @@ export class ChartComponent implements OnInit {
     if(this.isAnnotationVisible) {
       this.annotations()?.forEach((pt, i) => {
 
-        console.log(this.chartData.datasets[0])
-
         const chartValues = this.chartData.datasets[0].data.map((item:any) => item.y)
-        console.log(chartValues)
         const average = chartValues.reduce((a, b) => a + b) / chartValues.length;
         annotations[`point${i}`] = pt.to_timestamp ?
           {
@@ -163,8 +160,6 @@ export class ChartComponent implements OnInit {
         };
       });
     }
-
-    console.log(annotations)
 
     this.chartOptions = {
       responsive: true,
@@ -206,7 +201,7 @@ export class ChartComponent implements OnInit {
             ...annotations
           },
         },
-        tooltip: {
+        tooltip: this.temperature ? {} : {
           mode: 'index',
           intersect: true,
           callbacks: {
@@ -277,7 +272,44 @@ export class ChartComponent implements OnInit {
 
     let datasets: any = [];
 
-    if (this.dataMultiple.length > 0) {
+    if(this.temperature.length) {
+
+      datasets = [
+        {
+          label: 'Temperatura (°C)',
+          data: this.temperature.map(entry => ({
+            x: new Date(Number(entry.timestamp)),
+            y: entry.temperature
+          })),
+          borderWidth: 2,
+          borderColor: 'red',
+          fill: false,
+          tension: 0.1
+        },
+        {
+          label: 'Wilgotność (%)',
+          data: this.temperature.map(entry => ({
+            x: new Date(Number(entry.timestamp)),
+            y: entry.humidity
+          })),
+          borderWidth: 2,
+          borderColor: 'blue',
+          fill: false,
+          tension: 0.1
+        },
+        {
+          label: 'Punkt rosy (°C)',
+          data: this.temperature.map(entry => ({
+            x: new Date(Number(entry.timestamp)),
+            y: entry.dewPoint
+          })),
+          borderWidth: 2,
+          borderColor: 'green',
+          fill: false,
+          tension: 0.1
+        }
+      ]
+    } else if (this.dataMultiple.length > 0) {
 
       const baseStartTimestamp = +this.dataMultiple[0][0].timestamp
 
@@ -318,6 +350,8 @@ export class ChartComponent implements OnInit {
         },
       ]
     }
+
+    console.log(datasets);
 
     this.chartData = {
       datasets
@@ -403,11 +437,17 @@ export class ChartComponent implements OnInit {
 
   public get availableKeys(): string[] {
     // console.log(this.data)
+    if(this.temperature) {
+      return []
+    }
     const arr = this.dataMultiple.length > 0 ? [...this.dataMultiple[0]] : [...this.data];
     return Object.keys([...arr][0]).filter(k => allowedKeys.includes(k))
   }
 
   public get sensorId(): number {
+    if(this.temperature) {
+      return 0
+    }
     return this.dataMultiple.length > 0 ? this.dataMultiple[0][0].sensorId : this.data[0].sensorId
   }
 

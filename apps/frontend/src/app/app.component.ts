@@ -68,6 +68,7 @@ export class AppComponent implements OnInit {
             {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
             ...user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN ? [
               {title: 'Tydzień', url: '/weekly', icon: 'calendar-outline'},
+              {title: 'Temperatura', url: '/temperatures', icon: 'calendar-outline'},
               {title: 'Porównaj', url: '/compare', icon: 'git-compare-outline'},
               {title: 'Użytkownicy', url: '/users', icon: 'person-outline'},
               {title: 'Ustawienia', url: '/settings', icon: 'settings-outline'},

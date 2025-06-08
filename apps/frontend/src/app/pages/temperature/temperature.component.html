@@ -1,0 +1,15 @@
+<ion-content class="gray-bg">
+  <!--  <div class="sensor-grid">-->
+
+  @if (tempStore.liveData() | keyvalue; as readings) {
+
+    @for (keypar of readings; track keypar.key) {
+
+      <div class="sensor-card">
+        <app-chart [temperature]="keypar.value"  />
+      </div>
+    }
+
+  }
+  <!--  </div>-->
+</ion-content>

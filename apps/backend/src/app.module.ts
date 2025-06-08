@@ -14,7 +14,9 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { UserEntity } from './users/entities/users.entity';
 import { AnnotationModule } from './annotation/annotation.module';
-import {AnnotationEntity} from "./annotation/entities/annotation.entity";
+import { AnnotationEntity } from './annotation/entities/annotation.entity';
+import { TemperatureModule } from './temperature/temperature.module';
+import { TemperatureEntity } from './temperature/entities/temperature.entity';
 
 const typeormConf = {
   type: 'postgres',
@@ -28,7 +30,8 @@ const typeormConf = {
     LiveReadingEntity,
     SettingsEntity,
     UserEntity,
-      AnnotationEntity
+    AnnotationEntity,
+    TemperatureEntity,
   ],
   synchronize: true,
   // logging: true,
@@ -54,6 +57,7 @@ console.log(typeormConf);
     AuthModule,
     UsersModule,
     AnnotationModule,
+    TemperatureModule,
   ],
   controllers: [AppController],
   providers: [],

@@ -6,6 +6,7 @@ import {SettingsComponent} from "./pages/settings/settings.component";
 import {SettingsResolver} from "./services/settings/settings.service";
 import {UsersComponent} from "./pages/users/users.component";
 import {LoginComponent} from "./pages/login/login.component";
+import {TemperatureComponent} from "./pages/temperature/temperature.component";
 
 export const routes: Routes = [
   {
@@ -28,6 +29,10 @@ export const routes: Routes = [
   {
     path: 'users',
     component: UsersComponent,
+  },
+  {
+    path: 'temperatures',
+    component: TemperatureComponent,
   },
   {
     path: 'login',

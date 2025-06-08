@@ -24,6 +24,10 @@
     <i class="icon-bar"></i> {{getKeyName(key)}}
   </button>
   }
+
+  @if(temperature.length) {
+    {{temperature[0].sensorId}}
+  }
 </div>
 
 </div>

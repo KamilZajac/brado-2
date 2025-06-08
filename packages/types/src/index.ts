@@ -79,3 +79,13 @@ export interface GrowingAverage {
 export enum AnnotationType {
     BREAK_FROM_TO, ACCIDENT, ACCIDENT_FROM_TO, CUSTOM
 }
+
+
+export interface TempReading {
+    id: number;
+    sensorId: string;
+    temperature: number;
+    humidity: number;
+    dewPoint: number;
+    timestamp: string;
+}
