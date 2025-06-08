@@ -437,7 +437,7 @@ export class ChartComponent implements OnInit {
 
   public get availableKeys(): string[] {
     // console.log(this.data)
-    if(this.temperature) {
+    if(this.temperature.length) {
       return []
     }
     const arr = this.dataMultiple.length > 0 ? [...this.dataMultiple[0]] : [...this.data];
@@ -445,7 +445,7 @@ export class ChartComponent implements OnInit {
   }
 
   public get sensorId(): number {
-    if(this.temperature) {
+    if(this.temperature.length) {
       return 0
     }
     return this.dataMultiple.length > 0 ? this.dataMultiple[0][0].sensorId : this.data[0].sensorId
