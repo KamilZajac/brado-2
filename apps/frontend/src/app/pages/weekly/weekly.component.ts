@@ -15,6 +15,7 @@ import {AnnotationService} from "../../services/annotation/annotation.service";
 import {ChartWrapperDirective} from "../../directives/chart-wrapper.directive";
 import {DataStore} from "../../services/data/data.store";
 import {SettingsService} from "../../services/settings/settings.service";
+import {settings} from "ionicons/icons";
 
 
 @Component({
@@ -63,5 +64,4 @@ export class WeeklyComponent extends ChartWrapperDirective implements OnInit {
       window.URL.revokeObjectURL(url);
     });
   }
-
 }

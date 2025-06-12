@@ -1,5 +1,6 @@
 <div class="row">
-<div class="chart-type-selector">
+
+<div class="chart-type-selector chart-series-type">
   <button
     class="button"
     [class.active]="chartType === 'bar'"
@@ -16,6 +17,7 @@
 
 <div class="chart-type-selector">
 
+
   @for (key of availableKeys; track key) {
   <button
     class="button"
@@ -28,6 +30,8 @@
   @if(temperature.length) {
     {{temperature[0].sensorId}}
   }
+
+
 </div>
 
 </div>
@@ -41,8 +45,12 @@
   >
   </canvas>
 
-  <ion-row  class="flex ion-justify-content-end ion-align-items-center">
+  <ion-row  class="flex ion-justify-content-between ion-align-items-center">
+    @if(!isLive){
+      {{sensorName}}
+    }
 
+    <ion-row  class="wrap flex ion-justify-content-end ion-align-items-center">
     <button
       class="button active ion-margin-end"
       [class.success]="isAnnotationVisible"
@@ -57,13 +65,9 @@
 
     </button>
     @if(newAnnotation) {
-      @if (newAnnotation.type === AnnotationType.BREAK_FROM_TO || newAnnotation.type === AnnotationType.ACCIDENT_FROM_TO) {
         <span class="ion-margin-end">
           {{newAnnotation.from_timestamp.length === 0 ? 'Wybierz początek adnotacji' : 'Wybierz koniec adnotacji'}}
         </span>
-      } @else {
-        <span class="ion-margin-end">Kliknij wybrane miejsce na wykresie</span>
-      }
     }
 
 
@@ -82,7 +86,7 @@
       </button>
 
     }
-
+    </ion-row >
   </ion-row >
 
 </div>

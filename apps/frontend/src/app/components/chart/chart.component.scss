@@ -11,4 +11,14 @@
 
 canvas {
   max-height: 300px;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+}
+
+
+@media screen and (max-width: 620px ) {
+  .chart-series-type {
+    display: none;
+  }
 }

@@ -1,8 +1,8 @@
 <div class="chart-grid">
 
   @if (data && data.readings) {
-    <div class="chart-wrapper" #chartContainer>
-      <p>{{sensorName}}</p>
+    <div class="chart-wrapper gauges" #chartContainer>
+      <p class="sensor-name">{{sensorName}}</p>
 
       <div class="chart-container">
         @if (growingAverage) {

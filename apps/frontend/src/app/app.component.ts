@@ -6,8 +6,6 @@ import {
   IonMenu,
   IonContent,
   IonList,
-  IonListHeader,
-  IonNote,
   IonMenuToggle,
   IonItem,
   IonIcon,
@@ -17,20 +15,6 @@ import {
 } from '@ionic/angular/standalone';
 import {addIcons} from 'ionicons';
 import {
-  mailOutline,
-  mailSharp,
-  paperPlaneOutline,
-  paperPlaneSharp,
-  heartOutline,
-  heartSharp,
-  archiveOutline,
-  archiveSharp,
-  trashOutline,
-  trashSharp,
-  warningOutline,
-  warningSharp,
-  bookmarkOutline,
-  bookmarkSharp,
   pulseOutline,
   calendarOutline,
   gitCompareOutline,
@@ -48,7 +32,7 @@ import {DataStore} from "./services/data/data.store";
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
   providers: [SettingsService],
-  imports: [HeaderComponent, RouterLink, RouterLinkActive, IonApp, IonSplitPane, IonMenu, IonContent, IonList, IonListHeader, IonNote, IonMenuToggle, IonItem, IonIcon, IonLabel, IonRouterLink, IonRouterOutlet],
+  imports: [HeaderComponent, RouterLink, RouterLinkActive, IonApp, IonSplitPane, IonMenu, IonContent, IonList, IonMenuToggle, IonItem, IonIcon, IonLabel, IonRouterLink, IonRouterOutlet],
 })
 export class AppComponent implements OnInit {
 
@@ -63,6 +47,8 @@ export class AppComponent implements OnInit {
          const user = this.currentUser();
         if(user && user.username) {
 
+          this.dataStore.loadInitialLiveData();
+          this.settingsService.fetchSettings().then()
 
           this.appPages = [
             {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
@@ -94,11 +80,6 @@ export class AppComponent implements OnInit {
 
 
   public ngOnInit() {
-    this.settingsService.fetchSettings().then(() => {
-      if(this.currentUser()) {
-        this.dataStore.loadInitialLiveData();
-      }
-    })
     this.auth.getCurrentUser()
   }
 

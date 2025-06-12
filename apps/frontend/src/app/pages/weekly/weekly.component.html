@@ -6,7 +6,8 @@
     @for (keypar of readings; track keypar.key) {
 
       <div class="sensor-card">
-        <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" [annotations]="groupedAnnotations()[+keypar.key]"
+
+        <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" [sensorNames]="sensorNames" [annotations]="groupedAnnotations()[+keypar.key]"
                    (reloadAnnotations)="getAnnotations()"/>
       </div>
     }

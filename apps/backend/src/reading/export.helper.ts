@@ -1,7 +1,4 @@
-// export.service.ts (or any service)
 import * as ExcelJS from 'exceljs';
-import * as fs from 'fs';
-import * as path from 'path';
 import { HourlyReading, LiveReading, LiveUpdate } from '@brado/types';
 import { DateTime } from 'luxon';
 import { SettingsEntity } from '../settings/entities/setting.entity';
@@ -14,7 +11,7 @@ function formatTimestampToPolish(msTimestamp: number): string {
 }
 
 export async function exportToExcel(
-  readings: HourlyReading[] | LiveReading[],
+  readings: HourlyReading[],
   settings: SettingsEntity,
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
@@ -24,32 +21,16 @@ export async function exportToExcel(
     new Set(readings.map((entity) => entity.sensorId)),
   );
 
-  uniqueSensorIds.forEach((sensorId: number) => {
-    const worksheet = workbook.addWorksheet(sensorId.toString());
+  const grouped: { [key: string]: HourlyReading[] } = {};
 
-    // Define columns
-    worksheet.columns = [
-      { header: 'Czas', key: 'timestamp', width: 30 },
-      { header: 'Wartość', key: 'value', width: 30 },
-      { header: 'Suma', key: 'dailyTotal', width: 30 },
-    ];
-
-    readings
-      .filter((r) => r.sensorId === sensorId)
-      .map((r) => ({
-        ...r,
-        timestamp: formatTimestampToPolish(+r.timestamp),
-      }))
-      .forEach((row) => worksheet.addRow(row));
-
-    // Optional: Style header
-    worksheet.getRow(1).font = { bold: true };
+  uniqueSensorIds.forEach((key: number) => {
+    grouped[key] = addGrowingAverage(
+      readings.filter((r) => r.sensorId === +key),
+      settings.hourlyTarget,
+    );
   });
 
-  // Write to file
-  // const outputPath = path.join(__dirname, 'output.xlsx');
-  // await workbook.xlsx.writeFile(outputPath);
-  // console.log(`Excel file saved to ${outputPath}`);
+  addHourlyWorkSheets(grouped, workbook, settings);
 
   const buffer = await workbook.xlsx.writeBuffer(); // Write to memory buffer
   return Buffer.from(buffer);
@@ -93,8 +74,19 @@ export async function exportToExcelLive(
     );
   });
 
-  console.log(aggregated[1][6]);
+  addHourlyWorkSheets(aggregated, workbook, settings);
 
+  const buffer = await workbook.xlsx.writeBuffer(); // Write to memory buffer
+  return Buffer.from(buffer);
+}
+
+export const addHourlyWorkSheets = (
+  aggregated: {
+    [key: string]: HourlyReading[];
+  },
+  workbook: ExcelJS.Workbook,
+  settings: SettingsEntity,
+) => {
   Object.keys(aggregated).forEach((sensorId: string) => {
     const worksheet = workbook.addWorksheet(
       settings.sensorNames[+sensorId - 1] + '- godzinowe',
@@ -113,15 +105,12 @@ export async function exportToExcelLive(
 
     aggregated[sensorId]
       .map((r: LiveReading) => {
-
         const estimated = r.growingAverage?.estimatedProduction ?? 0;
         const estToPrint = estimated > 0 ? estimated : 0;
 
         const real = r.growingAverage?.realProduction ?? 0;
 
         const growingPerc = estToPrint > 0 ? real / estToPrint : 0;
-
-
 
         return {
           ...r,
@@ -134,23 +123,36 @@ export async function exportToExcelLive(
 
     worksheet.getRow(1).font = { bold: true };
   });
-
-  const buffer = await workbook.xlsx.writeBuffer(); // Write to memory buffer
-  return Buffer.from(buffer);
-}
+};
 
 export const addGrowingAverage = (
   readings: HourlyReading[],
   hourlyTarget: number,
 ): HourlyReading[] => {
-  const firstReadingWithValue = readings.find((r) => r.delta >= 5);
+  // const firstReadingWithValue = readings.find((r) => r.delta >= 5);
+  const getPolandDay = (ts: number) =>
+    DateTime.fromMillis(ts, { zone: 'Europe/Warsaw' }).day;
 
-  if (!firstReadingWithValue) {
-    console.error('no first reading, or hourly target');
-    return readings;
-  }
+  let currentDay = -1;
+  let firstReadingWithValue: HourlyReading | undefined;
+  let firstReadingTodayIndex: number = -1;
 
   readings = readings.map((r, idx) => {
+    if (getPolandDay(+r.timestamp) !== currentDay) {
+      currentDay = getPolandDay(+r.timestamp);
+      firstReadingTodayIndex = readings.findIndex(
+        (reading) => getPolandDay(+reading.timestamp) === currentDay,
+      );
+
+      firstReadingWithValue = readings.find(
+        (r) => r.delta > 5 && getPolandDay(+r.timestamp) === currentDay,
+      );
+    }
+
+    if (!firstReadingWithValue) {
+      return r;
+    }
+
     const minutesSinceFirstReading = Math.floor(
       (+r.timestamp - +firstReadingWithValue.timestamp) / 60000,
     );
@@ -159,17 +161,16 @@ export const addGrowingAverage = (
       (minutesSinceFirstReading + 60) * (hourlyTarget / 60);
 
     const totalDelta = readings
-      .slice(0, idx + 1)
+      .slice(firstReadingTodayIndex, idx + 1)
       .reduce((sum, item) => sum + item.delta, 0);
 
-    const realProduction = totalDelta;
 
     return {
       ...r,
       dailyTotal: totalDelta,
       growingAverage: {
-        realProduction,
-        estimatedProduction,
+        realProduction: r.delta > 5 ? totalDelta : 0,
+        estimatedProduction: r.delta > 5 ? estimatedProduction : 0,
         endTime: r.timestamp,
         fromTime: firstReadingWithValue.timestamp,
         sensorId: r.sensorId,
@@ -177,6 +178,5 @@ export const addGrowingAverage = (
     };
   });
 
-  console.log(readings);
   return readings;
 };

@@ -76,6 +76,7 @@ export class ChartComponent implements OnInit {
   @Input() disableAnimation = false;
   @Input() isLive = false;
   @Input() hourlyTarget = 0;
+  @Input() sensorNames: { [key: number]: string } = {};
   annotations = input<Annotation[]>()
 
   @Input() chartType: 'line' | 'bar' = 'line';
@@ -87,8 +88,7 @@ export class ChartComponent implements OnInit {
 
   isAnnotationVisible = true;
 
-  newAnnotation: Annotation|null = null;
-  annotationType = AnnotationType;
+  newAnnotation: Annotation | null = null;
 
   @Output() reloadAnnotations = new EventEmitter()
 
@@ -98,7 +98,6 @@ export class ChartComponent implements OnInit {
     private toastCtrl: ToastController,
     private alertController: AlertController,
     private actionSheetCtrl: ActionSheetController
-
   ) {
     effect(() => {
       if (this.annotations()?.length) {
@@ -119,45 +118,45 @@ export class ChartComponent implements OnInit {
   buildChartOptions() {
     const annotations: any = {};
 
-    if(this.isAnnotationVisible) {
+    if (this.isAnnotationVisible) {
       this.annotations()?.forEach((pt, i) => {
 
-        const chartValues = this.chartData.datasets[0].data.map((item:any) => item.y)
+        const chartValues = this.chartData.datasets[0].data.map((item: any) => item.y)
         const average = chartValues.reduce((a, b) => a + b) / chartValues.length;
         annotations[`point${i}`] = pt.to_timestamp ?
           {
-              type: 'line',
-              borderColor: 'green',
-              id: pt.id,
-              borderWidth: 1,
-              label: {
-                display: true,
-                backgroundColor: pt.type === AnnotationType.ACCIDENT_FROM_TO ? 'rgba(255, 99, 132, 0.3)' : 'rgba(75, 192, 192, 0.15)',
-                borderRadius: 0,
-                color: '#333',
-                content: [pt.type === AnnotationType.ACCIDENT_FROM_TO ? 'Awaria' : 'Przerwa',  pt.text, '- '+pt.user.username],
-              },
-              xMax: +pt.from_timestamp,
-              xMin: +pt.to_timestamp,
-              xScaleID: 'x',
-              yMax: average,
-              yMin: average,
-              yScaleID: 'y'
+            type: 'line',
+            borderColor: this.getAnnotationColor(pt.type),
+            id: pt.id,
+            borderWidth: 1,
+            label: {
+              display: true,
+              backgroundColor: this.getAnnotationColor(pt.type),
+              borderRadius: 0,
+              color: '#fff',
+              content: [this.getAnnotationTitle(pt.type), pt.text, '- ' + pt.user.username],
+            },
+            xMax: +pt.from_timestamp,
+            xMin: +pt.to_timestamp,
+            xScaleID: 'x',
+            yMax: average,
+            yMin: average,
+            yScaleID: 'y'
           } : {
-          type: 'line',
-          id: pt.id,
-          borderColor: 'red',
-          borderWidth: 1,
-          label: {
-            display: true,
-            content: [pt.text, '- '+pt.user.username],
-            position: 'end',
-            backgroundColor: 'rgba(255,0,0,0.1)',
-            color: '#000',
-          },
-          scaleID: 'x',
-          value: +pt.from_timestamp
-        };
+            type: 'line',
+            id: pt.id,
+            borderColor: 'red',
+            borderWidth: 1,
+            label: {
+              display: true,
+              content: [pt.text, '- ' + pt.user.username],
+              position: 'end',
+              backgroundColor: 'rgba(255,0,0,0.1)',
+              color: '#fff',
+            },
+            scaleID: 'x',
+            value: +pt.from_timestamp
+          };
       });
     }
 
@@ -201,7 +200,7 @@ export class ChartComponent implements OnInit {
             ...annotations
           },
         },
-        tooltip: this.temperature ? {} : {
+        tooltip: this.temperature.length ? {} : {
           mode: 'index',
           intersect: true,
           callbacks: {
@@ -272,7 +271,7 @@ export class ChartComponent implements OnInit {
 
     let datasets: any = [];
 
-    if(this.temperature.length) {
+    if (this.temperature.length) {
 
       datasets = [
         {
@@ -437,7 +436,7 @@ export class ChartComponent implements OnInit {
 
   public get availableKeys(): string[] {
     // console.log(this.data)
-    if(this.temperature.length) {
+    if (this.temperature.length) {
       return []
     }
     const arr = this.dataMultiple.length > 0 ? [...this.dataMultiple[0]] : [...this.data];
@@ -445,10 +444,14 @@ export class ChartComponent implements OnInit {
   }
 
   public get sensorId(): number {
-    if(this.temperature.length) {
+    if (this.temperature.length) {
       return 0
     }
     return this.dataMultiple.length > 0 ? this.dataMultiple[0][0].sensorId : this.data[0].sensorId
+  }
+
+  public get sensorName(): string {
+    return this.sensorNames[this.sensorId] ?? this.sensorId
   }
 
   selectDataKey(key: any) {
@@ -473,7 +476,7 @@ export class ChartComponent implements OnInit {
   }
 
   async onChartDoubleClick(event: MouseEvent) {
-    const { offsetX, offsetY } = event;
+    const {offsetX, offsetY} = event;
     const annotations = this.chart?.options?.plugins?.annotation?.annotations;
 
     if (!annotations) return;
@@ -483,20 +486,16 @@ export class ChartComponent implements OnInit {
         console.log(ann)
 
         // @ts-ignore
-        const scale =this.chart?.chart.scales['x']
-        const x = scale?.getPixelForValue( ann.xMin as number || ann.value as number) || 0;
-        console.log()
-        console.log(x)
-        console.log(offsetX)
+        const scale = this.chart?.chart.scales['x']
+        const x = scale?.getPixelForValue(ann.xMin as number || ann.value as number) || 0;
 
         const isNearLine = Math.abs(offsetX - x) < 5; // 5px tolerance
         if (isNearLine && ann.id) {
           const confirmed = await this.showConfirmAlert();
 
-          if(confirmed) {
+          if (confirmed) {
             const success = await firstValueFrom(this.annotationService.deleteAnnotation(+ann.id));
-            console.log(success)
-            if(success) {
+            if (success) {
               this.reloadAnnotations.emit()
             }
           }
@@ -526,7 +525,7 @@ export class ChartComponent implements OnInit {
     await alert.present();
 
     // Wait for alert dismissal and return result
-    const { role } = await alert.onDidDismiss();
+    const {role} = await alert.onDidDismiss();
     return role !== 'cancel'; // returns true if "Yes" clicked
   }
 
@@ -563,12 +562,14 @@ export class ChartComponent implements OnInit {
 
     const {data, role} = await modal.onDidDismiss();
 
-    if (role === 'confirm' ) {
+    if (role === 'confirm') {
 
       const annotation: Partial<Annotation> = {
         ...this.newAnnotation,
         text: data,
       }
+
+      console.log(annotation)
 
       this.annotationService.createAnnotation(annotation).subscribe({
         next: (res) => {
@@ -595,12 +596,12 @@ export class ChartComponent implements OnInit {
     this.buildChartOptions()
   }
 
- async presentAnnotationOptions() {
+  async presentAnnotationOptions() {
     const newAnnotation: Annotation = {
       from_timestamp: "",
       sensorId: this.sensorId,
       text: "",
-      type:1,
+      type: 1,
       user: {} as User,
       id: -1
     };
@@ -608,12 +609,12 @@ export class ChartComponent implements OnInit {
     const startAddingAnnotation = (): void => {
       this.newAnnotation = newAnnotation;
       console.log(this.newAnnotation);
-   }
+    }
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Wybierz typ adnotacji',
       buttons: [
         {
-          text: 'Przerwa ( od - do )',
+          text: 'Przerwa',
           handler: () => {
             newAnnotation.type = AnnotationType.BREAK_FROM_TO;
             startAddingAnnotation()
@@ -622,23 +623,24 @@ export class ChartComponent implements OnInit {
         {
           text: 'Awaria',
           handler: () => {
-            newAnnotation.type = AnnotationType.ACCIDENT
-            startAddingAnnotation()
-
-          }
-        },
-        {
-          text: 'Awaria ( od - do )',
-          handler: () => {
             newAnnotation.type = AnnotationType.ACCIDENT_FROM_TO;
             startAddingAnnotation()
 
           }
         },
         {
-          text: 'Własna',
+          text: 'Wymiana Strzemion',
           handler: () => {
-            newAnnotation.type = AnnotationType.CUSTOM;
+            newAnnotation.type = AnnotationType.CLIPS_CHANGE;
+            console.log(AnnotationType)
+            console.log(newAnnotation);
+            startAddingAnnotation()
+          }
+        },
+        {
+          text: 'Organizacja',
+          handler: () => {
+            newAnnotation.type = AnnotationType.ORGANISATION_FROM_TO;
             startAddingAnnotation()
           }
         },
@@ -651,35 +653,53 @@ export class ChartComponent implements OnInit {
     });
 
     await actionSheet.present();
-
-   console.log(newAnnotation);
   }
 
-  protected readonly AnnotationType = AnnotationType;
-
   private addValueToNewAnnotation(xValue: number) {
-    if(!this.newAnnotation) {
+    if (!this.newAnnotation) {
       return
     }
 
-    if(this.newAnnotation.from_timestamp.length === 0 ) {
-      console.log('tutaj 1')
+    if (this.newAnnotation.from_timestamp.length === 0) {
       this.newAnnotation.from_timestamp = Math.round(xValue).toString()
     } else {
-      console.log('tutaj 2')
-
       this.newAnnotation.to_timestamp = Math.round(xValue).toString()
     }
 
-    console.log(this.newAnnotation);
-
-    if(
-      this.newAnnotation.type === AnnotationType.CUSTOM ||
-      this.newAnnotation.type === AnnotationType.ACCIDENT ||
-      this.newAnnotation.to_timestamp) {
+    if (this.newAnnotation.to_timestamp) {
 
       this.openNewAnnotationModal()
 
+    }
+  }
+
+  public getAnnotationTitle(annotationType: AnnotationType): string {
+    switch (annotationType) {
+      case AnnotationType.BREAK_FROM_TO:
+        return 'Przerwa';
+      case AnnotationType.ACCIDENT_FROM_TO:
+        return 'Awaria'
+      case AnnotationType.ORGANISATION_FROM_TO:
+        return 'Organizacja';
+      case AnnotationType.CLIPS_CHANGE:
+        return 'Wymiana Strzemion';
+      default:
+          return ''
+    }
+  }
+
+  private getAnnotationColor(annotationType: AnnotationType) {
+    switch (annotationType) {
+      case AnnotationType.BREAK_FROM_TO:
+        return 'rgba(60, 180, 75, 0.8) ';
+      case AnnotationType.ACCIDENT_FROM_TO:
+        return 'rgba(200, 30, 60, 0.8) '
+      case AnnotationType.ORGANISATION_FROM_TO:
+        return 'rgba(20, 90, 50, 0.85) ';
+      case AnnotationType.CLIPS_CHANGE:
+        return 'rgba(240, 200, 0, 0.8) ';
+      default:
+        return ''
     }
   }
 }

@@ -124,6 +124,10 @@ ion-page {
 ion-app {
   margin-top: 60px;
 }
-ion-menu {
-  max-width: 200px;
+
+@media screen and (min-width: 980px) {
+  ion-menu {
+    max-width: 200px;
+  }
 }
+

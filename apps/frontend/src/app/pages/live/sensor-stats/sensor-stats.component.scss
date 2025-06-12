@@ -1,5 +1,5 @@
 
-:host{
+:host {
   width: 100%;
 }
 
@@ -12,9 +12,29 @@
   grid-template-columns: 1fr;
 
   // Tablet and up: 2 columns
-  @media (min-width: 600px) {
-    grid-template-columns: 150px 1fr
+  @media (min-width: 980px) {
+    grid-template-columns: 150px 1fr;
+
   }
+}
+
+
+@media (max-width: 980px) {
+  .chart-grid {
+    .gauges {
+
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      .chart-container {
+        width: 45%;
+      }
+    }
+  }
+  .sensor-name{
+    width: 100%;
+  }
+
 }
 
 .chart-wrapper {
@@ -35,6 +55,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
+
   p {
     margin: 0 0 5px;
   }

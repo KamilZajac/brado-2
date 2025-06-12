@@ -22,7 +22,7 @@ export class SensorStatsComponent {
   annotations = input<Annotation[]>([])
 
 
-  constructor(private hostRef: ElementRef<HTMLElement>) {
+  constructor() {
   }
 
 
@@ -41,7 +41,6 @@ export class SensorStatsComponent {
       } as GrowingAverage;
     }
 
-    console.log(lastReading.growingAverage);
     return lastReading.growingAverage;
   }
 }

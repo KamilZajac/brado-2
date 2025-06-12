@@ -77,9 +77,8 @@ export interface GrowingAverage {
 }
 
 export enum AnnotationType {
-    BREAK_FROM_TO, ACCIDENT, ACCIDENT_FROM_TO, CUSTOM
+    BREAK_FROM_TO, ACCIDENT_FROM_TO, ORGANISATION_FROM_TO, CLIPS_CHANGE
 }
-
 
 export interface TempReading {
     id: number;
