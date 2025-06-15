@@ -26,6 +26,8 @@ services:
       context: .
       target: connector
     image: brado-connector
+    volumes:
+      - /home/ubuntu/apps/brado/apps/connector/logs:/app/logs
     ports:
       - "4100:4000" # Adjust as needed
     restart: always
