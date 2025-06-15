@@ -13,7 +13,7 @@ import { LiveReadingEntity } from './entities/minute-reading.entity';
 import { ReadingsHelpers } from './readings-helpers';
 import { HourlyReadingEntity } from './entities/hourly-reading-entity';
 import { DateTime } from 'luxon';
-import {exportToExcel, exportToExcelLive} from './export.helper';
+import { exportToExcel, exportToExcelLive } from './export.helper';
 import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
@@ -502,7 +502,6 @@ export class ReadingService {
     const settings = await this.settingsService.getSettings();
 
     return exportToExcel(hourly, settings);
-
   }
 
   async exportLiveData(fromTS: string): Promise<Buffer> {
@@ -510,5 +509,14 @@ export class ReadingService {
     const settings = await this.settingsService.getSettings();
 
     return exportToExcelLive(liveData, settings);
+  }
+
+  async deleteOldReadings() {
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+    return await this.liveReadingsRepo.delete({
+      timestamp: LessThan(fourWeeksAgo.getTime().toString()),
+    });
   }
 }

@@ -1,37 +1,22 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { ReadingService } from './reading.service';
+import { TemperatureService } from './temperature.service';
 
 @Injectable()
 export class ScheduleService implements OnModuleInit {
   onModuleInit() {
-    console.log('Cron service initialized');
+    console.log('Temperature Cron service initialized');
   }
 
   private readonly logger = new Logger(ScheduleService.name);
 
-  constructor(private readingService: ReadingService) {}
+  constructor(private tempService: TemperatureService) {}
 
-  @Cron('0 15 * * *', {
+  @Cron('0 21 * * *', {
     timeZone: 'Europe/Warsaw', // or your desired TZ
   })
   handleCronAggregate() {
-    this.readingService
-      .aggregate()
-      .then((res) => {
-        this.logger.log(res);
-      })
-      .catch((err) => {
-        this.logger.error(err);
-      });
-    // Call your periodic function here
-  }
-
-  @Cron('0 20 * * *', {
-    timeZone: 'Europe/Warsaw', // or your desired TZ
-  })
-  handleCronDeleteOldData() {
-    this.readingService
+    this.tempService
       .deleteOldReadings()
       .then((res) => {
         this.logger.log(res);

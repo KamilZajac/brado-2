@@ -6,10 +6,11 @@ import {
 } from './temperature.controller';
 import { TemperatureEntity } from './entities/temperature.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import {ScheduleService} from "./schedule.service";
 
 @Module({
   imports: [TypeOrmModule.forFeature([TemperatureEntity])],
   controllers: [TemperatureController, ConnectorTemperatureController],
-  providers: [TemperatureService],
+  providers: [TemperatureService, ScheduleService],
 })
 export class TemperatureModule {}

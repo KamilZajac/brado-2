@@ -12,9 +12,34 @@ const portName = process.env.PORTNAME || "COM2";
 const startAddress = parseInt(process.env.STARTADDRESS || "1");
 const numberOfRegisters = parseInt(process.env.NUMBER_OF_REGISTERS || "7");
 
+import * as winston from 'winston';
+import 'winston-daily-rotate-file';
+
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf(({ timestamp, level, message }) =>
+            `[${timestamp}] ${level.toUpperCase()}: ${message}`
+        )
+    ),
+    transports: [
+        new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+        new winston.transports.File({ filename: 'logs/combined.log' })
+    ]
+});
+
+logger.add(new winston.transports.DailyRotateFile({
+    filename: 'logs/app-%DATE%.log',
+    datePattern: 'YYYY-MM-DD',
+    maxFiles: '14d'
+}));
+
 console.log(`Port: ${portName}`);
 console.log(`Start address: ${startAddress}`);
 console.log(`Number of registers: ${numberOfRegisters}`);
+
+logger.info(`Started reading from ${portName} at ${new Date().toISOString()}`);
 
 const QUEUE_FILE = 'queue.json';
 
@@ -42,21 +67,20 @@ async function tryFlushQueue() {
     const TIMEOUT_MS = 1000;
     let chunk: any[] = [];
 
-    console.log(chunk)
-
     try {
         while (queue.length > 0) {
             chunk = queue.splice(0, CHUNK_SIZE)
 
             await axios.post(process.env.READINGS_ENDPOINT ?? "http://57.129.131.80:3100/connector-reading", {data: chunk});
             console.log(new Date().toISOString());
-            console.log(`Sent ${chunk.length} readings`);
+            logger.info(`Sent ${chunk.length} readings at ${new Date().toISOString()}`);
             saveQueue();
 
             await new Promise(resolve => setTimeout(resolve, TIMEOUT_MS));
         }
     } catch (err) {
         console.log('Backend offline - will try again later...');
+        logger.error(`Backend offline at ${new Date().toISOString()}: ${err.message}`);
         queue = [...chunk, ...queue];
         saveQueue();
     }
@@ -70,7 +94,6 @@ async function addReading(datas: LiveReading[]) {
 
 
 const meterAddresses = [1, 2];
-
 
 async function readSensors() {
     const client = new ModbusRTU();
@@ -86,7 +109,6 @@ async function readSensors() {
 
         connected = true;
 
-        console.log('connected');
         const nowDate = new Date().getTime();
         const datas: LiveReading[] = [];
 
@@ -102,6 +124,7 @@ async function readSensors() {
                     delta: -1
                 });
             } catch (err) {
+                logger.error(`Błąd odczytu z licznika ${id}: ${err.message} at ${new Date().toISOString()}`);
                 console.error(`Błąd odczytu z licznika ${id}:`, (err as any).message);
             }
         }
@@ -113,6 +136,7 @@ async function readSensors() {
     } catch (err) {
         console.error(new Date().toISOString())
         console.error('cannot send');
+        logger.error(`cannot send - ${err.message} at ${new Date().toISOString()}`);
     } finally {
         if (connected) {
             try {
@@ -167,11 +191,14 @@ async function parseXMLtoReading(xml) {
 
             })
             .catch(err => {
+                logger.error(`Error parsing XML: ${err.message} at ${new Date().toISOString()}`);
                 console.error('Error parsing XML:', err);
             });
 
     } catch (error) {
         console.error('Error fetching or parsing XML:', error.message);
+        logger.error(`Error parsing XML: ${error.message} at ${new Date().toISOString()}`);
+
     }
 }
 
@@ -217,9 +244,6 @@ async function readTemperatures(): Promise<void> {
 
 }
 
-
-
-
 function startReadingEveryMinute() {
     const delay = getMsUntilNextMinute();
     console.log(`⏳ First reading in ${delay}ms`);
@@ -230,13 +254,10 @@ function startReadingEveryMinute() {
         // Then repeat every 60 seconds
         setInterval(readSensors, 60000);
 
-
         readTemperatures().then()
         // Then repeat every 60 seconds
         setInterval(readTemperatures, 60000);
     }, delay);
-
-
 }
 
 startReadingEveryMinute();

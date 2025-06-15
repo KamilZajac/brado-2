@@ -1,11 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CreateTemperatureDto } from './dto/create-temperature.dto';
-import { UpdateTemperatureDto } from './dto/update-temperature.dto';
-import { LiveReading, TempReading } from '@brado/types';
-import { LiveReadingEntity } from '../reading/entities/minute-reading.entity';
+import { TempReading } from '@brado/types';
 import { TemperatureEntity } from './entities/temperature.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, MoreThan, Repository } from 'typeorm';
 
 @Injectable()
 export class TemperatureService {
@@ -25,6 +22,24 @@ export class TemperatureService {
   }
 
   async getAll() {
-    return this.tempReadingsRepo.find({ order: { timestamp: 'DESC' } });
+    return this.tempReadingsRepo.find({
+      where: {
+        timestamp: MoreThan(
+          new Date(new Date().setDate(new Date().getDate() - 2))
+            .getTime()
+            .toString(),
+        ),
+      },
+      order: { timestamp: 'DESC' },
+    });
+  }
+
+  async deleteOldReadings() {
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 5);
+
+    return await this.tempReadingsRepo.delete({
+      timestamp: LessThan(fourWeeksAgo.getTime().toString()),
+    });
   }
 }

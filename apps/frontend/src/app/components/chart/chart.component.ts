@@ -334,10 +334,11 @@ export class ChartComponent implements OnInit {
     }
 
     if (this.data.length > 0) {
+      const clearedDataset = this.filterBorderDuplicates(this.data);
       datasets = [
         {
           label: 'Sensor Values',
-          data: (this.data).map((read) => ({
+          data: clearedDataset.map((read) => ({
             x: +read.timestamp,
             y: +(read as any)[this.keyToDisplay],
             data: read
@@ -367,6 +368,31 @@ export class ChartComponent implements OnInit {
     return colors[index % colors.length];
   }
 
+
+  public filterBorderDuplicates(readings: LiveReading []): LiveReading[] {
+    if (readings.length < 3) return readings;
+
+    const result: LiveReading[] = [];
+
+
+    for (let i = 0; i < readings.length; i++) {
+      const prev = readings[i - 1]?.value;
+      const curr = readings[i].value;
+      const next = readings[i + 1]?.value;
+
+      const isStartOfBlock = curr !== prev;
+      const isEndOfBlock = curr !== next;
+
+      const isTrailingDuplicate =
+        i === readings.length - 1 && curr === prev;
+
+      if ((isStartOfBlock || isEndOfBlock) && !isTrailingDuplicate) {
+        result.push(readings[i]);
+      }
+    }
+
+    return result;
+  }
 
   get getTarget() {
     if (!this.hourlyTarget) {
