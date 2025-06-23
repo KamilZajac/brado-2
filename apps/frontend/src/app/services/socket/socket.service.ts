@@ -33,11 +33,18 @@ export class SocketService {
 
 
   onLiveUpdate(): Observable<any> {
-    console.log('listening');
-    console.log('live-update');
 
     return new Observable(observer => {
       this.socket.on('live-update', (data: LiveUpdate) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  onLiveTempUpdate(): Observable<any> {
+
+    return new Observable(observer => {
+      this.socket.on('live-temp-update', (data: LiveUpdate) => {
         observer.next(data);
       });
     });

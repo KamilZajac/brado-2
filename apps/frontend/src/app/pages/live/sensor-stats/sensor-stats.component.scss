@@ -16,6 +16,25 @@
     grid-template-columns: 150px 1fr;
 
   }
+
+  &.dash-sensor {
+  display: flex;
+    .gauges {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      width: 100%;
+      text-align: center;
+      flex-wrap: wrap;
+      .sensor-name {
+        width: 100%;
+      }
+      .chart-container {
+        margin-right: 1rem;
+        width: 210px;
+      }
+    }
+  }
 }
 
 
@@ -59,4 +78,9 @@
   p {
     margin: 0 0 5px;
   }
+}
+
+.stats {
+  padding-left: 1rem;
+  text-align: left;
 }

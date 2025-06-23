@@ -51,6 +51,7 @@ export class AppComponent implements OnInit {
           this.settingsService.fetchSettings().then()
 
           this.appPages = [
+            {title: 'Pulpit', url: '/dashboard', icon: 'pulse-outline'},
             {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
             ...user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN ? [
               {title: 'Tydzień', url: '/weekly', icon: 'calendar-outline'},

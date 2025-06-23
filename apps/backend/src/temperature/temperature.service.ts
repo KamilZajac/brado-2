@@ -3,18 +3,21 @@ import { TempReading } from '@brado/types';
 import { TemperatureEntity } from './entities/temperature.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, MoreThan, Repository } from 'typeorm';
+import {ReadingsGateway} from "../reading/readings.gateway";
 
 @Injectable()
 export class TemperatureService {
   constructor(
     @InjectRepository(TemperatureEntity)
     private tempReadingsRepo: Repository<TemperatureEntity>,
+    private readonly gateway: ReadingsGateway,
   ) {}
 
   async addReading(data: TempReading[]) {
     const toSave = this.tempReadingsRepo.create(data);
     try {
       await this.tempReadingsRepo.save(toSave);
+      this.gateway.sendLifeTempUpdate(toSave);
       return 'ok';
     } catch (error) {
       throw error;

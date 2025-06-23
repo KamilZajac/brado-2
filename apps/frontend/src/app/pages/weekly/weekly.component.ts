@@ -16,6 +16,7 @@ import {ChartWrapperDirective} from "../../directives/chart-wrapper.directive";
 import {DataStore} from "../../services/data/data.store";
 import {SettingsService} from "../../services/settings/settings.service";
 import {settings} from "ionicons/icons";
+import {WorkingStatsComponent} from "../../components/working-stats/working-stats.component";
 
 
 @Component({
@@ -23,7 +24,7 @@ import {settings} from "ionicons/icons";
   templateUrl: './weekly.component.html',
   styleUrls: ['./weekly.component.scss'],
   providers: [DataService],
-  imports: [KeyValuePipe, IonContent, ChartComponent, IonRow]
+  imports: [KeyValuePipe, IonContent, ChartComponent, IonRow, WorkingStatsComponent]
 })
 export class WeeklyComponent extends ChartWrapperDirective implements OnInit {
   override mode: 'weekly' | 'live' = 'weekly';

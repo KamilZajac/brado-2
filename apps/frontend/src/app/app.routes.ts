@@ -7,12 +7,17 @@ import {SettingsResolver} from "./services/settings/settings.service";
 import {UsersComponent} from "./pages/users/users.component";
 import {LoginComponent} from "./pages/login/login.component";
 import {TemperatureComponent} from "./pages/temperature/temperature.component";
+import {DashboardComponent} from "./pages/dashboard/dashboard.component";
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'live',
+    redirectTo: 'dashboard',
     pathMatch: 'full',
+  },
+  {
+    path: 'dashboard',
+    component: DashboardComponent,
   },
   {
     path: 'weekly',

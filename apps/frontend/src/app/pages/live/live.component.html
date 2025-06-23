@@ -6,10 +6,9 @@
         @for (keypar of sensors; track keypar.key) {
           <div class="sensor-card">
             <app-sensor-stats [hourlyTarget]="hourlyTarget" [sensorName]="getSensorName(keypar.key)"
-                              [data]="keypar.value" [sensorID]="keypar.key"
+                              [data]="keypar.value"
                               [annotations]="groupedAnnotations()[+keypar.key]"
                               (reloadAnnotations)="getAnnotations()"
-
             ></app-sensor-stats>
           </div>
         }

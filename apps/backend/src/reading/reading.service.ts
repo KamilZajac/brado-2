@@ -34,7 +34,6 @@ export class ReadingService {
       zone: 'Europe/Warsaw',
     });
     const ymd = dateInPoland.toFormat('yyyy-MM-dd');
-    console.log(dateInPoland);
     return `${sensorId}-${ymd}`;
   }
 
@@ -78,7 +77,7 @@ export class ReadingService {
           dailyTotal: currentTotal + delta,
         };
 
-        readingsWithTotals.push();
+        readingsWithTotals.push(rWithTotal);
 
         this.dailyTotals.set(dateKey, rWithTotal.dailyTotal);
 
@@ -97,17 +96,17 @@ export class ReadingService {
       //   uniqueSensorIds,
       //   5,
       // );
-      const average60 = await this.getAverageSpeedsLastXMinutes(
-        uniqueSensorIds,
-        60,
-      );
+      // const average60 = await this.getAverageSpeedsLastXMinutes(
+      //   uniqueSensorIds,
+      //   60,
+      // );
 
       const liveUpdate: LiveUpdate = {};
 
       uniqueSensorIds.forEach((id) => {
         liveUpdate[id] = {
-          growingAverage: {} as GrowingAverage, // Todo
-          average60: average60[id],
+          growingAverage: {} as GrowingAverage,
+          average60: -1,
           readings: readingsWithTotals.filter(
             (reading) => reading.sensorId === id,
           ),
@@ -275,11 +274,6 @@ export class ReadingService {
     if (!todayData.length) {
       return {};
     }
-
-    // const average5 = await this.getAverageSpeedsLastXMinutes(
-    //   uniqueSensorIds,
-    //   5,
-    // );
 
     const average60 = await this.getAverageSpeedsLastXMinutes(
       uniqueSensorIds,

@@ -10,6 +10,7 @@ export class ChartWrapperDirective implements OnInit {
   public mode: 'live' | 'weekly' = 'live';
   public groupedAnnotations = signal<{ [p: number]: Annotation[] }>({})
 
+
   constructor(private annotationService: AnnotationService) {
   }
 
@@ -20,8 +21,6 @@ export class ChartWrapperDirective implements OnInit {
 
 
   public async getAnnotations() {
-    console.log('loading');
-    console.log(this.mode)
     const { from, to } = getWeeklyTimestamps()
 
     const annotations =
@@ -36,7 +35,5 @@ export class ChartWrapperDirective implements OnInit {
     })
 
     this.groupedAnnotations.set(grouped);
-
-    console.log(this.groupedAnnotations);
   }
 }

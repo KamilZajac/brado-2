@@ -1,30 +1,39 @@
-import {AfterViewInit, Component, ElementRef, EventEmitter, input, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {Annotation, GrowingAverage, LiveReading, LiveSensorUpdate} from "@brado/types";
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  input,
+  Input,
+  Output,
+  ViewChild
+} from '@angular/core';
+import {
+  Annotation,
+  GrowingAverage,
+  LiveSensorUpdate
+} from "@brado/types";
 import {ChartComponent} from "../../../components/chart/chart.component";
 import {PieChartComponent} from "../../../components/pie-chart/pie-chart.component";
+import {DecimalPipe} from "@angular/common";
+import {WorkingStatsComponent} from "../../../components/working-stats/working-stats.component";
 
 @Component({
   selector: 'app-sensor-stats',
   templateUrl: './sensor-stats.component.html',
   styleUrls: ['./sensor-stats.component.scss'],
-  imports: [ChartComponent, PieChartComponent]
+  imports: [ChartComponent, PieChartComponent, WorkingStatsComponent]
 })
 export class SensorStatsComponent {
   @ViewChild('chartContainer', {static: true}) chartContainer!: ElementRef<HTMLDivElement>;
 
   @Input({required: true}) data!: LiveSensorUpdate;
-  @Input({required: true}) sensorID!: string;
   @Input() hourlyTarget= 0;
   @Input() sensorName= '';
+  @Input() isDashboardMode=  false
 
   @Output() reloadAnnotations = new EventEmitter()
 
   annotations = input<Annotation[]>([])
-
-
-  constructor() {
-  }
-
 
   onReloadAnnotations() {
     this.reloadAnnotations.emit()

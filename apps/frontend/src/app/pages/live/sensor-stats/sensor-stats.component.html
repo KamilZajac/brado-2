@@ -1,4 +1,4 @@
-<div class="chart-grid">
+<div class="chart-grid" [class.dash-sensor]="isDashboardMode">
 
   @if (data && data.readings) {
     <div class="chart-wrapper gauges" #chartContainer>
@@ -28,8 +28,16 @@
         ></app-pie-chart>
         <p>Średnia - 60min</p>
       </div>
+      @if(isDashboardMode) {
+        <div class="col stats">
+        <app-working-stats [readings]="data.readings" [annotations]="annotations()"></app-working-stats>
+        </div>
+      }
+
     </div>
 
+
+    @if(!isDashboardMode) {
     <app-chart
       [data]="data.readings"
       [disableAnimation]="true"
@@ -39,6 +47,7 @@
       (reloadAnnotations)="onReloadAnnotations()"
     >
     </app-chart>
+    }
   } @else {
     <p>Czekam na dane...</p>
   }

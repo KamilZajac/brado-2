@@ -15,7 +15,22 @@ export class TemperatureStore {
   readonly liveData: Signal<{ [key: string]: TempReading[] }> = computed(() => this._liveData());
 
 
-  constructor() {}
+  constructor(private socketService: SocketService) {
+    this.socketService.onLiveTempUpdate().subscribe(newTemps => {
+
+      this._liveData.update((state) => {
+        newTemps.forEach((reading: TempReading) => {
+          if(!state[reading.sensorId]) {
+            state[reading.sensorId] = [];
+           }
+          state[reading.sensorId] = [...state[reading.sensorId], reading];
+        })
+
+        return state
+      })
+
+    })
+  }
 
 
   async loadAll() {
