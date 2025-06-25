@@ -10,7 +10,7 @@
         <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" [sensorNames]="sensorNames" [annotations]="groupedAnnotations()[+keypar.key]"
                    (reloadAnnotations)="getAnnotations()"/>
 
-        <app-working-stats  [readings]="keypar.value" [annotations]="groupedAnnotations()[+keypar.key]"/>
+        <app-working-stats [isMultipleDays]="true" [readings]="keypar.value" [annotations]="groupedAnnotations()[+keypar.key]"/>
       </div>
     }
 

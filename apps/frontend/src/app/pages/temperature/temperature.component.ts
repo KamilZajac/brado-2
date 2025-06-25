@@ -21,7 +21,7 @@ export class TemperatureComponent  implements OnInit {
   constructor() { }
 
   ngOnInit() {
-    this.tempStore.loadAll();
+    // this.tempStore.loadAll();
   }
 
 }

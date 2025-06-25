@@ -32,7 +32,8 @@ export class DataStore {
       for (const key in newData) {
         if (updated[key]) {
 
-          const newReadings = addGrowingAverage([...updated[key].readings, ...newData[key].readings], this.getHourlyTarget());
+          const mergedReadings = this.removeDuplicateReadings([...updated[key].readings, ...newData[key].readings]);
+          const newReadings = addGrowingAverage(mergedReadings, this.getHourlyTarget());
           updated[key] = {
             readings: newReadings,
             growingAverage: newReadings[newReadings.length-1].growingAverage || {} as GrowingAverage,
@@ -53,9 +54,11 @@ export class DataStore {
 
     this.api.getInitialLiveData().subscribe({
       next: (liveUpdate) => {
-        console.log(liveUpdate)
+
+
         Object.keys(liveUpdate).forEach((key) => {
-          liveUpdate[key] = {...liveUpdate[key], readings: addGrowingAverage(liveUpdate[key].readings, this.getHourlyTarget())}
+          const readings =  addGrowingAverage(liveUpdate[key].readings, this.getHourlyTarget());
+          liveUpdate[key] = {...liveUpdate[key], readings: this.removeDuplicateReadings(readings)}
         })
 
         this._liveData.set(liveUpdate)
@@ -72,7 +75,7 @@ export class DataStore {
       const uniqueSensors = Array.from(new Set(hourlyData.map(r => r.sensorId)));
       const sensorObject: {[key: string]: HourlyReading[]} = {};
       uniqueSensors.forEach(sensor => {
-        sensorObject[sensor] = hourlyData.filter(r => r.sensorId === sensor);
+        sensorObject[sensor] = this.removeDuplicateReadings(hourlyData.filter(r => r.sensorId === sensor)) as HourlyReading[];
       })
 
       return sensorObject
@@ -80,6 +83,18 @@ export class DataStore {
   }
 
 
+  removeDuplicateReadings(readings: LiveReading[] | HourlyReading[]): LiveReading[] | HourlyReading[] {
+    const seen = new Set<string>();
+
+    return readings.filter(reading => {
+      const key = `${reading.timestamp}|${reading.value}|${reading.sensorId}|${reading.delta}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }
 
   getLast60Average(readings: LiveReading[]) {
     const now = Date.now(); // current time in milliseconds

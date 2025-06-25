@@ -3,7 +3,7 @@ import { TempReading } from '@brado/types';
 import { TemperatureEntity } from './entities/temperature.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, MoreThan, Repository } from 'typeorm';
-import {ReadingsGateway} from "../reading/readings.gateway";
+import { ReadingsGateway } from '../reading/readings.gateway';
 
 @Injectable()
 export class TemperatureService {
@@ -22,6 +22,32 @@ export class TemperatureService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async getLatest(): Promise<TemperatureEntity[]> {
+    const sensorIdRows = await this.tempReadingsRepo
+      .createQueryBuilder('t')
+      .select('DISTINCT t.sensorId', 'sensorId')
+      .getRawMany();
+
+    const sensorIds = sensorIdRows.map((row) => row.sensorId);
+
+    const readings: TemperatureEntity[] = [];
+
+    for (const sensorId of sensorIds) {
+      const latestReading = await this.tempReadingsRepo
+        .createQueryBuilder('t')
+        .where('t.sensorId = :sensorId', { sensorId })
+        .orderBy('t.timestamp', 'DESC')
+        .limit(1)
+        .getOne();
+
+      if (latestReading) {
+        readings.push(latestReading);
+      }
+    }
+
+    return readings;
   }
 
   async getAll() {

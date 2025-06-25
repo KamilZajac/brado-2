@@ -507,7 +507,7 @@ export class ReadingService {
 
   async deleteOldReadings() {
     const fourWeeksAgo = new Date();
-    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 60);
 
     return await this.liveReadingsRepo.delete({
       timestamp: LessThan(fourWeeksAgo.getTime().toString()),

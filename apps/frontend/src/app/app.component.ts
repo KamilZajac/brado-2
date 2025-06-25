@@ -26,6 +26,7 @@ import {HeaderComponent} from "./components/header/header.component";
 import {AuthService} from "./services/auth/auth.service";
 import {UserRole} from "@brado/types";
 import {DataStore} from "./services/data/data.store";
+import {TemperatureStore} from "./services/temperature/temp.store";
 
 @Component({
   selector: 'app-root',
@@ -42,12 +43,13 @@ export class AppComponent implements OnInit {
           {title: 'Login', url: '/login', icon: 'settings-outline'},
         ]
 
-  constructor(private settingsService: SettingsService, private auth: AuthService, private dataStore: DataStore) {
+  constructor(private settingsService: SettingsService, private auth: AuthService, private dataStore: DataStore, private tempStore: TemperatureStore) {
     effect(() => {
          const user = this.currentUser();
         if(user && user.username) {
 
           this.dataStore.loadInitialLiveData();
+          this.tempStore.loadLatest()
           this.settingsService.fetchSettings().then()
 
           this.appPages = [

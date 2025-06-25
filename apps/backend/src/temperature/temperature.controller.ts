@@ -24,6 +24,11 @@ export class TemperatureController {
   getAll() {
     return this.tempService.getAll();
   }
+
+  @Get('latest')
+  getLatest() {
+    return this.tempService.getLatest();
+  }
 }
 
 @Controller('connector-temp')

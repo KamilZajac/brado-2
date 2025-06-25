@@ -17,6 +17,10 @@ export class TempService {
     return this.http.get<TempReading[]>(environment.apiUrl + '/temperature')
   }
 
+  public getLatest(): Observable<TempReading[]> {
+    return this.http.get<TempReading[]>(environment.apiUrl + '/temperature/latest')
+  }
+
 
 
 }

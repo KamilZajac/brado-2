@@ -45,4 +45,18 @@ export class TemperatureStore {
       return sensorObject
     });
   }
+
+
+  async loadLatest() {
+    const tempReadings = await firstValueFrom(this.api.getLatest());
+    this._liveData.update(() => {
+      const uniqueSensors = Array.from(new Set(tempReadings.map(r => r.sensorId)));
+      const sensorObject: {[key: string]: TempReading[]} = {};
+      uniqueSensors.forEach(sensor => {
+        sensorObject[sensor] = tempReadings.filter(r => r.sensorId === sensor);
+      })
+
+      return sensorObject
+    });
+  }
 }

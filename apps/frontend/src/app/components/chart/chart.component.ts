@@ -119,11 +119,37 @@ export class ChartComponent implements OnInit {
     const annotations: any = {};
 
     if (this.isAnnotationVisible) {
+
+
+      // (this.data as HourlyReading[]).forEach((reading, idx) => {
+      //   if(reading.workStartTime && reading.workStartTime !== '0') {
+      //     annotations[idx] =  {
+      //       type: 'line',
+      //       borderColor: 'green',
+      //       id: 1000 + idx,
+      //       borderWidth: 1,
+      //       label: {
+      //         display: true,
+      //         backgroundColor: 'green',
+      //         borderRadius: 0,
+      //         color: '#fff',
+      //       },
+      //       xMax: +reading.workStartTime,
+      //       xMin: +reading.workEndTime,
+      //       xScaleID: 'x',
+      //       yMax: reading.max,
+      //       yMin: reading.max,
+      //       yScaleID: 'y'
+      //     }
+      //   }
+      // })
+
       this.annotations()?.forEach((pt, i) => {
 
         const chartValues = this.chartData.datasets[0].data.map((item: any) => item.y)
         const average = chartValues.reduce((a, b) => a + b) / chartValues.length;
-        annotations[`point${i}`] = pt.to_timestamp ?
+
+        annotations[`point${i}`] =
           {
             type: 'line',
             borderColor: this.getAnnotationColor(pt.type),
@@ -142,21 +168,7 @@ export class ChartComponent implements OnInit {
             yMax: average,
             yMin: average,
             yScaleID: 'y'
-          } : {
-            type: 'line',
-            id: pt.id,
-            borderColor: 'red',
-            borderWidth: 1,
-            label: {
-              display: true,
-              content: [pt.text, '- ' + pt.user.username],
-              position: 'end',
-              backgroundColor: 'rgba(255,0,0,0.1)',
-              color: '#fff',
-            },
-            scaleID: 'x',
-            value: +pt.from_timestamp
-          };
+          }
       });
     }
 
@@ -348,6 +360,8 @@ export class ChartComponent implements OnInit {
           borderColor: '#3b82f6',
           backgroundColor: '#3b82f6',
         },
+
+
       ]
     }
 
@@ -370,6 +384,9 @@ export class ChartComponent implements OnInit {
 
 
   public filterBorderDuplicates(readings: LiveReading []): LiveReading[] {
+
+    return readings;
+    // Debug
     if (readings.length < 3) return readings;
 
     const result: LiveReading[] = [];
@@ -519,6 +536,7 @@ export class ChartComponent implements OnInit {
         if (isNearLine && ann.id) {
           const confirmed = await this.showConfirmAlert();
 
+          console.log(ann)
           if (confirmed) {
             const success = await firstValueFrom(this.annotationService.deleteAnnotation(+ann.id));
             if (success) {
@@ -625,6 +643,7 @@ export class ChartComponent implements OnInit {
   async presentAnnotationOptions() {
     const newAnnotation: Annotation = {
       from_timestamp: "",
+      to_timestamp: "",
       sensorId: this.sensorId,
       text: "",
       type: 1,

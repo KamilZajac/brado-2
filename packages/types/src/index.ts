@@ -28,6 +28,8 @@ export type LiveSensorUpdate = {
 export type HourlyReading = LiveReading & {
     max: number;
     min: number;
+    workStartTime: string;
+    workEndTime: string;
     average: number;
 }
 
@@ -58,7 +60,7 @@ export interface CreateUser {
 export interface Annotation {
     id: number;
     from_timestamp: string;
-    to_timestamp?: string;
+    to_timestamp: string;
     text: string;
     sensorId: number;
     user: User;
@@ -173,7 +175,7 @@ export const getSummaryForMultipleDays = (
         const dayReadings = readingsByDay[day];
         const dayAnnotations = annotationsByDay[day] || [];
 
-        const summary = getDailyWorkingSummary(dayReadings, dayAnnotations);
+        const summary = getDailyWorkingSummary(dayReadings, dayAnnotations, true);
         if (summary) dailySummaries.push(summary);
     }
 
@@ -190,6 +192,7 @@ export const getSummaryForMultipleDays = (
     };
 
     for (const summary of dailySummaries) {
+        console.log(dailySummaries)
         totalSummary.totalTime += summary.totalTime;
         totalSummary.breaks = addAnnotationStats(totalSummary.breaks, summary.breaks);
         totalSummary.accidents = addAnnotationStats(totalSummary.accidents, summary.accidents);
@@ -211,11 +214,21 @@ export const getLastWorkingTime = (readings: LiveReading[] | HourlyReading[]): n
     return firstReadingWithValue ? +firstReadingWithValue.timestamp : null;
 }
 
-export const getDailyWorkingSummary  = (readings: LiveReading[] | HourlyReading[], annotations: Annotation[] = []): DailyWorkingSummary | null => {
+export const getDailyWorkingSummary  = (readings: LiveReading[] | HourlyReading[], annotations: Annotation[] = [], isHourly = false): DailyWorkingSummary | null => {
 
-    const start = getStartWorkingTime(readings);
-    const end = getLastWorkingTime(readings);
+    let start, end;
+    if(isHourly) {
+        const startWorkingTs = (readings as HourlyReading[]).map(r => +r.workStartTime).filter(t => t > 0);
+        const endWorkingTs = (readings as HourlyReading[]).map(r => +r.workEndTime).filter(t => t > 0);
+        start = Math.min(...startWorkingTs)
+        end = Math.max(...endWorkingTs)
 
+    } else {
+        start = getStartWorkingTime(readings);
+        end = getLastWorkingTime(readings);
+    }
+
+    console.log(start, end);
     if(!start || !end) {
         return null
     }

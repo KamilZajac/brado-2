@@ -43,11 +43,20 @@ export class ReadingsHelpers {
       const min = deltas.length > 0 ? Math.min(...deltas) : 0;
       const max = deltas.length > 0 ? Math.max(...deltas) : 0;
 
+      const workStartTime = entries
+        .sort((a, b) => +a.timestamp - +b.timestamp)
+        .find((r: LiveReading) => r.delta > 10)?.timestamp;
+      const workEndTime = entries
+        .sort((a, b) => +b.timestamp - +a.timestamp)
+        .find((r: LiveReading) => r.delta > 10)?.timestamp;
+
       result.push({
         sensorId: first.sensorId,
         timestamp: hourTimestamp.toString(),
         value: last.value,
         delta: delta,
+        workStartTime: workStartTime || '0',
+        workEndTime: workEndTime || '0',
         average,
         min,
         max,

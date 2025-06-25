@@ -2,7 +2,7 @@ import {Component, effect, input, Input} from '@angular/core';
 import {
   Annotation,
   DailyWorkingSummary,
-  getDailyWorkingSummary,
+  getDailyWorkingSummary, getSummaryForMultipleDays,
   HourlyReading,
   LiveReading,
   MTBF,
@@ -20,13 +20,16 @@ import {DecimalPipe} from "@angular/common";
 })
 export class WorkingStatsComponent  {
   @Input() public dailyWorkingStats: DailyWorkingSummary | null = null;
-
+  @Input() public isMultipleDays: boolean = false
   readings = input<LiveReading[] | HourlyReading[]>([])
   annotations = input<Annotation[]>([])
 
+
   constructor() {
     effect(() => {
-      this.dailyWorkingStats = getDailyWorkingSummary(this.readings(), this.annotations())
+      this.dailyWorkingStats = this.isMultipleDays ? getSummaryForMultipleDays(this.readings(), this.annotations()) : getDailyWorkingSummary(this.readings(), this.annotations())
+
+      console.log(this.dailyWorkingStats)
     })
   }
 
