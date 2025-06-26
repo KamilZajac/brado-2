@@ -205,28 +205,37 @@ export const getSummaryForMultipleDays = (
 
 
 export const getStartWorkingTime = (readings: LiveReading[] | HourlyReading[]): number | null => {
-    const firstReadingWithValueIndex = readings.sort((a, b) => +a.timestamp - +b.timestamp).findIndex(r => r.delta >= 5);
-    return firstReadingWithValueIndex ? +readings[firstReadingWithValueIndex -1].timestamp : null;
+    const sorted = readings.sort((a, b) => +a.timestamp - +b.timestamp)
+    const firstReadingWithValueIndex = sorted.findIndex(r => r.delta >= 5);
+    return firstReadingWithValueIndex !== -1 ? +sorted[firstReadingWithValueIndex].timestamp : null;
 }
 
 export const getLastWorkingTime = (readings: LiveReading[] | HourlyReading[]): number | null => {
-    const firstReadingWithValue = readings.sort((a, b) => +b.timestamp - +a.timestamp).find(r => r.delta >= 5);
-    return firstReadingWithValue ? +firstReadingWithValue.timestamp : null;
+
+    const sorted = readings.sort((a, b) => +b.timestamp - +a.timestamp);
+
+    const firstReadingWithValueIndex = sorted.findIndex(r => r.delta >= 5);
+
+    return firstReadingWithValueIndex !== -1 ? +sorted[firstReadingWithValueIndex].timestamp : null;
 }
 
 export const getDailyWorkingSummary  = (readings: LiveReading[] | HourlyReading[], annotations: Annotation[] = [], isHourly = false): DailyWorkingSummary | null => {
-
     let start, end;
     if(isHourly) {
+        console.log('GOURLY');
         const startWorkingTs = (readings as HourlyReading[]).map(r => +r.workStartTime).filter(t => t > 0);
         const endWorkingTs = (readings as HourlyReading[]).map(r => +r.workEndTime).filter(t => t > 0);
         start = Math.min(...startWorkingTs)
         end = Math.max(...endWorkingTs)
 
     } else {
+        console.log('MINUTE');
         start = getStartWorkingTime(readings);
+        console.log(start)
         end = getLastWorkingTime(readings);
     }
+
+    console.log('BBBBB')
 
     console.log(start, end);
     if(!start || !end) {

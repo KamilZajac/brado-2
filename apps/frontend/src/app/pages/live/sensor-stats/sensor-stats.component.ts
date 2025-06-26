@@ -41,7 +41,7 @@ export class SensorStatsComponent {
 
   public get growingAverage(): GrowingAverage {
 
-    const lastReading = this.data.readings[this.data.readings.length - 1];
+    const lastReading = this.data.readings.sort((a,b) => +b.timestamp - +a.timestamp)[0]
 
     if(!lastReading || !lastReading.growingAverage) {
       return {

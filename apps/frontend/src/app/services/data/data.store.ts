@@ -32,7 +32,9 @@ export class DataStore {
       for (const key in newData) {
         if (updated[key]) {
 
-          const mergedReadings = this.removeDuplicateReadings([...updated[key].readings, ...newData[key].readings]);
+          const mergedReadings =
+            this.removeDuplicateReadings([...updated[key].readings, ...newData[key].readings]).sort((a,b) => +a.timestamp - +b.timestamp)
+
           const newReadings = addGrowingAverage(mergedReadings, this.getHourlyTarget());
           updated[key] = {
             readings: newReadings,
@@ -54,10 +56,8 @@ export class DataStore {
 
     this.api.getInitialLiveData().subscribe({
       next: (liveUpdate) => {
-
-
         Object.keys(liveUpdate).forEach((key) => {
-          const readings =  addGrowingAverage(liveUpdate[key].readings, this.getHourlyTarget());
+          const readings =  addGrowingAverage(liveUpdate[key].readings.sort((a,b) => +a.timestamp - +b.timestamp), this.getHourlyTarget())
           liveUpdate[key] = {...liveUpdate[key], readings: this.removeDuplicateReadings(readings)}
         })
 

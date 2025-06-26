@@ -59,5 +59,13 @@ export class DashboardComponent extends ChartWrapperDirective {
     });
   }
 
+  override ngOnInit() {
+
+    super.ngOnInit();
+
+    this.dataStore.loadInitialLiveData();
+
+  }
+
 
 }

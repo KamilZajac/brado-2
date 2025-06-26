@@ -17,6 +17,26 @@
       }
     }
 
+
+<!--    @if (dataStore.liveData() | keyvalue; as sensors) {-->
+<!--      @if (sensors.length > 0) {-->
+<!--        @for (keypar of sensors; track keypar.key) {-->
+<!--          <div class="sensor-card">-->
+<!--            <app-sensor-stats [hourlyTarget]="hourlyTarget" [sensorName]="keypar.key" [isDashboardMode]="true"-->
+<!--                              [data]="keypar.value"-->
+<!--                              [annotations]="groupedAnnotations()[+keypar.key]"-->
+<!--                              (reloadAnnotations)="getAnnotations()"-->
+<!--            ></app-sensor-stats>-->
+<!--          </div>-->
+<!--        }-->
+<!--      } @else {-->
+<!--        <div class="no-results">-->
+<!--          Brak danych z dzisiaj-->
+<!--        </div>-->
+<!--      }-->
+<!--    }-->
+
+
     @if (tempStore.liveData() | keyvalue; as readings) {
 
       <ion-row>
