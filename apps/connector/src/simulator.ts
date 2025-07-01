@@ -12,6 +12,8 @@ let lastValues = {
 
 const QUEUE_FILE = 'queue.json';
 
+
+
 let queue: any[] = [];
 
 if (fs.existsSync(QUEUE_FILE)) {
