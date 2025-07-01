@@ -54,15 +54,8 @@ COPY --from=connector-builder /repo/packages/types/dist ./packages/types/
 COPY --from=connector-builder /repo/node_modules ./node_modules
 COPY --from=connector-builder /repo/apps/connector/node_modules ./apps/connector/node_modules
 COPY --from=connector-builder /repo/apps/connector/dist ./apps/connector/dist
-#CMD ["node", "apps/connector/dist/index.js"]
-RUN apt-get update && \
-    apt-get install -y socat && \
-    rm -rf /var/lib/apt/lists/*
+CMD ["node", "apps/connector/dist/index.js"]
 
-COPY --from=connector-builder /repo/connector_entrypoint.sh ./connector_entrypoint.sh
-RUN chmod +x ./connector_entrypoint.sh
-
-ENTRYPOINT ["./connector_entrypoint.sh"]
 
 # --- frontend final image ---
 FROM nginx:alpine as frontend
