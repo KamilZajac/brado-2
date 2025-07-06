@@ -51,6 +51,7 @@ export class ReadingsHelpers {
         .find((r: LiveReading) => r.delta > 10)?.timestamp;
 
       result.push({
+        id: 0,
         sensorId: first.sensorId,
         timestamp: hourTimestamp.toString(),
         value: last.value,

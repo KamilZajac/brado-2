@@ -9,6 +9,8 @@ async function bootstrap() {
     origin: [
       'http://localhost',
       'http://localhost:8100',
+      'http://localhost:8080',
+      'http://frontend:8080',
       'http://57.129.131.80:8080',
       'http://57.129.131.80',
     ],

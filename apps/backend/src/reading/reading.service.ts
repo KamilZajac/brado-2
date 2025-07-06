@@ -60,11 +60,15 @@ export class ReadingService {
           delta = r.value >= lastValue ? r.value - lastValue : r.value;
         }
 
+
         const rToSave = {
+          id: r.id,
           sensorId: r.sensorId,
           value: r.value,
           delta,
           timestamp: r.timestamp,
+          isConnectionFailure: r.isConnectionFailure,
+          isReset: r.isReset,
         };
 
         const dateKey = this.getDateKey(rToSave.sensorId, rToSave.timestamp);
@@ -85,21 +89,20 @@ export class ReadingService {
       }
     }
 
-    const toSave = this.liveReadingsRepo.create(readingsToSave);
+    const uniqueReadings = new Map();
 
+    for (const reading of readingsToSave) {
+      const key = `${reading.sensorId}-${reading.timestamp}`;
+      if (!uniqueReadings.has(key)) {
+        uniqueReadings.set(key, reading);
+      }
+    }
+
+    const toSave = this.liveReadingsRepo.create([...uniqueReadings.values()]);
     // c = this.liveReadingsRepo.save(readings);
 
     try {
       this.liveReadingsRepo.save(toSave);
-
-      // const average5 = await this.getAverageSpeedsLastXMinutes(
-      //   uniqueSensorIds,
-      //   5,
-      // );
-      // const average60 = await this.getAverageSpeedsLastXMinutes(
-      //   uniqueSensorIds,
-      //   60,
-      // );
 
       const liveUpdate: LiveUpdate = {};
 
@@ -214,7 +217,6 @@ export class ReadingService {
       resultRecord[gav.sensorId] = gav;
     });
 
-    console.log(resultRecord);
     return resultRecord;
   }
 
@@ -265,7 +267,16 @@ export class ReadingService {
   async getInitialLiveData(startOfTheDateTS: string): Promise<LiveUpdate> {
     console.log('Getting initial live data', startOfTheDateTS);
 
-    const todayData = await this.getAfterTime(startOfTheDateTS);
+    // Todo debug only
+    // const todayData = await this.getAfterTime(startOfTheDateTS);
+    const sevenDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+
+    const todayData = await this.liveReadingsRepo.find({
+      where: {
+        timestamp: MoreThan(sevenDaysAgo.toString()),
+      },
+      order: { timestamp: 'ASC' },
+    });
 
     const uniqueSensorIds = Array.from(
       new Set(todayData.map((entity) => entity.sensorId)),
@@ -280,8 +291,6 @@ export class ReadingService {
       60,
     );
 
-    console.log('AVERAGE50');
-    console.log(average60);
     const growingAverage = await this.getAverageIncreasing(startOfTheDateTS);
 
     const liveUpdate: LiveUpdate = {};
@@ -429,6 +438,20 @@ export class ReadingService {
       .getOne();
   }
 
+  async findLastNBySensorIdBeforeTs(
+    sensorId: number,
+    timestamp: string,
+    n: number,
+  ): Promise<LiveReading[]> {
+    return this.liveReadingsRepo
+      .createQueryBuilder('reading')
+      .where('reading.sensorId = :sensorId', { sensorId })
+      .andWhere('timestamp < :timestamp', { timestamp })
+      .orderBy('reading.timestamp', 'DESC')
+      .limit(n)
+      .getMany();
+  }
+
   async findLastNBySensorId(
     sensorId: number,
     n: number,
@@ -439,6 +462,19 @@ export class ReadingService {
       .orderBy('reading.timestamp', 'DESC')
       .limit(n)
       .getMany();
+  }
+
+  async findNextBySensorIdAfterTimestamp(
+    sensorId: number,
+    timestamp: string,
+  ): Promise<LiveReading | null> {
+    return this.liveReadingsRepo
+      .createQueryBuilder('reading')
+      .where('reading.sensorId = :sensorId', { sensorId })
+      .andWhere('reading.timestamp > :timestamp', { timestamp })
+      .orderBy('reading.timestamp', 'ASC')
+      .limit(1)
+      .getOne();
   }
 
   private groupBySensorId(
@@ -512,5 +548,117 @@ export class ReadingService {
     return await this.liveReadingsRepo.delete({
       timestamp: LessThan(fourWeeksAgo.getTime().toString()),
     });
+  }
+
+  async createOrUpdateLiveReading(reading: LiveReading): Promise<LiveReading> {
+    let readingToSave = reading;
+    let existing: null | LiveReading = null;
+
+    if (reading.id) {
+      // Try to find existing entity by ID
+      existing = await this.liveReadingsRepo.findOne({
+        where: { id: reading.id },
+      });
+
+      if (existing) {
+        // Merge and update
+        readingToSave = this.liveReadingsRepo.merge(existing, reading);
+      }
+    }
+
+    // Recalculate delta value for current reading
+    // Find the previous reading for this sensor
+    const previousReadings = await this.findLastNBySensorIdBeforeTs(
+      reading.sensorId,
+      reading.timestamp,
+      2,
+    );
+    let previousReading: LiveReading | undefined;
+
+    // If we're updating an existing reading, we need to find the reading before it
+    if (reading.id && previousReadings.length > 0) {
+      // Filter out the current reading if it's in the results
+      previousReading = previousReadings.find((r) => r.id !== reading.id);
+    } else if (previousReadings.length > 0) {
+      // For new readings, just get the last one
+      previousReading = previousReadings[0];
+    }
+
+    console.log('PREV');
+    console.log(previousReadings);
+
+    // Calculate delta based on previous reading
+    let delta = 0;
+    if (previousReading) {
+      // If current value is less than previous value (sensor reset), delta is the current value
+      // Otherwise, delta is the difference
+      delta =
+        readingToSave.value >= previousReading.value
+          ? readingToSave.value - previousReading.value
+          : readingToSave.value;
+    }
+
+    // Update the delta value
+    readingToSave.delta = delta;
+
+    // Update daily totals if needed
+    const dateKey = this.getDateKey(
+      readingToSave.sensorId,
+      readingToSave.timestamp,
+    );
+    const currentTotal = this.dailyTotals.get(dateKey) ?? 0;
+
+    // If this is an update, we need to adjust the daily total
+    if (reading.id) {
+      // Get the old delta value if available
+      const oldDelta = existing?.delta ?? 0;
+      // Adjust the daily total by removing the old delta and adding the new one
+      this.dailyTotals.set(dateKey, currentTotal - oldDelta + delta);
+    } else {
+      // For new readings, just add the delta to the current total
+      this.dailyTotals.set(dateKey, currentTotal + delta);
+    }
+
+    // Create new entity
+    const created = this.liveReadingsRepo.create(readingToSave);
+    await this.liveReadingsRepo.save(created);
+
+    // Find the next reading after this one to update its delta
+    const nextReading = await this.findNextBySensorIdAfterTimestamp(
+      reading.sensorId,
+      reading.timestamp,
+    );
+
+    console.log('NEXT');
+    console.log(nextReading);
+    if (nextReading) {
+      // Calculate the new delta for the next reading
+      const nextDelta =
+        nextReading.value >= readingToSave.value
+          ? nextReading.value - readingToSave.value
+          : nextReading.value;
+
+      // Only update if the delta has changed
+      if (nextDelta !== nextReading.delta) {
+        // Update the next reading's delta
+        const nextDateKey = this.getDateKey(
+          nextReading.sensorId,
+          nextReading.timestamp,
+        );
+        const nextCurrentTotal = this.dailyTotals.get(nextDateKey) ?? 0;
+
+        // Adjust the daily total for the next reading
+        this.dailyTotals.set(
+          nextDateKey,
+          nextCurrentTotal - nextReading.delta + nextDelta,
+        );
+
+        // Update the next reading in the database
+        nextReading.delta = nextDelta;
+        await this.liveReadingsRepo.save(nextReading);
+      }
+    }
+
+    return created;
   }
 }

@@ -27,6 +27,11 @@ export class ReadingController {
     return this.readingsService.getInitialLiveData(startOfTheDateTS);
   }
 
+  @Post('update-live-reading')
+  updateLiveReading(@Body() liveReading: LiveReading) {
+    return this.readingsService.createOrUpdateLiveReading(liveReading);
+  }
+
   @Get('after/:timestamp')
   getAfter(@Param('timestamp') ts: string) {
     return this.readingsService.getAfterTime(ts);
@@ -77,6 +82,7 @@ export class ConnectorReadingController {
 
   @Post()
   add(@Body() readings: { data: [LiveReading] }) {
+    console.log(readings);
     return this.readingsService.addReading(readings.data);
   }
 

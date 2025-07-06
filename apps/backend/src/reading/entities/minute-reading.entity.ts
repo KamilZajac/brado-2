@@ -1,6 +1,12 @@
-import { Entity, Unique } from 'typeorm';
-import {BaseReading} from "./base-reading";
+import { Column, Entity, Unique } from 'typeorm';
+import { BaseReading } from './base-reading';
 
-@Entity("live_reading")
+@Entity('live_reading')
 @Unique(['sensorId', 'timestamp'])
-export class LiveReadingEntity extends BaseReading {}
+export class LiveReadingEntity extends BaseReading {
+  @Column({ default: false })
+  isReset: boolean;
+
+  @Column({ default: false })
+  isConnectionFailure: boolean;
+}

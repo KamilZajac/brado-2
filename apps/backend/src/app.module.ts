@@ -17,6 +17,8 @@ import { AnnotationModule } from './annotation/annotation.module';
 import { AnnotationEntity } from './annotation/entities/annotation.entity';
 import { TemperatureModule } from './temperature/temperature.module';
 import { TemperatureEntity } from './temperature/entities/temperature.entity';
+import { WorkingPeriodModule } from './working-period/working-period.module';
+import {WorkingPeriodEntity} from "./working-period/entities/working-period.entity";
 
 const typeormConf = {
   type: 'postgres',
@@ -32,6 +34,7 @@ const typeormConf = {
     UserEntity,
     AnnotationEntity,
     TemperatureEntity,
+    WorkingPeriodEntity,
   ],
   synchronize: true,
   // logging: true,
@@ -58,6 +61,7 @@ console.log(typeormConf);
     UsersModule,
     AnnotationModule,
     TemperatureModule,
+    WorkingPeriodModule,
   ],
   controllers: [AppController],
   providers: [],
