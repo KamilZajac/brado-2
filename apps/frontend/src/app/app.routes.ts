@@ -8,6 +8,7 @@ import {UsersComponent} from "./pages/users/users.component";
 import {LoginComponent} from "./pages/login/login.component";
 import {TemperatureComponent} from "./pages/temperature/temperature.component";
 import {DashboardComponent} from "./pages/dashboard/dashboard.component";
+import {WorkPeriodsComponent} from "./pages/work-periods/work-periods.component";
 
 export const routes: Routes = [
   {
@@ -22,6 +23,10 @@ export const routes: Routes = [
   {
     path: 'weekly',
     component: WeeklyComponent,
+  },
+  {
+    path: 'sessions',
+    component: WorkPeriodsComponent,
   },
   {
     path: 'live',

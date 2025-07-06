@@ -1,0 +1,25 @@
+@if (dataStore.workPeriods() | keyvalue; as periods) {
+  @for (keypar of periods; track keypar.key) {
+
+  <ion-row>
+
+      {{keypar.value[0].sensorId}}
+
+      @for(period of keypar.value; track period.id) {
+
+        <ion-col size="12" size-sm="6" size-md="6">
+
+
+          <div class="sensor-card card-temp" >
+            <p>
+         {{period.start | date: 'dd/MM/yyyy HH:mm:ss'  }}&nbsp;-&nbsp;{{period.end | date: 'dd/MM/yyyy HH:mm:ss' }}
+            </p>
+
+          </div>
+        </ion-col>
+
+
+    }
+  </ion-row>
+  }
+}

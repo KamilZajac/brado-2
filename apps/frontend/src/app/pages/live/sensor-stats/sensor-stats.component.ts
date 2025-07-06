@@ -27,6 +27,7 @@ export class SensorStatsComponent {
   @ViewChild('chartContainer', {static: true}) chartContainer!: ElementRef<HTMLDivElement>;
 
   @Input({required: true}) data!: LiveSensorUpdate;
+  @Input({required: true}) sensorId!: string
   @Input() hourlyTarget= 0;
   @Input() sensorName= '';
   @Input() isDashboardMode=  false

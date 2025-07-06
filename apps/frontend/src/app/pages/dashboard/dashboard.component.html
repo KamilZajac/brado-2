@@ -6,7 +6,7 @@
       @if (sensors.length > 0) {
 
         <div class="sensor-card">
-          <app-sensor-stats [isDashboardMode]="true" [hourlyTarget]="hourlyTarget" [sensorName]="sensorName"
+          <app-sensor-stats [isDashboardMode]="true" [hourlyTarget]="hourlyTarget" [sensorName]="sensorName" [sensorId]="'2'"
                             [data]="dataStore.liveData()[2]" [annotations]="groupedAnnotations()[2]"></app-sensor-stats>
         </div>
 

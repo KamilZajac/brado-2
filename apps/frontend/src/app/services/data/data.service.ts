@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import {HttpClient} from "@angular/common/http";
 import {environment} from "../../../environments/environment";
 import {Observable} from "rxjs";
-import {HourlyReading, LiveReading, LiveUpdate} from "@brado/types";
+import {HourlyReading, LiveReading, LiveUpdate, WorkingPeriod} from "@brado/types";
 
 export const getStartOfToday = () => {
   const today = new Date();
@@ -52,6 +52,15 @@ export class DataService {
 
   public getHourlyBetween(fromTS: number, toTS: number): Observable<HourlyReading[]> {
     return this.http.get<HourlyReading[]>(environment.apiUrl + `/reading/hourly/${fromTS}/${toTS}`)
+  }
+
+  public getWorkingPeriods(): Observable<WorkingPeriod[]> {
+    return this.http.get<WorkingPeriod[]>(environment.apiUrl + `/working-period/`)
+  }
+
+  public createOrUpdateLiveReading(data: LiveReading): Observable<LiveReading> {
+    return this.http.post<LiveReading>(environment.apiUrl + `/reading/update-live-reading`, data)
+
   }
 
   public exportData(fromTS: number, toTS: number) {

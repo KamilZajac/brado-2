@@ -1,8 +1,11 @@
 export type LiveReading = {
+    id: number,
     timestamp: string,
     value: number;
     sensorId: number;
     delta: number;
+    isReset?: boolean;
+    isConnectionFailure?: boolean;
     dailyTotal?: number; // virtual field
     growingAverage?: GrowingAverage; // virtual
 }
@@ -31,6 +34,14 @@ export type HourlyReading = LiveReading & {
     workStartTime: string;
     workEndTime: string;
     average: number;
+}
+
+export type WorkingPeriod = {
+    id: number;
+    sensorId: number;
+    start: string;
+    end: string | null;
+    isManuallyCorrected: boolean;
 }
 
 export interface SettingsRequest {
@@ -98,6 +109,7 @@ export interface DailyWorkingSummary {
     start: string;
     end: string;
     totalTime: number;
+    totalUnits?: number;
     accidents: AnnotationStats;
     breaks: AnnotationStats;
     organisations: AnnotationStats;
@@ -222,22 +234,16 @@ export const getLastWorkingTime = (readings: LiveReading[] | HourlyReading[]): n
 export const getDailyWorkingSummary  = (readings: LiveReading[] | HourlyReading[], annotations: Annotation[] = [], isHourly = false): DailyWorkingSummary | null => {
     let start, end;
     if(isHourly) {
-        console.log('GOURLY');
         const startWorkingTs = (readings as HourlyReading[]).map(r => +r.workStartTime).filter(t => t > 0);
         const endWorkingTs = (readings as HourlyReading[]).map(r => +r.workEndTime).filter(t => t > 0);
         start = Math.min(...startWorkingTs)
         end = Math.max(...endWorkingTs)
 
     } else {
-        console.log('MINUTE');
-        start = getStartWorkingTime(readings);
-        console.log(start)
+        start = getStartWorkingTime(readings); // Todo use periods
         end = getLastWorkingTime(readings);
     }
 
-    console.log('BBBBB')
-
-    console.log(start, end);
     if(!start || !end) {
         return null
     }

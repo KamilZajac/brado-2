@@ -23,6 +23,18 @@ const logger = winston.createLogger({
     ]
 });
 
+const isDev = true;
+if (isDev) {
+    logger.add(new winston.transports.Console({
+        format: winston.format.combine(
+            winston.format.colorize(), // Optional: colorize console output
+            winston.format.printf(({ timestamp, level, message }) =>
+                `[${timestamp}] ${level}: ${message}`
+            )
+        )
+    }));
+}
+
 logger.add(new winston.transports.DailyRotateFile({
     filename: 'logs/app-%DATE%.log',
     datePattern: 'YYYY-MM-DD',
@@ -37,12 +49,6 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
     dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 }
 
-// Define additional types needed for the application
-interface ExtendedLiveReading extends LiveReading {
-    isReset?: boolean;
-    isConnectionRecovery?: boolean;
-    isConnectionFailure?: boolean;
-}
 
 // Constants
 const client = new ModbusRTU();
@@ -59,10 +65,10 @@ const UNSENT_FILE = path.join(__dirname, "unsent_readings.json");
 const API_URL = "https://your-api.com/sensor-readings";
 
 // Data structures
-const lastReadings = new Map<number, ExtendedLiveReading>();       // sensorId -> LiveReading (last reading)
-const lastSuccessfulReadings = new Map<number, ExtendedLiveReading>(); // sensorId -> LiveReading (last successful reading)
+const lastReadings = new Map<number, LiveReading>();       // sensorId -> LiveReading (last reading)
+const lastSuccessfulReadings = new Map<number, LiveReading>(); // sensorId -> LiveReading (last successful reading)
 const sensorConnectionStatus = new Map<number, boolean>(); // sensorId -> boolean (true if connected)
-const sendBuffer: ExtendedLiveReading[] = [];                // Array<LiveReading> (for reset values)
+const sendBuffer: LiveReading[] = [];                // Array<LiveReading> (for reset values)
 
 // --- Helpers ---
 
@@ -72,7 +78,7 @@ function getTimestamp(): string {
 
 // No longer needed as we don't store readings by minute
 
-function loadUnsentFromFile(): ExtendedLiveReading[] {
+function loadUnsentFromFile(): LiveReading[] {
     if (fs.existsSync(UNSENT_FILE)) {
         try {
             const content = fs.readFileSync(UNSENT_FILE, "utf8");
@@ -85,7 +91,7 @@ function loadUnsentFromFile(): ExtendedLiveReading[] {
     return [];
 }
 
-function saveUnsentToFile(data: ExtendedLiveReading[]): void {
+function saveUnsentToFile(data: LiveReading[]): void {
     try {
         fs.writeFileSync(UNSENT_FILE, JSON.stringify(data, null, 2), "utf8");
         logger.info(`Saved ${data.length} unsent readings to ${UNSENT_FILE}`);
@@ -105,7 +111,7 @@ function clearUnsentFile(): void {
 
 // No longer needed as we only store the latest reading per sensor
 
-function storeReading(reading: ExtendedLiveReading): void {
+function storeReading(reading: LiveReading): void {
     // Always store the latest reading for each sensor
     lastReadings.set(reading.sensorId, reading);
 
@@ -115,7 +121,6 @@ function storeReading(reading: ExtendedLiveReading): void {
     }
 
     const readingType = reading.isReset ? ' (reset)' :
-                        reading.isConnectionRecovery ? ' (connection recovery)' :
                         reading.isConnectionFailure ? ' (connection failure)' : '';
 
     logger.info(`Stored reading for sensor ${reading.sensorId}${readingType} with value ${reading.value}`);
@@ -158,7 +163,7 @@ async function pollSensors(): Promise<void> {
             const value = data.data[0];
 
             // Create current reading
-            const current: ExtendedLiveReading = { timestamp, value, sensorId, delta: -1 };
+            const current: LiveReading = { id: -1, timestamp, value, sensorId, delta: -1 };
 
             // Get previous reading
             const last = lastReadings.get(sensorId);
@@ -168,7 +173,6 @@ async function pollSensors(): Promise<void> {
 
             if (wasConnected === false) {
                 logger.warn(`Sensor ${sensorId} connection recovered`);
-                current.isConnectionRecovery = true;
             }
 
             // Update connection status
@@ -205,7 +209,8 @@ async function pollSensors(): Promise<void> {
             const lastSuccessful = lastSuccessfulReadings.get(sensorId);
             if (lastSuccessful) {
                 // Create a new reading based on the last successful one
-                const fallbackReading: ExtendedLiveReading = {
+                const fallbackReading: LiveReading = {
+                    id: -1,
                     timestamp,
                     value: lastSuccessful.value,
                     sensorId,
@@ -239,7 +244,7 @@ async function postReadings(): Promise<void> {
     }
 
     // Get the latest reading for each sensor
-    const latestReadings: ExtendedLiveReading[] = [];
+    const latestReadings: LiveReading[] = [];
     for (const sensorId of SENSOR_IDS) {
         const reading = lastReadings.get(sensorId);
         if (reading) {
@@ -256,7 +261,7 @@ async function postReadings(): Promise<void> {
     }
 
     // Combine all readings to send
-    const allReadings: ExtendedLiveReading[] = [
+    const allReadings: LiveReading[] = [
         ...unsent,           // Previously unsent readings
         ...specialReadings,  // Reset readings (both before and after reset)
         ...latestReadings    // Latest reading for each sensor
@@ -278,6 +283,8 @@ async function postReadings(): Promise<void> {
 
         // Clear the unsent file after successful send
         clearUnsentFile();
+        lastSuccessfulReadings.clear()
+
     } catch (err) {
         logger.error(`Backend not available, saving to file: ${(err as Error).message}`);
 

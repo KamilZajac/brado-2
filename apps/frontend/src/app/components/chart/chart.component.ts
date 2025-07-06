@@ -34,6 +34,11 @@ import {
 import {TextInputModalComponent} from "../text-input-modal/text-input-modal.component";
 import {AnnotationService} from "../../services/annotation/annotation.service";
 import {firstValueFrom} from 'rxjs';
+import {DataService} from "../../services/data/data.service";
+import {PopoverController} from "@ionic/angular";
+import {ChartOperation, ChartOperationsListComponent} from "./chart-operations-list/chart-operations-list";
+import {PointEditorComponent} from "./chart-point-editor/chart-point-editor";
+import {DataStore} from "../../services/data/data.store";
 
 ChartJS.register(
   LineController,
@@ -61,13 +66,12 @@ interface Series {
   data: Partial<HourlyReading | LiveReading>
 }
 
-
 @Component({
   selector: 'app-chart',
   templateUrl: './chart.component.html',
   styleUrls: ['./chart.component.scss'],
   imports: [BaseChartDirective, IonRow],
-  providers: [ReadingsToSeriesMultiplePipe, ReadingsToSeriesPipe, ModalController]
+  providers: [ReadingsToSeriesMultiplePipe, ReadingsToSeriesPipe, ModalController, PopoverController]
 })
 export class ChartComponent implements OnInit {
   @Input() data: HourlyReading[] | LiveReading[] = [];
@@ -84,6 +88,9 @@ export class ChartComponent implements OnInit {
 
   chartData!: ChartData<'line'>;
   chartOptions: ChartOptions = {}
+
+  chartMode = ChartOperation.DEFAULT;
+
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
 
   isAnnotationVisible = true;
@@ -97,8 +104,13 @@ export class ChartComponent implements OnInit {
     private annotationService: AnnotationService,
     private toastCtrl: ToastController,
     private alertController: AlertController,
-    private actionSheetCtrl: ActionSheetController
-  ) {
+    private actionSheetCtrl: ActionSheetController,
+    private dataService: DataService, // Todo
+
+    private dataStore: DataStore,
+    private popoverCtrl: PopoverController
+
+) {
     effect(() => {
       if (this.annotations()?.length) {
         this.buildChartOptions()
@@ -115,34 +127,44 @@ export class ChartComponent implements OnInit {
     this.prepareChart();
   }
 
-  buildChartOptions() {
+  async buildChartOptions() {
     const annotations: any = {};
 
     if (this.isAnnotationVisible) {
 
+      const workingPeriods = await firstValueFrom(this.dataService.getWorkingPeriods());
 
-      // (this.data as HourlyReading[]).forEach((reading, idx) => {
-      //   if(reading.workStartTime && reading.workStartTime !== '0') {
-      //     annotations[idx] =  {
-      //       type: 'line',
-      //       borderColor: 'green',
-      //       id: 1000 + idx,
-      //       borderWidth: 1,
-      //       label: {
-      //         display: true,
-      //         backgroundColor: 'green',
-      //         borderRadius: 0,
-      //         color: '#fff',
-      //       },
-      //       xMax: +reading.workStartTime,
-      //       xMin: +reading.workEndTime,
-      //       xScaleID: 'x',
-      //       yMax: reading.max,
-      //       yMin: reading.max,
-      //       yScaleID: 'y'
-      //     }
-      //   }
-      // })
+      const firstReading = this.data[this.data.length - 1];
+      const lastReading = this.data[0];
+
+      const filteredPeriods = workingPeriods.filter(w =>  w.sensorId === firstReading.sensorId && +w.start >= +firstReading.timestamp  );
+
+      // filteredPeriods[filteredPeriods.length - 1].end = null
+
+
+      filteredPeriods.forEach((reading, idx) => {
+
+        if(reading.start) {
+          annotations[idx] =  {
+            type: 'line',
+            borderColor: 'green',
+            id: 1000 + idx,
+            borderWidth: 1,
+            label: {
+              display: true,
+              backgroundColor: 'green',
+              borderRadius: 0,
+              color: '#fff',
+            },
+            xMax: reading.end ? +reading.end : +lastReading.timestamp,
+            xMin: +reading.start,
+            xScaleID: 'x',
+            yMax: 40000,
+            yMin: 0,
+            yScaleID: 'y'
+          }
+        }
+      })
 
       this.annotations()?.forEach((pt, i) => {
 
@@ -358,14 +380,22 @@ export class ChartComponent implements OnInit {
           fill: false,
           tension: 0.1,
           borderColor: '#3b82f6',
-          backgroundColor: '#3b82f6',
+          // backgroundColor: '#3b82f6',
+
+          pointBackgroundColor: (context: any) => {
+            const isFailure = context.raw?.data?.isConnectionFailure;
+            return isFailure ? 'red': '#3b82f6'
+          },
+          pointBorderColor: (context: any) => {
+            const isFailure = context.raw?.data?.isConnectionFailure;
+            return isFailure ? 'red': '#3b82f6'
+          }
         },
 
 
       ]
     }
 
-    console.log(datasets);
 
     this.chartData = {
       datasets
@@ -526,7 +556,6 @@ export class ChartComponent implements OnInit {
 
     for (const [key, ann] of Object.entries(annotations)) {
       if (ann?.type === 'line' && (ann.value != null || ann.xMin != null)) {
-        console.log(ann)
 
         // @ts-ignore
         const scale = this.chart?.chart.scales['x']
@@ -536,7 +565,6 @@ export class ChartComponent implements OnInit {
         if (isNearLine && ann.id) {
           const confirmed = await this.showConfirmAlert();
 
-          console.log(ann)
           if (confirmed) {
             const success = await firstValueFrom(this.annotationService.deleteAnnotation(+ann.id));
             if (success) {
@@ -574,23 +602,59 @@ export class ChartComponent implements OnInit {
   }
 
   onChartClick(event: any) {
-    if (!this.newAnnotation) {
-      return
+
+    if(this.chartMode === ChartOperation.ADD_ANNOTATION) {
+      const chartInstance = this.chart?.chart;
+      if (!chartInstance) return;
+
+      const clickX = event.event.x ?? 0;
+      const clickY = event.event.y ?? 0;
+
+      const xScale = chartInstance.scales['x'];
+      const xValue = xScale.getValueForPixel(clickX);
+
+      const yScale = chartInstance.scales['y'];
+      const yValue = yScale.getValueForPixel(clickY) || 0
+
+      if (xValue) {
+        this.addValueToNewAnnotation(xValue)
+      }
     }
-    const chartInstance = this.chart?.chart;
-    if (!chartInstance) return;
 
-    const clickX = event.event.x ?? 0;
-    const clickY = event.event.y ?? 0;
+    if(this.chartMode === ChartOperation.ADD_EDIT_POINTS) {
+      const existingReading = event.active[0]?.element?.$context.raw?.data;
 
-    const xScale = chartInstance.scales['x'];
-    const xValue = xScale.getValueForPixel(clickX);
+      if(existingReading) {
+        this.openPointEditorModal(undefined, existingReading);
+        return
+      }
+      const chartInstance = this.chart?.chart;
+      if (!chartInstance) return;
+      const clickX = event.event.x ?? 0;
+      const xScale = chartInstance.scales['x'];
+      const xValue = xScale.getValueForPixel(clickX);
 
-    const yScale = chartInstance.scales['y'];
-    const yValue = yScale.getValueForPixel(clickY) || 0
+      this.openPointEditorModal(xValue, undefined);
 
-    if (xValue) {
-      this.addValueToNewAnnotation(xValue)
+    }
+  }
+
+  async openPointEditorModal(timestamp?: number, reading?: LiveReading) {
+    if(!timestamp && !reading) return;
+    const modal = await this.modalCtrl.create({
+      component: PointEditorComponent,
+      componentProps: {
+        timestamp, reading, sensorId: this.sensorId
+      }
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onWillDismiss();
+    if (data) {
+      console.log('User submitted:', data);
+      this.dataStore.createUpdateLiveReading(data)
+      // Optionally update dataset or save
     }
   }
 
@@ -613,7 +677,6 @@ export class ChartComponent implements OnInit {
         text: data,
       }
 
-      console.log(annotation)
 
       this.annotationService.createAnnotation(annotation).subscribe({
         next: (res) => {
@@ -653,7 +716,6 @@ export class ChartComponent implements OnInit {
 
     const startAddingAnnotation = (): void => {
       this.newAnnotation = newAnnotation;
-      console.log(this.newAnnotation);
     }
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Wybierz typ adnotacji',
@@ -677,8 +739,6 @@ export class ChartComponent implements OnInit {
           text: 'Wymiana Strzemion',
           handler: () => {
             newAnnotation.type = AnnotationType.CLIPS_CHANGE;
-            console.log(AnnotationType)
-            console.log(newAnnotation);
             startAddingAnnotation()
           }
         },
@@ -745,6 +805,23 @@ export class ChartComponent implements OnInit {
         return 'rgba(240, 200, 0, 0.8) ';
       default:
         return ''
+    }
+  }
+
+  async openChartOperationsList(ev: Event) {
+    const popover = await this.popoverCtrl.create({
+      component: ChartOperationsListComponent,
+      event: ev,
+      translucent: true
+    });
+    await popover.present();
+
+    const { data, role } = await popover.onWillDismiss(); // or onDidDismiss()
+
+    if (data?.operation) {
+      console.log(data.operation)
+      this.chartMode = data.operation;
+      console.log(this.chartMode)
     }
   }
 }

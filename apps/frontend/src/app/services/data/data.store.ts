@@ -1,8 +1,8 @@
 import {computed, inject, Injectable, Signal, signal} from "@angular/core";
 import {DataService, getWeeklyTimestamps} from "./data.service";
-import {addGrowingAverage, GrowingAverage, HourlyReading, LiveReading, LiveUpdate} from "@brado/types";
+import {addGrowingAverage, GrowingAverage, HourlyReading, LiveReading, LiveUpdate, WorkingPeriod} from "@brado/types";
 import {SocketService} from "../socket/socket.service";
-import {firstValueFrom} from "rxjs";
+import {firstValueFrom, Observable} from "rxjs";
 import {SettingsService} from "../settings/settings.service";
 
 @Injectable({ providedIn: 'root' })
@@ -11,13 +11,28 @@ export class DataStore {
 
   private readonly _liveData = signal<LiveUpdate>({});
   private readonly _weeklyReadings = signal<{ [key: string]: HourlyReading[] }>({});
+  private readonly _workPeriods = signal<{ [key: string]: WorkingPeriod[] }>({});
   private readonly _loading = signal(false);
   private readonly _error = signal<string | null>(null);
 
   readonly liveData: Signal<LiveUpdate> = computed(() => this._liveData());
   readonly weeklyReadings: Signal<{ [key: string]: HourlyReading[] }> = computed(() => this._weeklyReadings());
+  readonly workPeriods: Signal<{ [key: string]: WorkingPeriod[] }> = computed(() => this._workPeriods());
   readonly loading: Signal<boolean> = computed(() => this._loading());
   readonly error: Signal<string | null> = computed(() => this._error());
+
+  getLatestWorkingPeriodForKey(key: string): Signal<WorkingPeriod | undefined> {
+    return computed(() => {
+      const periods = this._workPeriods()[key] ?? [];
+      if (periods.length === 0) return undefined;
+
+      const sorted = periods.sort((a,b) => +b.start - +a.start);
+
+      return sorted[0]
+    });
+  }
+
+
 
   constructor(private socketService: SocketService, private settings: SettingsService) {
     this.socketService.onLiveUpdate().subscribe(res => {
@@ -47,6 +62,20 @@ export class DataStore {
         }
       }
       return updated;
+    });
+  }
+
+  async loadWorkingPeriods() {
+    const workPeriods = await firstValueFrom(this.api.getWorkingPeriods());
+
+    this._workPeriods.update(() => {
+      const uniqueSensors = Array.from(new Set(workPeriods.map(r => r.sensorId)));
+      const sensorObject: {[key: string]: WorkingPeriod[]} = {};
+      uniqueSensors.forEach(sensor => {
+        sensorObject[sensor] = workPeriods.filter(r => r.sensorId === sensor);
+      })
+
+      return sensorObject
     });
   }
 
@@ -80,6 +109,14 @@ export class DataStore {
 
       return sensorObject
     });
+  }
+
+  public async createUpdateLiveReading(data: LiveReading) {
+    const result = await firstValueFrom(this.api.createOrUpdateLiveReading(data));
+
+    if(result) {
+      this.loadInitialLiveData()
+    }
   }
 
 
@@ -134,4 +171,6 @@ export class DataStore {
     const settings = JSON.parse(settingsJSON);
     return settings.hourlyTarget;
   }
+
+
 }

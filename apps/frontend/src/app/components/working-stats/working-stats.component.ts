@@ -6,30 +6,66 @@ import {
   HourlyReading,
   LiveReading,
   MTBF,
-  MTTR
+  MTTR, WorkingPeriod
 } from "@brado/types";
-import {DecimalPipe} from "@angular/common";
+import {DatePipe, DecimalPipe} from "@angular/common";
+import {DataStore} from "../../services/data/data.store";
 
 @Component({
   selector: 'app-working-stats',
   templateUrl: './working-stats.component.html',
   styleUrls: ['./working-stats.component.scss'],
   imports: [
-    DecimalPipe
+    DecimalPipe,
+    DatePipe
   ]
 })
 export class WorkingStatsComponent  {
-  @Input() public dailyWorkingStats: DailyWorkingSummary | null = null;
+  public dailyWorkingStats: DailyWorkingSummary | null = null;
+  public totalUnits = 0;
+
   @Input() public isMultipleDays: boolean = false
+  @Input({required: true}) sensorId!: string
+
+  public currentPeriod?: WorkingPeriod;
+
   readings = input<LiveReading[] | HourlyReading[]>([])
   annotations = input<Annotation[]>([])
 
 
-  constructor() {
+  constructor(private dataStore: DataStore) {
     effect(() => {
-      this.dailyWorkingStats = this.isMultipleDays ? getSummaryForMultipleDays(this.readings(), this.annotations()) : getDailyWorkingSummary(this.readings(), this.annotations())
+      if(!this.isMultipleDays) {
 
-      console.log(this.dailyWorkingStats)
+      const currentPeriod = this.dataStore.getLatestWorkingPeriodForKey(this.sensorId)();
+
+      if(currentPeriod) {
+
+        console.log(currentPeriod)
+
+        this.currentPeriod = currentPeriod;
+        const readings = this.readings().filter(r => {
+          if (currentPeriod.end) {
+            return +r.timestamp >= +currentPeriod.start && +r.timestamp <= +currentPeriod.end
+          } else {
+            return +r.timestamp >= +currentPeriod.start
+          }
+
+
+
+        })
+        console.log(readings)
+        this.totalUnits = readings.reduce((prev, curr) => curr.delta + prev, 0);
+        this.dailyWorkingStats =  getDailyWorkingSummary(readings, this.annotations())
+      } else {
+
+        this.dailyWorkingStats = getSummaryForMultipleDays(this.readings(), this.annotations())
+
+      }
+
+      }
+
+
     })
   }
 

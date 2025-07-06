@@ -30,7 +30,7 @@
       </div>
       @if(isDashboardMode) {
         <div class="col stats">
-        <app-working-stats [readings]="data.readings" [annotations]="annotations()"></app-working-stats>
+        <app-working-stats [readings]="data.readings" [annotations]="annotations()" [sensorId]="sensorId"></app-working-stats>
         </div>
       }
 

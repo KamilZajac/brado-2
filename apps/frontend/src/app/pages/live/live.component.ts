@@ -2,7 +2,7 @@ import {Component, effect, inject, OnInit} from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { IonCard } from '@ionic/angular/standalone';
 import {SensorStatsComponent} from "./sensor-stats/sensor-stats.component";
-import {Annotation, LiveUpdate} from "@brado/types";
+import {Annotation, LiveUpdate, WorkingPeriod} from "@brado/types";
 import { KeyValuePipe } from '@angular/common';
 import {SocketService} from "../../services/socket/socket.service";
 import {DataService, getStartOfToday, getWeeklyTimestamps} from "../../services/data/data.service";
@@ -38,7 +38,6 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
         }))
       }
     });
-
   }
 
   override ngOnInit() {
