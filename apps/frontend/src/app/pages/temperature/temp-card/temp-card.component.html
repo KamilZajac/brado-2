@@ -1,0 +1,5 @@
+<div class="sensor-card card-temp" routerLink="/temperatures/{{name}}" [class.warning]="showWarning">
+  <ion-icon name="thermometer-outline"></ion-icon>
+    {{name}}
+  &nbsp; <b>{{ temp | number }}°C</b>
+</div>

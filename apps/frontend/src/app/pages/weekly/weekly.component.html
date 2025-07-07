@@ -7,10 +7,10 @@
 
       <div class="sensor-card">
 
-        <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" [sensorNames]="sensorNames" [annotations]="groupedAnnotations()[+keypar.key]"
+        <app-chart [data]="keypar.value" [hourlyTarget]="hourlyTarget" [sensorNames]="sensorNames"
                    (reloadAnnotations)="getAnnotations()"/>
 
-        <app-working-stats [sensorId]="keypar.key" [isMultipleDays]="true" [readings]="keypar.value" [annotations]="groupedAnnotations()[+keypar.key]"/>
+        <app-working-stats [sensorId]="keypar.key" [isMultipleDays]="true" [readings]="keypar.value"/>
       </div>
     }
 

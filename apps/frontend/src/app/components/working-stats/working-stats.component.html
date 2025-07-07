@@ -1,16 +1,16 @@
-@if(dailyWorkingStats && currentPeriod) {
+@if(dailyWorkingStats()[sensorId]) {
  <div class="stats">
-   <p>Ubój: {{currentPeriod.start | date: 'dd/MM/yyyy HH:mm:ss' }} - {{currentPeriod.end ? ( currentPeriod.end | date: 'dd/MM/yyyy HH:mm:ss') : ''}}</p>
-  <p>Czas pracy: <b>{{(dailyWorkingStats.totalTime / 3600000) | number:'1.1-1'}}h</b></p>
+<!--   <p>Ubój: {{currentPeriod.start | date: 'dd/MM/yyyy HH:mm:ss' }} - {{currentPeriod.end ? ( currentPeriod.end | date: 'dd/MM/yyyy HH:mm:ss') : ''}}</p>-->
+  <p>Czas pracy: <b>{{(dailyWorkingStats()[sensorId].totalTime / 3600000) | number:'1.1-1'}}h</b></p>
 
    @if(totalUnits) {
      <p>Sztuki: <b>{{totalUnits}}</b></p>
 
    }
-  <p>Awarie: <b>{{dailyWorkingStats.accidents.count}} / {{(dailyWorkingStats.accidents.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
-  <p>Przerwy: <b>{{dailyWorkingStats.breaks.count}} / {{(dailyWorkingStats.breaks.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
-  <p>Organizacji: <b>{{dailyWorkingStats.organisations.count}} / {{(dailyWorkingStats.organisations.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
-  <p>Wym. Strzem.: <b>{{dailyWorkingStats.clipsChanges.count}} / {{(dailyWorkingStats.clipsChanges.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+  <p>Awarie: <b>{{dailyWorkingStats()[sensorId].accidents.count}} / {{(dailyWorkingStats()[sensorId].accidents.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+  <p>Przerwy: <b>{{dailyWorkingStats()[sensorId].breaks.count}} / {{(dailyWorkingStats()[sensorId].breaks.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+  <p>Organizacji: <b>{{dailyWorkingStats()[sensorId].organisations.count}} / {{(dailyWorkingStats()[sensorId].organisations.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+  <p>Wym. Strzem.: <b>{{dailyWorkingStats()[sensorId].clipsChanges.count}} / {{(dailyWorkingStats()[sensorId].clipsChanges.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
   <p> MTBF: <b>{{(MTBF / 3600000) | number:'1.1-1'}}h</b></p>
   <p> MTTR: <b>{{(MTTR / 3600000) | number:'1.1-1'}}h</b></p>
 </div>

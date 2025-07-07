@@ -27,6 +27,7 @@ import {AuthService} from "./services/auth/auth.service";
 import {UserRole} from "@brado/types";
 import {DataStore} from "./services/data/data.store";
 import {TemperatureStore} from "./services/temperature/temp.store";
+import {AnnotationsStore} from "./services/annotation/annotations.store";
 
 @Component({
   selector: 'app-root',
@@ -43,7 +44,7 @@ export class AppComponent implements OnInit {
           {title: 'Login', url: '/login', icon: 'settings-outline'},
         ]
 
-  constructor(private settingsService: SettingsService, private auth: AuthService, private dataStore: DataStore, private tempStore: TemperatureStore) {
+  constructor(private settingsService: SettingsService, private auth: AuthService, private dataStore: DataStore, private tempStore: TemperatureStore, private annotationsStore: AnnotationsStore) {
     effect(() => {
          const user = this.currentUser();
         if(user && user.username) {
@@ -52,9 +53,11 @@ export class AppComponent implements OnInit {
           this.tempStore.loadAll()
           this.settingsService.fetchSettings().then()
           this.dataStore.loadWorkingPeriods()
+          this.dataStore.loadWorkingPeriods()
 
           this.appPages = [
-            {title: 'Pulpit', url: '/dashboard', icon: 'pulse-outline'},
+            {title: 'Pulpit ( hala )', url: '/dashboard', icon: 'pulse-outline'},
+            {title: 'Pulpit ( admin )', url: '/dashboard-admin', icon: 'pulse-outline'},
             {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
             ...user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN ? [
               {title: 'Tydzień', url: '/weekly', icon: 'calendar-outline'},

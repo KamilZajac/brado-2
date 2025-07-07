@@ -39,6 +39,7 @@ import {PopoverController} from "@ionic/angular";
 import {ChartOperation, ChartOperationsListComponent} from "./chart-operations-list/chart-operations-list";
 import {PointEditorComponent} from "./chart-point-editor/chart-point-editor";
 import {DataStore} from "../../services/data/data.store";
+import {AnnotationsStore} from "../../services/annotation/annotations.store";
 
 ChartJS.register(
   LineController,
@@ -81,7 +82,7 @@ export class ChartComponent implements OnInit {
   @Input() isLive = false;
   @Input() hourlyTarget = 0;
   @Input() sensorNames: { [key: number]: string } = {};
-  annotations = input<Annotation[]>()
+  annotations = this.annotationsStore.getAnnotationsForReadings(this.data);
 
   @Input() chartType: 'line' | 'bar' = 'line';
   @Input() keyToDisplay: 'total' | 'value' | 'average' | 'delta' | 'dailyTotal' = 'value';
@@ -105,8 +106,8 @@ export class ChartComponent implements OnInit {
     private toastCtrl: ToastController,
     private alertController: AlertController,
     private actionSheetCtrl: ActionSheetController,
-    private dataService: DataService, // Todo
-
+    private dataService: DataService, // Todo,
+    private annotationsStore: AnnotationsStore,
     private dataStore: DataStore,
     private popoverCtrl: PopoverController
 
@@ -137,34 +138,31 @@ export class ChartComponent implements OnInit {
       const firstReading = this.data[this.data.length - 1];
       const lastReading = this.data[0];
 
-      const filteredPeriods = workingPeriods.filter(w =>  w.sensorId === firstReading.sensorId && +w.start >= +firstReading.timestamp  );
-
-      // filteredPeriods[filteredPeriods.length - 1].end = null
-
-
-      filteredPeriods.forEach((reading, idx) => {
-
-        if(reading.start) {
-          annotations[idx] =  {
-            type: 'line',
-            borderColor: 'green',
-            id: 1000 + idx,
-            borderWidth: 1,
-            label: {
-              display: true,
-              backgroundColor: 'green',
-              borderRadius: 0,
-              color: '#fff',
-            },
-            xMax: reading.end ? +reading.end : +lastReading.timestamp,
-            xMin: +reading.start,
-            xScaleID: 'x',
-            yMax: 40000,
-            yMin: 0,
-            yScaleID: 'y'
-          }
-        }
-      })
+      // const filteredPeriods = workingPeriods.filter(w =>  w.sensorId === firstReading.sensorId && +w.start >= +firstReading.timestamp  );
+      //
+      // filteredPeriods.forEach((reading, idx) => {
+      //
+      //   if(reading.start) {
+      //     annotations[idx] =  {
+      //       type: 'line',
+      //       borderColor: 'green',
+      //       id: 1000 + idx,
+      //       borderWidth: 1,
+      //       label: {
+      //         display: true,
+      //         backgroundColor: 'green',
+      //         borderRadius: 0,
+      //         color: '#fff',
+      //       },
+      //       xMax: reading.end ? +reading.end : +lastReading.timestamp,
+      //       xMin: +reading.start,
+      //       xScaleID: 'x',
+      //       yMax: 40000,
+      //       yMin: 0,
+      //       yScaleID: 'y'
+      //     }
+      //   }
+      // })
 
       this.annotations()?.forEach((pt, i) => {
 
@@ -311,7 +309,7 @@ export class ChartComponent implements OnInit {
         {
           label: 'Temperatura (°C)',
           data: this.temperature.map(entry => ({
-            x: new Date(Number(entry.timestamp)),
+            x:  +entry.timestamp,
             y: entry.temperature
           })),
           borderWidth: 2,
@@ -322,7 +320,7 @@ export class ChartComponent implements OnInit {
         {
           label: 'Wilgotność (%)',
           data: this.temperature.map(entry => ({
-            x: new Date(Number(entry.timestamp)),
+            x: +entry.timestamp,
             y: entry.humidity
           })),
           borderWidth: 2,
@@ -333,7 +331,7 @@ export class ChartComponent implements OnInit {
         {
           label: 'Punkt rosy (°C)',
           data: this.temperature.map(entry => ({
-            x: new Date(Number(entry.timestamp)),
+            x: +entry.timestamp,
             y: entry.dewPoint
           })),
           borderWidth: 2,
@@ -342,6 +340,7 @@ export class ChartComponent implements OnInit {
           tension: 0.1
         }
       ]
+
     } else if (this.dataMultiple.length > 0) {
 
       const baseStartTimestamp = +this.dataMultiple[0][0].timestamp

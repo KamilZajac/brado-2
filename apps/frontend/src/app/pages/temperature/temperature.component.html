@@ -1,15 +1,18 @@
-<ion-content class="gray-bg">
+<ion-content class="gray-bg ion-padding">
   <!--  <div class="sensor-grid">-->
+  <h2>Temperatury ( aktualne ) </h2>
 
-  @if (tempStore.liveData() | keyvalue; as readings) {
+  @if (tempStore.currentTemps() | keyvalue; as readings) {
 
-    @for (keypar of readings; track keypar.key) {
+    <ion-row>
+      @for (keypar of readings; track keypar.key) {
+        <ion-col size="12" size-sm="6" size-md="4">
+          <app-temp-card [name]="keypar.key" [temp]="keypar.value"></app-temp-card>
+        </ion-col>
+      }
+    </ion-row>
 
-      <div class="sensor-card">
-        <app-chart [temperature]="keypar.value"  />
-      </div>
-    }
-
+    <small>* Kliknij w wybrany termometr żeby zobaczyć szczegółowe dane</small>
   }
   <!--  </div>-->
 </ion-content>

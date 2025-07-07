@@ -1,0 +1,10 @@
+<ion-content class="gray-bg ion-padding">
+
+  <button class="button active" (click)="goBack()"><</button>
+
+  <div class="sensor-card">
+    @if(tempID && tempStore.liveData()[tempID]) {
+      <app-chart [temperature]="tempStore.liveData()[tempID]"  />
+    }
+</div>
+</ion-content>

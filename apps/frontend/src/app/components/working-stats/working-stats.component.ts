@@ -1,8 +1,5 @@
-import {Component, effect, input, Input} from '@angular/core';
+import {Component, effect, inject, input, Input} from '@angular/core';
 import {
-  Annotation,
-  DailyWorkingSummary,
-  getDailyWorkingSummary, getSummaryForMultipleDays,
   HourlyReading,
   LiveReading,
   MTBF,
@@ -10,6 +7,7 @@ import {
 } from "@brado/types";
 import {DatePipe, DecimalPipe} from "@angular/common";
 import {DataStore} from "../../services/data/data.store";
+import {AnnotationsStore} from "../../services/annotation/annotations.store";
 
 @Component({
   selector: 'app-working-stats',
@@ -17,51 +15,51 @@ import {DataStore} from "../../services/data/data.store";
   styleUrls: ['./working-stats.component.scss'],
   imports: [
     DecimalPipe,
-    DatePipe
   ]
 })
 export class WorkingStatsComponent  {
-  public dailyWorkingStats: DailyWorkingSummary | null = null;
+  @Input({required: true}) sensorId!: string
+
   public totalUnits = 0;
 
   @Input() public isMultipleDays: boolean = false
-  @Input({required: true}) sensorId!: string
 
-  public currentPeriod?: WorkingPeriod;
+
+  public dataStore = inject(DataStore)
+  public dailyWorkingStats  = this.dataStore.statsForCurrentPeriod
 
   readings = input<LiveReading[] | HourlyReading[]>([])
-  annotations = input<Annotation[]>([])
 
-
-  constructor(private dataStore: DataStore) {
+  constructor() {
     effect(() => {
       if(!this.isMultipleDays) {
 
+
+        console.log(this.dailyWorkingStats())
+        // this.sensorId = this.readings()[0].sensorId
+
       const currentPeriod = this.dataStore.getLatestWorkingPeriodForKey(this.sensorId)();
 
-      if(currentPeriod) {
-
-        console.log(currentPeriod)
-
-        this.currentPeriod = currentPeriod;
-        const readings = this.readings().filter(r => {
-          if (currentPeriod.end) {
-            return +r.timestamp >= +currentPeriod.start && +r.timestamp <= +currentPeriod.end
-          } else {
-            return +r.timestamp >= +currentPeriod.start
-          }
-
-
-
-        })
-        console.log(readings)
-        this.totalUnits = readings.reduce((prev, curr) => curr.delta + prev, 0);
-        this.dailyWorkingStats =  getDailyWorkingSummary(readings, this.annotations())
-      } else {
-
-        this.dailyWorkingStats = getSummaryForMultipleDays(this.readings(), this.annotations())
-
-      }
+      // if(currentPeriod) {
+      //
+      //   this.currentPeriod = currentPeriod;
+      //   const readings = this.readings().filter(r => {
+      //     if (currentPeriod.end) {
+      //       return +r.timestamp >= +currentPeriod.start && +r.timestamp <= +currentPeriod.end
+      //     } else {
+      //       return +r.timestamp >= +currentPeriod.start
+      //     }
+      //
+      //
+      //
+      //   })
+      //   this.totalUnits = readings.reduce((prev, curr) => curr.delta + prev, 0);
+      //   this.dailyWorkingStats =  getDailyWorkingSummary(readings, this.annotations())
+      // } else {
+      //
+      //   this.dailyWorkingStats = getSummaryForMultipleDays(this.readings(), this.annotations())
+      //
+      // }
 
       }
 
@@ -73,13 +71,13 @@ export class WorkingStatsComponent  {
     if(!this.dailyWorkingStats) {
       return 0;
     }
-    return MTBF(this.dailyWorkingStats)
+    return MTBF(this.dailyWorkingStats()[this.sensorId])
   }
 
   public get MTTR(): number {
     if(!this.dailyWorkingStats) {
       return 0;
     }
-    return MTTR(this.dailyWorkingStats)
+    return MTTR(this.dailyWorkingStats()[this.sensorId])
   }
 }

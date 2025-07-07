@@ -30,18 +30,15 @@ export class SensorStatsComponent {
   @Input({required: true}) sensorId!: string
   @Input() hourlyTarget= 0;
   @Input() sensorName= '';
-  @Input() isDashboardMode=  false
+  @Input() isDashboardMode = false
 
   @Output() reloadAnnotations = new EventEmitter()
-
-  annotations = input<Annotation[]>([])
 
   onReloadAnnotations() {
     this.reloadAnnotations.emit()
   }
 
   public get growingAverage(): GrowingAverage {
-
     const lastReading = this.data.readings.sort((a,b) => +b.timestamp - +a.timestamp)[0]
 
     if(!lastReading || !lastReading.growingAverage) {

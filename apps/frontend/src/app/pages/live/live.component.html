@@ -8,7 +8,6 @@
             <app-sensor-stats [hourlyTarget]="hourlyTarget" [sensorName]="getSensorName(keypar.key)"
                               [data]="keypar.value"
                               [sensorId]="keypar.key"
-                              [annotations]="groupedAnnotations()[+keypar.key]"
                               (reloadAnnotations)="getAnnotations()"
             ></app-sensor-stats>
           </div>

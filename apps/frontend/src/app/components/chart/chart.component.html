@@ -43,6 +43,7 @@
   >
   </canvas>
 
+  @if(!temperature.length) {
   <ion-row  class="flex ion-justify-content-between ion-align-items-center">
     @if(!isLive){
       {{sensorName}}
@@ -93,5 +94,5 @@
             Operacje
           </button>
   </ion-row >
-
+  }
 </div>

@@ -13,6 +13,7 @@ import {AnnotationService} from "../../services/annotation/annotation.service";
 import {ChartWrapperDirective} from "../../directives/chart-wrapper.directive";
 import {UsersStore} from "../../services/users/users.store";
 import {DataStore} from "../../services/data/data.store";
+import {AnnotationsStore} from "../../services/annotation/annotations.store";
 
 @Component({
   selector: 'app-live',
@@ -27,8 +28,8 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
   public hourlyTarget = 0;
   public sensorNames: { [key: number]: string } = {};
 
-  constructor( private dataService: DataService, private settingsService: SettingsService, annotationService: AnnotationService ) {
-    super(annotationService)
+  constructor( private dataService: DataService, private settingsService: SettingsService, annotationStore: AnnotationsStore ) {
+    super(annotationStore)
     effect(() => {
       const settings = this.settingsService.settings();
       if (settings) {

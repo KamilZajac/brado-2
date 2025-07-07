@@ -20,7 +20,6 @@
 
 
       <div class="chart-container">
-
         <app-pie-chart
           [value]="data.average60"
           [disableAnimation]="true"
@@ -30,7 +29,7 @@
       </div>
       @if(isDashboardMode) {
         <div class="col stats">
-        <app-working-stats [readings]="data.readings" [annotations]="annotations()" [sensorId]="sensorId"></app-working-stats>
+        <app-working-stats [readings]="data.readings" [sensorId]="sensorId"></app-working-stats>
         </div>
       }
 
@@ -43,7 +42,6 @@
       [disableAnimation]="true"
       [isLive]="true"
       [hourlyTarget]="hourlyTarget"
-      [annotations]="annotations()"
       (reloadAnnotations)="onReloadAnnotations()"
     >
     </app-chart>

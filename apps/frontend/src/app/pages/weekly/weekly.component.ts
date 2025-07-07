@@ -17,6 +17,7 @@ import {DataStore} from "../../services/data/data.store";
 import {SettingsService} from "../../services/settings/settings.service";
 import {settings} from "ionicons/icons";
 import {WorkingStatsComponent} from "../../components/working-stats/working-stats.component";
+import {AnnotationsStore} from "../../services/annotation/annotations.store";
 
 
 @Component({
@@ -33,8 +34,8 @@ export class WeeklyComponent extends ChartWrapperDirective implements OnInit {
   public sensorNames: { [key: number]: string } = {};
 
 
-  constructor(private dataService: DataService, private settingsService: SettingsService, annotationService: AnnotationService) {
-    super(annotationService)
+  constructor(private dataService: DataService, private settingsService: SettingsService, annotationStore: AnnotationsStore) {
+    super(annotationStore)
 
     effect(() => {
       const settings = this.settingsService.settings();

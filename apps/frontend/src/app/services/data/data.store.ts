@@ -1,13 +1,23 @@
 import {computed, inject, Injectable, Signal, signal} from "@angular/core";
 import {DataService, getWeeklyTimestamps} from "./data.service";
-import {addGrowingAverage, GrowingAverage, HourlyReading, LiveReading, LiveUpdate, WorkingPeriod} from "@brado/types";
+import {
+  addGrowingAverage,
+  DailyWorkingSummary, getDailyWorkingSummary,
+  GrowingAverage,
+  HourlyReading,
+  LiveReading,
+  LiveUpdate,
+  WorkingPeriod
+} from "@brado/types";
 import {SocketService} from "../socket/socket.service";
 import {firstValueFrom, Observable} from "rxjs";
 import {SettingsService} from "../settings/settings.service";
+import {AnnotationsStore} from "../annotation/annotations.store";
 
 @Injectable({ providedIn: 'root' })
 export class DataStore {
   private readonly api = inject(DataService);
+  private readonly annotationsStore = inject(AnnotationsStore);
 
   private readonly _liveData = signal<LiveUpdate>({});
   private readonly _weeklyReadings = signal<{ [key: string]: HourlyReading[] }>({});
@@ -20,6 +30,36 @@ export class DataStore {
   readonly workPeriods: Signal<{ [key: string]: WorkingPeriod[] }> = computed(() => this._workPeriods());
   readonly loading: Signal<boolean> = computed(() => this._loading());
   readonly error: Signal<string | null> = computed(() => this._error());
+
+  readonly statsForCurrentPeriod: Signal<{ [key:string]: DailyWorkingSummary }> = computed(() => {
+
+    const periods = this._workPeriods();
+
+    const summaries: { [key: string]: DailyWorkingSummary } = {};
+
+    Object.keys(periods).forEach(key => {
+
+      const periodsForSensor = periods[key];
+      const sorted = periodsForSensor.sort((a,b) => +b.start - +a.start);
+      const currentPeriod = sorted[0];
+
+      const readingsInPeriod = this._liveData()[key].readings.filter(r => {
+            if (currentPeriod.end) {
+              return +r.timestamp >= +currentPeriod.start && +r.timestamp <= +currentPeriod.end
+            } else {
+              return +r.timestamp >= +currentPeriod.start
+            }
+      })
+
+      const workingSummary = getDailyWorkingSummary(readingsInPeriod, this.annotationsStore.getAnnotationsForReadings(readingsInPeriod)())
+
+      if(workingSummary) {
+        summaries[key] = workingSummary
+      }
+    })
+
+    return summaries
+  })
 
   getLatestWorkingPeriodForKey(key: string): Signal<WorkingPeriod | undefined> {
     return computed(() => {
@@ -78,6 +118,9 @@ export class DataStore {
       return sensorObject
     });
   }
+
+
+
 
   loadInitialLiveData() {
     this._loading.set(true);

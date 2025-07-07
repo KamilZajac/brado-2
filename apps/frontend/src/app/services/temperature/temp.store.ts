@@ -15,6 +15,46 @@ export class TemperatureStore {
   readonly liveData: Signal<{ [key: string]: TempReading[] }> = computed(() => this._liveData());
 
 
+  readonly currentTemps: Signal<{ [key: string]: number }> = computed(() => {
+    const data = this.liveData();
+    const result: { [key: string]: number } = {};
+
+    for (const [id, readings] of Object.entries(data)) {
+      if (!readings.length) {
+        result[id] = NaN;
+        continue;
+      }
+      result[id] = readings.sort((a,b) => +b.timestamp - +a.timestamp)[0].temperature
+    }
+    return result;
+  });
+  readonly avgTempsLastHour: Signal<{ [key: string]: number }> = computed(() => {
+    const data = this.liveData();
+    const result: { [key: string]: number } = {};
+
+    for (const [id, readings] of Object.entries(data)) {
+      if (!readings.length) {
+        result[id] = NaN;
+        continue;
+      }
+
+      // Find the newest timestamp for this thermometer
+      const latestTimestamp = Math.max(...readings.map(r => +r.timestamp));
+      const oneHourBack = latestTimestamp - 24 * 60 * 60 * 1000;
+
+      // Filter readings within the last 24 hour
+      const recentReadings = readings.filter(r => +r.timestamp >= oneHourBack);
+
+      const avg = recentReadings.length
+        ? recentReadings.reduce((sum, r) => sum + r.temperature, 0) / recentReadings.length
+        : NaN;
+
+      result[id] = avg;
+    }
+
+    return result;
+  });
+
   constructor(private socketService: SocketService) {
     this.socketService.onLiveTempUpdate().subscribe(newTemps => {
 

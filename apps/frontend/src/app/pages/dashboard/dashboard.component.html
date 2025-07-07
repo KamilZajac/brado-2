@@ -7,7 +7,7 @@
 
         <div class="sensor-card">
           <app-sensor-stats [isDashboardMode]="true" [hourlyTarget]="hourlyTarget" [sensorName]="sensorName" [sensorId]="'2'"
-                            [data]="dataStore.liveData()[2]" [annotations]="groupedAnnotations()[2]"></app-sensor-stats>
+                            [data]="dataStore.liveData()[2]"></app-sensor-stats>
         </div>
 
       } @else {
@@ -16,41 +16,19 @@
         </div>
       }
     }
-
-
-<!--    @if (dataStore.liveData() | keyvalue; as sensors) {-->
-<!--      @if (sensors.length > 0) {-->
-<!--        @for (keypar of sensors; track keypar.key) {-->
-<!--          <div class="sensor-card">-->
-<!--            <app-sensor-stats [hourlyTarget]="hourlyTarget" [sensorName]="keypar.key" [isDashboardMode]="true"-->
-<!--                              [data]="keypar.value"-->
-<!--                              [annotations]="groupedAnnotations()[+keypar.key]"-->
-<!--                              (reloadAnnotations)="getAnnotations()"-->
-<!--            ></app-sensor-stats>-->
-<!--          </div>-->
-<!--        }-->
-<!--      } @else {-->
-<!--        <div class="no-results">-->
-<!--          Brak danych z dzisiaj-->
-<!--        </div>-->
-<!--      }-->
-<!--    }-->
-
-
-    @if (tempStore.liveData() | keyvalue; as readings) {
-
+    @if ((isAdminPanel? tempStore.avgTempsLastHour() : tempStore.currentTemps() ) | keyvalue; as readings) {
+      <h4 class="ion-padding">Temperatury {{isAdminPanel ? '( średnie z 24h )' : '( aktualne )' }}</h4>
       <ion-row>
         @for (keypar of readings; track keypar.key) {
           <ion-col size="12" size-sm="6" size-md="4">
-            <div class="sensor-card card-temp">
-              <ion-icon name="thermometer-outline"></ion-icon>
-              {{ keypar.value[keypar.value.length - 1].sensorId }}
-              &nbsp; <b>{{ keypar.value[keypar.value.length - 1].temperature }}°C</b>
-            </div>
+            <app-temp-card [name]="keypar.key" [temp]="keypar.value"></app-temp-card>
+
           </ion-col>
         }
       </ion-row>
     }
+
+    <small>* Kliknij w wybrany termometr żeby zobaczyć szczegółowe dane</small>
 
   </div>
 

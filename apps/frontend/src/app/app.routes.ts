@@ -9,6 +9,7 @@ import {LoginComponent} from "./pages/login/login.component";
 import {TemperatureComponent} from "./pages/temperature/temperature.component";
 import {DashboardComponent} from "./pages/dashboard/dashboard.component";
 import {WorkPeriodsComponent} from "./pages/work-periods/work-periods.component";
+import {TempChartComponent} from "./pages/temperature/temp-chart/temp-chart.component";
 
 export const routes: Routes = [
   {
@@ -19,6 +20,13 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     component: DashboardComponent,
+    data: { mode: 'default' },
+
+  },
+  {
+    path: 'dashboard-admin',
+    component: DashboardComponent,
+    data: { mode: 'admin' },
   },
   {
     path: 'weekly',
@@ -43,6 +51,10 @@ export const routes: Routes = [
   {
     path: 'temperatures',
     component: TemperatureComponent,
+  },
+  {
+    path: 'temperatures/:id',
+    component: TempChartComponent,
   },
   {
     path: 'login',
