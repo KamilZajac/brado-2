@@ -1,5 +1,5 @@
 import {computed, inject, Injectable, Signal, signal} from "@angular/core";
-import {DataService, getWeeklyTimestamps} from "./data.service";
+import {DataService, getCurrentMonthTimestamps, getWeeklyTimestamps} from "./data.service";
 import {
   addGrowingAverage,
   DailyWorkingSummary, getDailyWorkingSummary,
@@ -22,12 +22,16 @@ export class DataStore {
   private readonly _liveData = signal<LiveUpdate>({});
   private readonly _weeklyReadings = signal<{ [key: string]: HourlyReading[] }>({});
   private readonly _workPeriods = signal<{ [key: string]: WorkingPeriod[] }>({});
+  private readonly _monthlySummary = signal<{ [key: string]: DailyWorkingSummary }>({});
   private readonly _loading = signal(false);
   private readonly _error = signal<string | null>(null);
 
   readonly liveData: Signal<LiveUpdate> = computed(() => this._liveData());
   readonly weeklyReadings: Signal<{ [key: string]: HourlyReading[] }> = computed(() => this._weeklyReadings());
   readonly workPeriods: Signal<{ [key: string]: WorkingPeriod[] }> = computed(() => this._workPeriods());
+  readonly monthlySummary: Signal<{ [key: string]: DailyWorkingSummary }> = computed(() => {
+    return this._monthlySummary()
+  });
   readonly loading: Signal<boolean> = computed(() => this._loading());
   readonly error: Signal<string | null> = computed(() => this._error());
 
@@ -51,7 +55,7 @@ export class DataStore {
             }
       })
 
-      const workingSummary = getDailyWorkingSummary(readingsInPeriod, this.annotationsStore.getAnnotationsForReadings(readingsInPeriod)())
+      const workingSummary = getDailyWorkingSummary(readingsInPeriod, this.annotationsStore.getAnnotationsForReadings(readingsInPeriod)(), [currentPeriod])
 
       if(workingSummary) {
         summaries[key] = workingSummary
@@ -120,6 +124,12 @@ export class DataStore {
   }
 
 
+  async loadMonthlyStats() {
+    const {from, to } = getCurrentMonthTimestamps()
+    const summaries: {[key: string]: DailyWorkingSummary} = await firstValueFrom(this.api.getMonthlyStats(from, to));
+    this._monthlySummary.set(summaries)
+  }
+
 
 
   loadInitialLiveData() {
@@ -141,7 +151,7 @@ export class DataStore {
   }
 
   async loadWeeklyData() {
-    const {from, to } = getWeeklyTimestamps()
+    const {from, to } = getCurrentMonthTimestamps()
     const hourlyData = await firstValueFrom(this.api.getHourlyBetween(from, to));
     this._weeklyReadings.update(() => {
       const uniqueSensors = Array.from(new Set(hourlyData.map(r => r.sensorId)));

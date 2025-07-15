@@ -7,6 +7,8 @@ import {
   LiveUpdate,
   HourlyReading,
   GrowingAverage,
+  DailyWorkingSummary,
+  getDailyWorkingSummary,
 } from '@brado/types';
 import { ReadingsGateway } from './readings.gateway';
 import { LiveReadingEntity } from './entities/minute-reading.entity';
@@ -15,6 +17,8 @@ import { HourlyReadingEntity } from './entities/hourly-reading-entity';
 import { DateTime } from 'luxon';
 import { exportToExcel, exportToExcelLive } from './export.helper';
 import { SettingsService } from '../settings/settings.service';
+import { AnnotationService } from '../annotation/annotation.service';
+import { WorkingPeriodService } from '../working-period/working-period.service';
 
 @Injectable()
 export class ReadingService {
@@ -25,6 +29,8 @@ export class ReadingService {
     private hourlyReadingsRepo: Repository<HourlyReading>,
     private readonly gateway: ReadingsGateway,
     private settingsService: SettingsService,
+    private annotationService: AnnotationService,
+    private workPeriodsService: WorkingPeriodService,
   ) {}
 
   private dailyTotals = new Map<string, number>(); // key: `${sensorId}-${yyyy-mm-dd}`
@@ -59,7 +65,6 @@ export class ReadingService {
         if (lastValue !== null) {
           delta = r.value >= lastValue ? r.value - lastValue : r.value;
         }
-
 
         const rToSave = {
           id: r.id,
@@ -251,7 +256,7 @@ export class ReadingService {
     const result: Record<number, number> = {};
 
     for (const sensorId of Object.keys(groupedBySensor)) {
-      const sensorReadings = groupedBySensor[+sensorId]; // Pobierz odczyty dla danego sensorId
+      const sensorReadings = groupedBySensor[+sensorId];
       const sumDelta = sensorReadings.reduce(
         (sum, reading) => sum + (reading.delta || 0),
         0,
@@ -267,13 +272,22 @@ export class ReadingService {
   async getInitialLiveData(startOfTheDateTS: string): Promise<LiveUpdate> {
     console.log('Getting initial live data', startOfTheDateTS);
 
+    const workingPeriods = await this.workPeriodsService.findLatest();
+
+    const startTimes = workingPeriods.map(p => +p.start);
+
+    let startTime = Date.now() - 24 * 60 * 60 * 1000;
+
+    if (startTimes.length) {
+      startTime = Math.min(...startTimes);
+    }
+
     // Todo debug only
     // const todayData = await this.getAfterTime(startOfTheDateTS);
-    const sevenDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
 
     const todayData = await this.liveReadingsRepo.find({
       where: {
-        timestamp: MoreThan(sevenDaysAgo.toString()),
+        timestamp: MoreThan(startTime.toString()),
       },
       order: { timestamp: 'ASC' },
     });
@@ -489,6 +503,52 @@ export class ReadingService {
     );
   }
 
+  async getMonthlyStats(fromTS: string, endTS: string) {
+    // const hourlyReadings = await this.getHourly(fromTS, endTS);
+    const hourlyReadings = await this.hourlyReadingsRepo.find({
+      where: {
+        timestamp: Between(fromTS, endTS),
+      },
+      order: { timestamp: 'ASC' },
+    });
+
+    const annotations = await this.annotationService.getBetween(fromTS, endTS);
+    const settings = await this.settingsService.getSettings();
+    const workingPeriods = await this.workPeriodsService.getBetween(
+      fromTS,
+      endTS,
+    );
+
+    const uniqueSensorIds = Array.from(
+      new Set(hourlyReadings.map((entity) => entity.sensorId)),
+    );
+
+    const summaries: { [key: string]: DailyWorkingSummary } = {};
+
+    uniqueSensorIds.forEach((sensorId) => {
+
+      console.log('SUMA')
+      console.log(
+          hourlyReadings.filter((r) => r.sensorId === sensorId)
+              .map(r => r.delta).reduce((a, b) => a + b, 0)
+      )
+      const summary = getDailyWorkingSummary(
+        hourlyReadings.filter((r) => r.sensorId === sensorId),
+        annotations.filter((a) => a.sensorId === sensorId),
+        workingPeriods.filter((wp) => wp.sensorId === sensorId),
+        settings.hourlyTarget,
+        fromTS,
+        endTS,
+      );
+
+      if (summary != null) {
+        summaries[sensorId] = summary;
+      }
+    });
+
+    return summaries;
+  }
+
   async getHourly(fromTS: string, toTS: string) {
     const readings = await this.hourlyReadingsRepo.find({
       where: {
@@ -515,8 +575,6 @@ export class ReadingService {
 
           if (currentlyCalculatedDate !== dt) {
             currentlyCalculatedDate = dt;
-            console.log(dt);
-
             currentSum = 0;
           }
           currentSum += r.delta;

@@ -1,11 +1,12 @@
 import { LiveReadingEntity } from '../reading/entities/minute-reading.entity';
 import { HourlyReading, LiveReading } from '@brado/types';
 import { HourlyReadingEntity } from '../reading/entities/hourly-reading-entity';
-import { Repository, LessThan, Between, In } from 'typeorm';
+import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WorkingPeriodEntity } from './entities/working-period.entity';
 import { Cron } from '@nestjs/schedule';
+import { AnnotationEntity } from '../annotation/entities/annotation.entity';
 
 @Injectable()
 export class WorkingPeriodService {
@@ -20,10 +21,10 @@ export class WorkingPeriodService {
     private periodRepo: Repository<WorkingPeriodEntity>,
   ) {}
 
-  @Cron('0 */15 * * * *')
   async detectWorkingPeriods(): Promise<void> {
     this.logger.log('Detecting working periods');
-
+    //  Todo remove repo
+    // Todo use that for hourly?
     // Get all unique sensor IDs
     const sensorIds = await this.liveReadingsRepo
       .createQueryBuilder('r')
@@ -69,7 +70,9 @@ export class WorkingPeriodService {
 
         // Start a new period if we detect activity and don't have an active period
         if (isActive && !currentPeriod) {
-          this.logger.debug(`Starting new working period for sensor ${sensorId} at ${new Date(currentTimeMs).toISOString()}`);
+          this.logger.debug(
+            `Starting new working period for sensor ${sensorId} at ${new Date(currentTimeMs).toISOString()}`,
+          );
           currentPeriod = {
             start: reading.timestamp,
             end: null,
@@ -81,7 +84,9 @@ export class WorkingPeriodService {
           currentPeriod.lastActiveTimestamp = reading.timestamp;
           // If the period was previously ended, reopen it
           if (currentPeriod.end !== null) {
-            this.logger.debug(`Reopening working period for sensor ${sensorId}`);
+            this.logger.debug(
+              `Reopening working period for sensor ${sensorId}`,
+            );
             currentPeriod.end = null;
           }
         }
@@ -92,7 +97,9 @@ export class WorkingPeriodService {
 
           // Only end the period if inactivity exceeds the maximum break time
           if (inactivityDuration > BREAK_MAX_MS) {
-            this.logger.debug(`Ending working period for sensor ${sensorId} at ${new Date(lastActiveTimeMs).toISOString()} due to ${inactivityDuration / 60000} minutes of inactivity`);
+            this.logger.debug(
+              `Ending working period for sensor ${sensorId} at ${new Date(lastActiveTimeMs).toISOString()} due to ${inactivityDuration / 60000} minutes of inactivity`,
+            );
             currentPeriod.end = currentPeriod.lastActiveTimestamp;
 
             // Save the completed period
@@ -101,7 +108,7 @@ export class WorkingPeriodService {
                 sensorId,
                 start: currentPeriod.start,
                 end: currentPeriod.end,
-              })
+              }),
             );
 
             // Reset current period
@@ -110,15 +117,21 @@ export class WorkingPeriodService {
         }
 
         // If this is the last reading and we have an open period, close it
-        if (i === readings.length - 1 && currentPeriod && currentPeriod.end === null) {
-          this.logger.debug(`Closing final working period for sensor ${sensorId} at ${new Date(parseInt(currentPeriod.lastActiveTimestamp)).toISOString()}`);
+        if (
+          i === readings.length - 1 &&
+          currentPeriod &&
+          currentPeriod.end === null
+        ) {
+          this.logger.debug(
+            `Closing final working period for sensor ${sensorId} at ${new Date(parseInt(currentPeriod.lastActiveTimestamp)).toISOString()}`,
+          );
 
           await this.periodRepo.save(
             this.periodRepo.create({
               sensorId,
               start: currentPeriod.start,
               end: currentPeriod.lastActiveTimestamp,
-            })
+            }),
           );
         }
       }
@@ -126,6 +139,52 @@ export class WorkingPeriodService {
 
     this.logger.log('Working period detection completed');
   }
+
+  async getBetween(
+    fromTS: string,
+    toTS: string,
+  ): Promise<WorkingPeriodEntity[]> {
+    return this.periodRepo.find({
+      where: [
+        {
+          start: Between(fromTS, toTS), // Okres zaczyna się i mieści w zakresie
+        },
+        {
+          end: Between(fromTS, toTS), // Okres kończy się i mieści w zakresie
+        },
+        {
+          start: LessThanOrEqual(fromTS), // Okres zaczyna się przed okresem, ale kończy w jego trakcie
+          end: MoreThanOrEqual(toTS),
+        },
+      ],
+    });
+  }
+
+  async findLatest(): Promise<WorkingPeriodEntity[]> {
+    // Step 1: Get max start per sensorId
+    const sensors = await this.periodRepo
+      .createQueryBuilder('wp')
+      .select('wp.sensorId', 'sensorId')
+      .addSelect('MAX(wp.start)', 'maxStart')
+      .groupBy('wp.sensorId')
+      .getRawMany();
+
+    // Step 2: Fetch full entities by sensorId + start
+    const results: WorkingPeriodEntity[] = [];
+
+    for (const { sensorId, maxStart } of sensors) {
+      const entity = await this.periodRepo.findOneBy({
+        sensorId: Number(sensorId),
+        start: maxStart,
+      });
+      if (entity) {
+        results.push(entity);
+      }
+    }
+
+    return results
+  }
+
   /**
    * Get all working periods
    */

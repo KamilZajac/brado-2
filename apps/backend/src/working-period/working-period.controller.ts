@@ -29,4 +29,3 @@ export class WorkingPeriodController {
     return this.workingPeriodService.manualDetection();
   }
 }
-1

@@ -6,8 +6,9 @@
       @if (sensors.length > 0) {
 
         <div class="sensor-card">
-          <app-sensor-stats [isDashboardMode]="true" [hourlyTarget]="hourlyTarget" [sensorName]="sensorName" [sensorId]="'2'"
-                            [data]="dataStore.liveData()[2]"></app-sensor-stats>
+          <app-sensor-stats [isDashboardMode]="true" [isAdminDashboard]="isAdminPanel" [hourlyTarget]="hourlyTarget" [sensorName]="sensorName" [sensorId]="'2'"
+                            [data]="dataStore.liveData()[2]" [workingSummary]="isAdminPanel ? monthlyWorkingStats()[2] : dailyWorkingStats()[2]"></app-sensor-stats>
+<!--          Todo sensorID shouldnt be hardcoded-->
         </div>
 
       } @else {

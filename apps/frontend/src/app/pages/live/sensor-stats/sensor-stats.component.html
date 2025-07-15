@@ -5,12 +5,12 @@
       <p class="sensor-name">{{sensorName}}</p>
 
       <div class="chart-container">
-        @if (growingAverage) {
+        @if (workingSummary.estimatedProduction) {
 
         <app-pie-chart
-          [value]="growingAverage.realProduction"
+          [value]="workingSummary.totalUnits"
           [disableAnimation]="true"
-          [target]="growingAverage.estimatedProduction"
+          [target]="workingSummary.estimatedProduction"
         ></app-pie-chart>
         <p>Narastająca</p>
         } @else {
@@ -29,7 +29,7 @@
       </div>
       @if(isDashboardMode) {
         <div class="col stats">
-        <app-working-stats [readings]="data.readings" [sensorId]="sensorId"></app-working-stats>
+        <app-working-stats [workingSummary]="workingSummary" [isAdmin]="isAdminDashboard" [readings]="data.readings" [sensorId]="sensorId"></app-working-stats>
         </div>
       }
 

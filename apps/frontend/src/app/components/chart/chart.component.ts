@@ -1,5 +1,5 @@
-import {Component, effect, EventEmitter, input, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {Annotation, AnnotationType, HourlyReading, LiveReading, TempReading, User} from "@brado/types";
+import {Component, effect, EventEmitter, inject, input, Input, OnInit, Output, ViewChild} from '@angular/core';
+import {Annotation, AnnotationType, HourlyReading, LiveReading, TempReading, User, WorkingPeriod} from "@brado/types";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
 import {
@@ -34,12 +34,13 @@ import {
 import {TextInputModalComponent} from "../text-input-modal/text-input-modal.component";
 import {AnnotationService} from "../../services/annotation/annotation.service";
 import {firstValueFrom} from 'rxjs';
-import {DataService} from "../../services/data/data.service";
+import {DataService, getCurrentMonthTimestamps} from "../../services/data/data.service";
 import {PopoverController} from "@ionic/angular";
 import {ChartOperation, ChartOperationsListComponent} from "./chart-operations-list/chart-operations-list";
 import {PointEditorComponent} from "./chart-point-editor/chart-point-editor";
 import {DataStore} from "../../services/data/data.store";
 import {AnnotationsStore} from "../../services/annotation/annotations.store";
+import {DatePipe} from "@angular/common";
 
 ChartJS.register(
   LineController,
@@ -71,10 +72,17 @@ interface Series {
   selector: 'app-chart',
   templateUrl: './chart.component.html',
   styleUrls: ['./chart.component.scss'],
-  imports: [BaseChartDirective, IonRow],
+  imports: [BaseChartDirective, IonRow, DatePipe],
   providers: [ReadingsToSeriesMultiplePipe, ReadingsToSeriesPipe, ModalController, PopoverController]
 })
 export class ChartComponent implements OnInit {
+
+  dataStore = inject(DataStore)
+  annotationsStore = inject(AnnotationsStore)
+
+  // Make Math available in the template
+  Math = Math;
+
   @Input() data: HourlyReading[] | LiveReading[] = [];
   @Input() temperature: TempReading[] = [];
   @Input() dataMultiple: HourlyReading[][] | LiveReading[][] = [];
@@ -82,7 +90,7 @@ export class ChartComponent implements OnInit {
   @Input() isLive = false;
   @Input() hourlyTarget = 0;
   @Input() sensorNames: { [key: number]: string } = {};
-  annotations = this.annotationsStore.getAnnotationsForReadings(this.data);
+  // annotations = this.annotationsStore.getAnnotationsForReadings(this.data);
 
   @Input() chartType: 'line' | 'bar' = 'line';
   @Input() keyToDisplay: 'total' | 'value' | 'average' | 'delta' | 'dailyTotal' = 'value';
@@ -98,6 +106,12 @@ export class ChartComponent implements OnInit {
 
   newAnnotation: Annotation | null = null;
 
+  // Store detected breaks
+  detectedBreaks: { start: string, end: string, duration: number }[] = [];
+
+  // Track the currently highlighted break
+  highlightedBreak: { start: string, end: string, duration: number } | null = null;
+
   @Output() reloadAnnotations = new EventEmitter()
 
   constructor(
@@ -107,13 +121,10 @@ export class ChartComponent implements OnInit {
     private alertController: AlertController,
     private actionSheetCtrl: ActionSheetController,
     private dataService: DataService, // Todo,
-    private annotationsStore: AnnotationsStore,
-    private dataStore: DataStore,
     private popoverCtrl: PopoverController
-
-) {
+  ) {
     effect(() => {
-      if (this.annotations()?.length) {
+      if (this.annotationsStore.getAnnotationsForReadings(this.data)?.length) {
         this.buildChartOptions()
       }
     })
@@ -130,42 +141,25 @@ export class ChartComponent implements OnInit {
 
   async buildChartOptions() {
     const annotations: any = {};
+    let workingPeriods: WorkingPeriod[] = [];
+
+    // Fetch working periods if we have data
+    if (this.data.length > 0) {
+      try {
+        const allWorkingPeriods = await firstValueFrom(this.dataService.getWorkingPeriods());
+
+        // Filter working periods for the current sensor
+        const sensorId = this.data[0].sensorId;
+        workingPeriods = allWorkingPeriods
+          .filter(w => w.sensorId === sensorId)
+          .sort((a, b) => +a.start - +b.start);
+      } catch (error) {
+        console.error('Error fetching working periods:', error);
+      }
+    }
 
     if (this.isAnnotationVisible) {
-
-      const workingPeriods = await firstValueFrom(this.dataService.getWorkingPeriods());
-
-      const firstReading = this.data[this.data.length - 1];
-      const lastReading = this.data[0];
-
-      // const filteredPeriods = workingPeriods.filter(w =>  w.sensorId === firstReading.sensorId && +w.start >= +firstReading.timestamp  );
-      //
-      // filteredPeriods.forEach((reading, idx) => {
-      //
-      //   if(reading.start) {
-      //     annotations[idx] =  {
-      //       type: 'line',
-      //       borderColor: 'green',
-      //       id: 1000 + idx,
-      //       borderWidth: 1,
-      //       label: {
-      //         display: true,
-      //         backgroundColor: 'green',
-      //         borderRadius: 0,
-      //         color: '#fff',
-      //       },
-      //       xMax: reading.end ? +reading.end : +lastReading.timestamp,
-      //       xMin: +reading.start,
-      //       xScaleID: 'x',
-      //       yMax: 40000,
-      //       yMin: 0,
-      //       yScaleID: 'y'
-      //     }
-      //   }
-      // })
-
-      this.annotations()?.forEach((pt, i) => {
-
+      this.annotationsStore.getAnnotationsForReadings(this.data)().forEach((pt, i) => {
         const chartValues = this.chartData.datasets[0].data.map((item: any) => item.y)
         const average = chartValues.reduce((a, b) => a + b) / chartValues.length;
 
@@ -180,7 +174,7 @@ export class ChartComponent implements OnInit {
               backgroundColor: this.getAnnotationColor(pt.type),
               borderRadius: 0,
               color: '#fff',
-              content: [this.getAnnotationTitle(pt.type), pt.text, '- ' + pt.user.username],
+              content: [this.getAnnotationTitle(pt.type), pt.text,], //  '- ' + pt.user.username
             },
             xMax: +pt.from_timestamp,
             xMin: +pt.to_timestamp,
@@ -190,6 +184,45 @@ export class ChartComponent implements OnInit {
             yScaleID: 'y'
           }
       });
+
+      // Add detected breaks as annotations
+      if (this.isLive && this.detectedBreaks.length > 0) {
+        const chartValues = this.chartData.datasets[0].data.map((item: any) => item.y);
+        const minValue = Math.min(...chartValues.filter(y => y !== null));
+        const maxValue = Math.max(...chartValues.filter(y => y !== null));
+        const valueRange = maxValue - minValue;
+
+        this.detectedBreaks.forEach((breakItem, i) => {
+          // Check if this break is currently highlighted
+          const isHighlighted = this.highlightedBreak &&
+            this.highlightedBreak.start === breakItem.start &&
+            this.highlightedBreak.end === breakItem.end;
+
+          annotations[`break${i}`] = {
+            type: 'box',
+            xMin: +breakItem.start,
+            xMax: +breakItem.end,
+            yMin: minValue - (valueRange * 0.05),
+            yMax: maxValue + (valueRange * 0.05),
+            backgroundColor: isHighlighted ? 'rgba(255, 165, 0, 0.4)' : 'rgba(255, 165, 0, 0.2)',
+            borderColor: isHighlighted ? 'rgba(255, 0, 0, 0.8)' : 'rgba(255, 165, 0, 0.8)',
+            borderWidth: isHighlighted ? 2 : 1,
+            borderDash: [5, 5],
+            label: {
+              display: true,
+              content: `P (${Math.round(breakItem.duration)} min)`,
+              position: 'start',
+              backgroundColor: isHighlighted ? 'rgba(255, 0, 0, 0.8)' : 'rgba(255, 165, 0, 0.8)',
+              color: isHighlighted ? '#fff' : '#333',
+              rotation: 30,
+              font: {
+                size: isHighlighted ? 14 : 12,
+                weight: isHighlighted ? 'bold' : 'normal'
+              }
+            },
+          };
+        });
+      }
     }
 
     this.chartOptions = {
@@ -199,7 +232,7 @@ export class ChartComponent implements OnInit {
       },
       plugins: {
         hourlyBackground: {
-          hourlyTarget: this.hourlyTarget
+          workingPeriods: workingPeriods
         },
         legend: {
           display: false,
@@ -309,7 +342,7 @@ export class ChartComponent implements OnInit {
         {
           label: 'Temperatura (°C)',
           data: this.temperature.map(entry => ({
-            x:  +entry.timestamp,
+            x: +entry.timestamp,
             y: entry.temperature
           })),
           borderWidth: 2,
@@ -368,6 +401,12 @@ export class ChartComponent implements OnInit {
 
     if (this.data.length > 0) {
       const clearedDataset = this.filterBorderDuplicates(this.data);
+
+      // Detect breaks if this is live data
+      if (this.isLive) {
+        this.detectedBreaks = this.detectBreaks(this.data);
+      }
+
       datasets = [
         {
           label: 'Sensor Values',
@@ -383,11 +422,11 @@ export class ChartComponent implements OnInit {
 
           pointBackgroundColor: (context: any) => {
             const isFailure = context.raw?.data?.isConnectionFailure;
-            return isFailure ? 'red': '#3b82f6'
+            return isFailure ? 'red' : '#3b82f6'
           },
           pointBorderColor: (context: any) => {
             const isFailure = context.raw?.data?.isConnectionFailure;
-            return isFailure ? 'red': '#3b82f6'
+            return isFailure ? 'red' : '#3b82f6'
           }
         },
 
@@ -398,6 +437,11 @@ export class ChartComponent implements OnInit {
 
     this.chartData = {
       datasets
+    }
+
+    // Update chart options to display breaks
+    if (this.detectedBreaks.length > 0) {
+      this.buildChartOptions();
     }
   }
 
@@ -438,6 +482,127 @@ export class ChartComponent implements OnInit {
     }
 
     return result;
+  }
+
+  /**
+   * Detects breaks in the data array where 'delta' and/or 'value' doesn't change for 5 minutes or more
+   * Only applies when isLive is true (LiveReading array)
+   * Skips breaks when the company is not working (surrounded by non-real values)
+   * @param readings The LiveReading array to detect breaks in
+   * @returns An array of detected breaks, each with a start and end timestamp
+   */
+  public detectBreaks(readings: LiveReading[]): { start: string, end: string, duration: number }[] {
+    if (!this.isLive || readings.length < 2) return [];
+
+    let breaks: { start: string, end: string, duration: number }[] = [];
+    let breakStart: string | null = null;
+    let lastValue: number | null = null;
+    let lastDelta: number | null = null;
+    let lastTimestamp: string | null = null;
+
+    // Sort readings by timestamp
+    const sortedReadings = [...readings].sort((a, b) => +a.timestamp - +b.timestamp);
+
+    for (let i = 0; i < sortedReadings.length; i++) {
+      const reading = sortedReadings[i];
+
+      // Skip the first reading as we need a previous reading to compare
+      if (i === 0) {
+        lastValue = reading.value;
+        lastDelta = reading.delta;
+        lastTimestamp = reading.timestamp;
+        continue;
+      }
+
+      // Check if value and delta haven't changed
+      const valueUnchanged = reading.value === lastValue || (lastValue != null && Math.abs(reading.value - lastValue) < 8);
+      const deltaUnchanged = reading.delta === lastDelta || (lastDelta != null && Math.abs(reading.delta - lastDelta) < 8);
+
+      // Calculate time difference in minutes
+      const timeDiff = (+reading.timestamp - +lastTimestamp!) / (1000 * 60);
+
+      // If we're in a break and either value or delta has changed, end the break
+      if (breakStart && (!valueUnchanged || !deltaUnchanged)) {
+        const duration = (+reading.timestamp - +breakStart) / (1000 * 60);
+        // Only consider breaks of 5 minutes or more
+        if (duration >= 5) {
+          breaks.push({
+            start: breakStart,
+            end: lastTimestamp!,
+            duration: duration
+          });
+        }
+        breakStart = null;
+      }
+
+      // If value and delta haven't changed and time difference is significant, start a break
+      if ((valueUnchanged && deltaUnchanged)) {
+        if (!breakStart) {
+          breakStart = lastTimestamp!;
+        }
+      }
+
+      lastValue = reading.value;
+      lastDelta = reading.delta;
+      lastTimestamp = reading.timestamp;
+    }
+
+    // Check if we're still in a break at the end of the array
+    if (breakStart && lastTimestamp) {
+      const duration = (+lastTimestamp - +breakStart) / (1000 * 60);
+      if (duration >= 5) {
+        breaks.push({
+          start: breakStart,
+          end: lastTimestamp,
+          duration: duration
+        });
+      }
+    }
+
+
+    // Filter out breaks that are already covered by existing annotations
+    breaks = breaks.filter(breakItem => {
+      // Check if this break overlaps with any existing annotation
+      const isOverlappingWithAnnotation = this.annotationsStore.getAnnotationsForReadings(this.data)().some(annotation => {
+        const annotationStart = +annotation.from_timestamp;
+        const annotationEnd = +annotation.to_timestamp;
+        const breakStart = +breakItem.start;
+        const breakEnd = +breakItem.end;
+
+        // Check for overlap
+        return (
+          // Break starts during annotation
+          (breakStart >= annotationStart && breakStart <= annotationEnd) ||
+          // Break ends during annotation
+          (breakEnd >= annotationStart && breakEnd <= annotationEnd) ||
+          // Break contains annotation
+          (breakStart <= annotationStart && breakEnd >= annotationEnd)
+        );
+      });
+
+      // Keep breaks that don't overlap with any annotation
+      return !isOverlappingWithAnnotation;
+    });
+
+    // Filter out breaks that are at the beginning or end of the working period
+    // (surrounded by non-real values)
+    return breaks.filter(breakItem => {
+      const breakStartIndex = sortedReadings.findIndex(r => r.timestamp === breakItem.start);
+      const breakEndIndex = sortedReadings.findIndex(r => r.timestamp === breakItem.end);
+
+      // Check if there are real values before the break
+      const hasRealValuesBefore = sortedReadings
+        .slice(Math.max(0, breakStartIndex - 5), breakStartIndex)
+        .some(r => r.delta > 0);
+
+      // Check if there are real values after the break
+      const hasRealValuesAfter = sortedReadings
+        .slice(breakEndIndex + 1, breakEndIndex + 6)
+        .some(r => r.delta > 0);
+
+      // Only keep breaks that are surrounded by real values
+      return hasRealValuesBefore && hasRealValuesAfter;
+    });
   }
 
   get getTarget() {
@@ -541,7 +706,7 @@ export class ChartComponent implements OnInit {
     } else if (key === 'value') {
       return 'Licznik'
     } else if (key === 'dailyTotal') {
-      return 'Dziennie'
+      return 'Ubój'
     } else {
       return key
     }
@@ -562,6 +727,8 @@ export class ChartComponent implements OnInit {
 
         const isNearLine = Math.abs(offsetX - x) < 5; // 5px tolerance
         if (isNearLine && ann.id) {
+
+          console.log(ann)
           const confirmed = await this.showConfirmAlert();
 
           if (confirmed) {
@@ -602,7 +769,7 @@ export class ChartComponent implements OnInit {
 
   onChartClick(event: any) {
 
-    if(this.chartMode === ChartOperation.ADD_ANNOTATION) {
+    if (this.chartMode === ChartOperation.ADD_ANNOTATION) {
       const chartInstance = this.chart?.chart;
       if (!chartInstance) return;
 
@@ -620,10 +787,10 @@ export class ChartComponent implements OnInit {
       }
     }
 
-    if(this.chartMode === ChartOperation.ADD_EDIT_POINTS) {
+    if (this.chartMode === ChartOperation.ADD_EDIT_POINTS) {
       const existingReading = event.active[0]?.element?.$context.raw?.data;
 
-      if(existingReading) {
+      if (existingReading) {
         this.openPointEditorModal(undefined, existingReading);
         return
       }
@@ -639,7 +806,7 @@ export class ChartComponent implements OnInit {
   }
 
   async openPointEditorModal(timestamp?: number, reading?: LiveReading) {
-    if(!timestamp && !reading) return;
+    if (!timestamp && !reading) return;
     const modal = await this.modalCtrl.create({
       component: PointEditorComponent,
       componentProps: {
@@ -649,7 +816,7 @@ export class ChartComponent implements OnInit {
 
     await modal.present();
 
-    const { data } = await modal.onWillDismiss();
+    const {data} = await modal.onWillDismiss();
     if (data) {
       console.log('User submitted:', data);
       this.dataStore.createUpdateLiveReading(data)
@@ -657,7 +824,7 @@ export class ChartComponent implements OnInit {
     }
   }
 
-  async openNewAnnotationModal() {
+  async openNewAnnotationModal(annotation: Partial<Annotation>) {
     const modal = await this.modalCtrl.create({
       component: TextInputModalComponent,
       componentProps: {
@@ -671,25 +838,28 @@ export class ChartComponent implements OnInit {
 
     if (role === 'confirm') {
 
-      const annotation: Partial<Annotation> = {
-        ...this.newAnnotation,
+      const newAnnotation: Partial<Annotation> = {
+        ...annotation,
         text: data,
       }
 
 
-      this.annotationService.createAnnotation(annotation).subscribe({
-        next: (res) => {
-          this.toast('Dodano adnotację');
-          this.reloadAnnotations.emit()
-          this.newAnnotation = null
+      this.annotationsStore.createAnnotation(newAnnotation);
 
-        },
-        error: (err) => {
-          this.newAnnotation = null
+      this.detectedBreaks = this.detectedBreaks.filter(b => b.start !== newAnnotation.from_timestamp);
 
-          this.toast('Wystąpił błąd')
-        },
-      });
+      // this.annotationService.createAnnotation(newAnnotation).subscribe({
+      //   next: (res) => {
+      //     this.toast('Dodano adnotację');
+      //     this.reloadAnnotations.emit()
+      //     this.newAnnotation = null
+      //   },
+      //   error: (err) => {
+      //     this.newAnnotation = null
+      //
+      //     this.toast('Wystąpił błąd')
+      //   },
+      // });
     }
   }
 
@@ -702,7 +872,8 @@ export class ChartComponent implements OnInit {
     this.buildChartOptions()
   }
 
-  async presentAnnotationOptions() {
+  async presentAnnotationOptions(cb: (ann: Annotation) => any) {
+    // Todo enable regular annotations back
     const newAnnotation: Annotation = {
       from_timestamp: "",
       to_timestamp: "",
@@ -714,7 +885,8 @@ export class ChartComponent implements OnInit {
     };
 
     const startAddingAnnotation = (): void => {
-      this.newAnnotation = newAnnotation;
+      // this.newAnnotation = newAnnotation;
+      cb(newAnnotation);
     }
     const actionSheet = await this.actionSheetCtrl.create({
       header: 'Wybierz typ adnotacji',
@@ -772,7 +944,7 @@ export class ChartComponent implements OnInit {
 
     if (this.newAnnotation.to_timestamp) {
 
-      this.openNewAnnotationModal()
+      this.openNewAnnotationModal(this.newAnnotation)
 
     }
   }
@@ -788,7 +960,7 @@ export class ChartComponent implements OnInit {
       case AnnotationType.CLIPS_CHANGE:
         return 'Wymiana Strzemion';
       default:
-          return ''
+        return ''
     }
   }
 
@@ -807,6 +979,46 @@ export class ChartComponent implements OnInit {
     }
   }
 
+  /**
+   * Creates an annotation from a detected break
+   * @param breakItem The break to create an annotation from
+   */
+  async createAnnotationFromBreak(breakItem: { start: string, end: string, duration: number }) {
+    // Create a new annotation with the break's start and end timestamps
+    const newAnnotation: Partial<Annotation> = {
+      from_timestamp: breakItem.start,
+      to_timestamp: breakItem.end,
+      sensorId: this.sensorId,
+      type: AnnotationType.BREAK_FROM_TO,
+      text: `Automatycznie wykryta przerwa (${Math.round(breakItem.duration)} min)`
+    };
+
+    this.presentAnnotationOptions(async (ann) => {
+
+      this.openNewAnnotationModal({...newAnnotation, type: ann.type})
+
+    })
+  }
+
+  /**
+   * Highlights the annotation corresponding to a break when hovering over its chip
+   * @param breakItem The break to highlight
+   */
+  highlightBreakAnnotation(breakItem: { start: string, end: string, duration: number }) {
+    this.highlightedBreak = breakItem;
+    this.buildChartOptions();
+    this.chart?.update();
+  }
+
+  /**
+   * Removes the highlight from the break annotation when the mouse leaves the chip
+   */
+  unhighlightBreakAnnotation() {
+    this.highlightedBreak = null;
+    this.buildChartOptions();
+    this.chart?.update();
+  }
+
   async openChartOperationsList(ev: Event) {
     const popover = await this.popoverCtrl.create({
       component: ChartOperationsListComponent,
@@ -815,7 +1027,7 @@ export class ChartComponent implements OnInit {
     });
     await popover.present();
 
-    const { data, role } = await popover.onWillDismiss(); // or onDidDismiss()
+    const {data, role} = await popover.onWillDismiss(); // or onDidDismiss()
 
     if (data?.operation) {
       console.log(data.operation)
@@ -824,5 +1036,3 @@ export class ChartComponent implements OnInit {
     }
   }
 }
-
-

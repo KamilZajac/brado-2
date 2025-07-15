@@ -1,18 +1,21 @@
 <div class="row">
 
 <div class="chart-type-selector chart-series-type">
-  <button
-    class="button"
-    [class.active]="chartType === 'bar'"
-    (click)="selectChartType('bar')">
-    <i class="icon-bar"></i> Słupkowy
-  </button>
-  <button
-    class="button"
-    [class.active]="chartType === 'line'"
-    (click)="selectChartType('line')">
-    <i class="icon-line"></i> Liniowy
-  </button>
+  @if(!isLive){
+    {{sensorName}}
+  }
+  <!--  <button-->
+<!--    class="button"-->
+<!--    [class.active]="chartType === 'bar'"-->
+<!--    (click)="selectChartType('bar')">-->
+<!--    <i class="icon-bar"></i> Słupkowy-->
+<!--  </button>-->
+<!--  <button-->
+<!--    class="button"-->
+<!--    [class.active]="chartType === 'line'"-->
+<!--    (click)="selectChartType('line')">-->
+<!--    <i class="icon-line"></i> Liniowy-->
+<!--  </button>-->
 </div>
 
 <div class="chart-type-selector">
@@ -44,18 +47,29 @@
   </canvas>
 
   @if(!temperature.length) {
-  <ion-row  class="flex ion-justify-content-between ion-align-items-center">
-    @if(!isLive){
-      {{sensorName}}
-    }
+  <!-- Break chips container -->
+  @if(isLive && detectedBreaks.length > 0) {
+    <div class="breaks-container">
+      <div class="breaks-label">Wykryte przerwy: <small>(Kliknij by utworzyc adnotacje)</small></div>
+      <div class="breaks-chips">
+        @for(breakItem of detectedBreaks; track breakItem.start) {
+          <div
+            class="break-chip"
+            (mouseenter)="highlightBreakAnnotation(breakItem)"
+            (mouseleave)="unhighlightBreakAnnotation()"
+            (click)="createAnnotationFromBreak(breakItem)"
+          >
+            Przerwa ({{breakItem.start | date: 'HH:mm'}} + {{ Math.round(breakItem.duration)}} min)
+          </div>
+        }
+      </div>
+    </div>
+  }
 
-    <ion-row  class="wrap flex ion-justify-content-end ion-align-items-center">
-
-
+  <ion-row class="flex ion-justify-content-end ion-align-items-center">
     <button
       class="button active ion-margin-end"
       [class.success]="isAnnotationVisible"
-
       (click)="toggleAnnotations()">
       @if(isAnnotationVisible) {
         Ukryj
@@ -63,8 +77,8 @@
         Pokaż
       }
       adnotacje
-
     </button>
+
     @if(newAnnotation) {
         <span class="ion-margin-end">
           {{newAnnotation.from_timestamp.length === 0 ? 'Wybierz początek adnotacji' : 'Wybierz koniec adnotacji'}}
@@ -84,15 +98,14 @@
         (click)="newAnnotation = null">
         Anuluj
       </button>
-
     }
-    </ion-row >
+<!--    </ion-row >-->
 
-          <button
-            class="button active"
-            (click)="openChartOperationsList($event)">
-            Operacje
-          </button>
+    <button
+      class="button active"
+      (click)="openChartOperationsList($event)">
+      Operacje
+    </button>
   </ion-row >
   }
 </div>

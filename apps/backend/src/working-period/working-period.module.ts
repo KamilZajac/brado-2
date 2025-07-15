@@ -6,6 +6,7 @@ import { WorkingPeriodController } from './working-period.controller';
 import { WorkingPeriodEntity } from './entities/working-period.entity';
 import { LiveReadingEntity } from '../reading/entities/minute-reading.entity';
 import { HourlyReadingEntity } from '../reading/entities/hourly-reading-entity';
+import { WorkingPeriodSchedule } from './working-period.schedule';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { HourlyReadingEntity } from '../reading/entities/hourly-reading-entity';
     ScheduleModule.forRoot(),
   ],
   controllers: [WorkingPeriodController],
-  providers: [WorkingPeriodService],
+  providers: [WorkingPeriodService, WorkingPeriodSchedule],
   exports: [WorkingPeriodService],
 })
 export class WorkingPeriodModule {}

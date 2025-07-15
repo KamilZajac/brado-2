@@ -8,7 +8,7 @@ import {
   ViewChild
 } from '@angular/core';
 import {
-  Annotation,
+  Annotation, DailyWorkingSummary,
   GrowingAverage,
   LiveSensorUpdate
 } from "@brado/types";
@@ -28,26 +28,15 @@ export class SensorStatsComponent {
 
   @Input({required: true}) data!: LiveSensorUpdate;
   @Input({required: true}) sensorId!: string
+  @Input({required: true}) workingSummary!: DailyWorkingSummary
   @Input() hourlyTarget= 0;
   @Input() sensorName= '';
   @Input() isDashboardMode = false
+  @Input() isAdminDashboard = false
 
   @Output() reloadAnnotations = new EventEmitter()
 
   onReloadAnnotations() {
     this.reloadAnnotations.emit()
-  }
-
-  public get growingAverage(): GrowingAverage {
-    const lastReading = this.data.readings.sort((a,b) => +b.timestamp - +a.timestamp)[0]
-
-    if(!lastReading || !lastReading.growingAverage) {
-      return {
-        estimatedProduction: 0,
-        realProduction: 0
-      } as GrowingAverage;
-    }
-
-    return lastReading.growingAverage;
   }
 }

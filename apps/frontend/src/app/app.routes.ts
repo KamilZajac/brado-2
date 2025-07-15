@@ -29,7 +29,7 @@ export const routes: Routes = [
     data: { mode: 'admin' },
   },
   {
-    path: 'weekly',
+    path: 'month',
     component: WeeklyComponent,
   },
   {

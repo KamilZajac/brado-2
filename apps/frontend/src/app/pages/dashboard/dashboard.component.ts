@@ -38,6 +38,9 @@ export class DashboardComponent extends ChartWrapperDirective {
   sensorName = ''
   public hourlyTarget = 0;
 
+  public dailyWorkingStats  = this.dataStore.statsForCurrentPeriod
+  public monthlyWorkingStats  = this.dataStore.monthlySummary
+
   constructor(private settingsService: SettingsService, annotationsStore: AnnotationsStore, private route: ActivatedRoute) {
     super(annotationsStore);
 
@@ -47,9 +50,7 @@ export class DashboardComponent extends ChartWrapperDirective {
       const settings = this.settingsService.settings();
       if (settings) {
         this.hourlyTarget = settings.hourlyTarget;
-
         this.sensorName = settings.sensorNames[1]
-
       }
     });
     addIcons({

@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import {Injectable} from '@angular/core';
 import {HttpClient} from "@angular/common/http";
 import {environment} from "../../../environments/environment";
 import {Observable} from "rxjs";
-import {HourlyReading, LiveReading, LiveUpdate, WorkingPeriod} from "@brado/types";
+import {DailyWorkingSummary, HourlyReading, LiveReading, LiveUpdate, WorkingPeriod} from "@brado/types";
+import {DateTime} from 'luxon';
 
 export const getStartOfToday = () => {
   const today = new Date();
@@ -35,15 +36,28 @@ export function getWeeklyTimestamps() {
 }
 
 
+export const getCurrentMonthTimestamps = () => {
+  const now = DateTime.now().setZone("Europe/Warsaw");
+
+  const startOfMonth = now.startOf("month").toMillis(); // timestamp in ms
+  const endOfMonth = now.endOf("month").toMillis();     // timestamp in ms
+
+  return {
+    from: startOfMonth,
+    to: endOfMonth,
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class DataService {
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+  }
 
   public getDataAfterTimestamp(timestamp: number): Observable<LiveReading[]> {
-    return this.http.get<LiveReading[]>(environment.apiUrl + '/reading/after/'+timestamp)
+    return this.http.get<LiveReading[]>(environment.apiUrl + '/reading/after/' + timestamp)
   }
 
   public getInitialLiveData(): Observable<LiveUpdate> {
@@ -60,7 +74,10 @@ export class DataService {
 
   public createOrUpdateLiveReading(data: LiveReading): Observable<LiveReading> {
     return this.http.post<LiveReading>(environment.apiUrl + `/reading/update-live-reading`, data)
+  }
 
+  public getMonthlyStats(fromTS: number, toTS: number) {
+    return this.http.get<{[key: string]: DailyWorkingSummary}>(environment.apiUrl + `/reading/monthly-summary/${fromTS}/${toTS}`);
   }
 
   public exportData(fromTS: number, toTS: number) {
@@ -74,7 +91,6 @@ export class DataService {
       responseType: 'blob',
     });
   }
-
 
 
 }

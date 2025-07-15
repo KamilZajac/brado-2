@@ -1,17 +1,24 @@
-@if(dailyWorkingStats()[sensorId]) {
- <div class="stats">
-<!--   <p>Ubój: {{currentPeriod.start | date: 'dd/MM/yyyy HH:mm:ss' }} - {{currentPeriod.end ? ( currentPeriod.end | date: 'dd/MM/yyyy HH:mm:ss') : ''}}</p>-->
-  <p>Czas pracy: <b>{{(dailyWorkingStats()[sensorId].totalTime / 3600000) | number:'1.1-1'}}h</b></p>
+@if (workingSummary) {
+  <div class="stats">
+    <!--   Todo - make time more readable ( f.e. 2 hours 15 min ) -->
+    <p>Czas pracy: <b>{{ (workingSummary.totalTime / 3600000) | number:'1.1-1' }}h</b></p>
+    <p>Start: <b>{{ workingSummary.start | date: 'dd/MM/yyyy HH:mm:ss' }}</b></p>
+    <p>Koniec: <b>{{ workingSummary.end | date: 'dd/MM/yyyy HH:mm:ss' }}</b></p>
 
-   @if(totalUnits) {
-     <p>Sztuki: <b>{{totalUnits}}</b></p>
+    <p>Sztuki: <b>{{ workingSummary.totalUnits }}</b></p>
 
-   }
-  <p>Awarie: <b>{{dailyWorkingStats()[sensorId].accidents.count}} / {{(dailyWorkingStats()[sensorId].accidents.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
-  <p>Przerwy: <b>{{dailyWorkingStats()[sensorId].breaks.count}} / {{(dailyWorkingStats()[sensorId].breaks.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
-  <p>Organizacji: <b>{{dailyWorkingStats()[sensorId].organisations.count}} / {{(dailyWorkingStats()[sensorId].organisations.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
-  <p>Wym. Strzem.: <b>{{dailyWorkingStats()[sensorId].clipsChanges.count}} / {{(dailyWorkingStats()[sensorId].clipsChanges.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
-  <p> MTBF: <b>{{(MTBF / 3600000) | number:'1.1-1'}}h</b></p>
-  <p> MTTR: <b>{{(MTTR / 3600000) | number:'1.1-1'}}h</b></p>
-</div>
+
+    <p>Awarie: <b>{{ workingSummary.accidents.count }}
+      / {{ (workingSummary.accidents.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+    <p>Przerwy: <b>{{ workingSummary.breaks.count }}
+      / {{ (workingSummary.breaks.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+    <p>Organizacji: <b>{{ workingSummary.organisations.count }}
+      / {{ (workingSummary.organisations.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+    <p>Wym. Strzem.: <b>{{ workingSummary.clipsChanges.count }}
+      / {{ (workingSummary.clipsChanges.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+    @if (isAdmin) {
+      <p> MTBF: <b>{{ (MTBF / 3600000) | number:'1.1-1' }}h</b></p>
+      <p> MTTR: <b>{{ (MTTR / 3600000) | number:'1.1-1' }}h</b></p>
+    }
+  </div>
 }

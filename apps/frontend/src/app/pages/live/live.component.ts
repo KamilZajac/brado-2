@@ -28,6 +28,8 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
   public hourlyTarget = 0;
   public sensorNames: { [key: number]: string } = {};
 
+  public dailyWorkingStats  = this.dataStore.statsForCurrentPeriod
+
   constructor( private dataService: DataService, private settingsService: SettingsService, annotationStore: AnnotationsStore ) {
     super(annotationStore)
     effect(() => {

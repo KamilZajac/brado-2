@@ -42,6 +42,11 @@ export class ReadingController {
     return this.readingsService.getHourly(fromTS, toTS);
   }
 
+  @Get('monthly-summary/:fromTS/:toTS')
+  getHourlySummary(@Param('fromTS') fromTS: string, @Param('toTS') toTS: string) {
+    return this.readingsService.getMonthlyStats(fromTS, toTS);
+  }
+
   @Get('aggregate')
   aggregate(): Promise<string> {
     return this.readingsService.aggregate();

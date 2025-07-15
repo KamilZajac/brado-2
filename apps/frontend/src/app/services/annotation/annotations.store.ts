@@ -1,6 +1,7 @@
 import {computed, inject, Injectable, Signal, signal} from "@angular/core";
 import {Annotation, HourlyReading, LiveReading, WorkingPeriod} from "@brado/types";
 import { AnnotationService } from "./annotation.service";
+import {firstValueFrom} from "rxjs";
 
 @Injectable({ providedIn: 'root' })
 export class AnnotationsStore {
@@ -14,6 +15,7 @@ export class AnnotationsStore {
 
   getAnnotationsForReadings(readings: LiveReading[] | HourlyReading[] ): Signal<Annotation[]> {
     return computed(() => {
+
 
       if(!readings) return [];
       const allAnnotations = this._allAnnotations();
@@ -91,5 +93,14 @@ export class AnnotationsStore {
       seen.add(key);
       return true;
     });
+  }
+
+  async createAnnotation(newAnnotation: Partial<Annotation>) {
+    const res = await firstValueFrom(this.api.createAnnotation(newAnnotation))
+    console.log(res)
+
+    if(res && res.sensorId) {
+      this.mergeAnnotations({[res.sensorId]: [res]})
+    }
   }
 }

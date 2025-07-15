@@ -8,5 +8,6 @@ import { AnnotationEntity } from './entities/annotation.entity';
   controllers: [AnnotationController],
   providers: [AnnotationService],
   imports: [TypeOrmModule.forFeature([AnnotationEntity])],
+  exports: [AnnotationService],
 })
 export class AnnotationModule {}

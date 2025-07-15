@@ -55,6 +55,7 @@ export class AnnotationService {
     });
   }
 
+
   async update(
     id: number,
     user: User,
