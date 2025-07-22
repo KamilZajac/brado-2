@@ -1,21 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Repository, LessThan, Between, In } from 'typeorm';
+import { Between, In, LessThan, MoreThan, Repository } from 'typeorm';
 import {
-  LiveReading,
-  DataReadingWithDeltas,
-  LiveUpdate,
-  HourlyReading,
-  GrowingAverage,
   DailyWorkingSummary,
+  DataReadingWithDeltas,
   getDailyWorkingSummary,
+  GrowingAverage,
+  HourlyReading,
+  LiveReading,
+  LiveUpdate,
+  WorkingPeriodType,
 } from '@brado/types';
 import { ReadingsGateway } from './readings.gateway';
 import { LiveReadingEntity } from './entities/minute-reading.entity';
 import { ReadingsHelpers } from './readings-helpers';
 import { HourlyReadingEntity } from './entities/hourly-reading-entity';
 import { DateTime } from 'luxon';
-import {exportToExcel, exportToExcelLive, exportToExcelRAW} from './export.helper';
+import {
+  exportToExcel,
+  exportToExcelLive,
+  exportToExcelRAW,
+} from './export.helper';
 import { SettingsService } from '../settings/settings.service';
 import { AnnotationService } from '../annotation/annotation.service';
 import { WorkingPeriodService } from '../working-period/working-period.service';
@@ -431,8 +436,10 @@ export class ReadingService {
 
     // For each sensor, get the latest hourly reading and filter live readings
     for (const sensorID of uniqueSensorIds) {
-      const latestHourlyReading =
+      const latestHourlyReadings =
         await this.findLastHourlyBySensorId(+sensorID);
+      const latestHourlyReading =
+        latestHourlyReadings.length > 0 ? latestHourlyReadings[0] : null;
 
       // Filter live readings for this sensor
       const sensorReadings = liveReadings.filter(
@@ -483,15 +490,27 @@ export class ReadingService {
       .getOne();
   }
 
-  async findLastHourlyBySensorId(
-    sensorId: number,
-  ): Promise<HourlyReading | null> {
+  async findLastHourlyBySensorId(sensorId: number): Promise<HourlyReading[]> {
     return this.hourlyReadingsRepo
       .createQueryBuilder('reading')
       .where('reading.sensorId = :sensorId', { sensorId })
       .orderBy('reading.timestamp', 'DESC')
       .limit(1)
-      .getOne();
+      .getMany();
+  }
+
+  async findLastNHourlyBySensorIdBeforeTs(
+    sensorId: number,
+    timestamp: string,
+    n: number,
+  ): Promise<HourlyReading[]> {
+    return this.hourlyReadingsRepo
+      .createQueryBuilder('reading')
+      .where('reading.sensorId = :sensorId', { sensorId })
+      .andWhere('reading.timestamp < :timestamp', { timestamp })
+      .orderBy('reading.timestamp', 'DESC')
+      .limit(n)
+      .getMany();
   }
 
   async findLastNBySensorIdBeforeTs(
@@ -559,6 +578,7 @@ export class ReadingService {
     const workingPeriods = await this.workPeriodsService.getBetween(
       fromTS,
       endTS,
+      WorkingPeriodType.HOURLY,
     );
 
     const uniqueSensorIds = Array.from(
@@ -568,13 +588,6 @@ export class ReadingService {
     const summaries: { [key: string]: DailyWorkingSummary } = {};
 
     uniqueSensorIds.forEach((sensorId) => {
-      console.log('SUMA');
-      console.log(
-        hourlyReadings
-          .filter((r) => r.sensorId === sensorId)
-          .map((r) => r.delta)
-          .reduce((a, b) => a + b, 0),
-      );
       const summary = getDailyWorkingSummary(
         hourlyReadings.filter((r) => r.sensorId === sensorId),
         annotations.filter((a) => a.sensorId === sensorId),
@@ -683,6 +696,8 @@ export class ReadingService {
       }
     }
 
+    console.log('TO SAVE');
+    console.log(readingToSave);
     // Recalculate delta value for current reading
     // Find the previous reading for this sensor
     const previousReadings = await this.findLastNBySensorIdBeforeTs(
@@ -701,9 +716,6 @@ export class ReadingService {
       previousReading = previousReadings[0];
     }
 
-    console.log('PREV');
-    console.log(previousReadings);
-
     // Calculate delta based on previous reading
     let delta = 0;
     if (previousReading) {
@@ -718,6 +730,7 @@ export class ReadingService {
     // Update the delta value
     readingToSave.delta = delta;
 
+    console.log('DELTA ' + delta);
     // Update daily totals if needed
     const dateKey = this.getDateKey(
       readingToSave.sensorId,
@@ -739,6 +752,9 @@ export class ReadingService {
     // Create new entity
     const created = this.liveReadingsRepo.create(readingToSave);
     await this.liveReadingsRepo.save(created);
+
+    console.log('SAVED');
+    console.log(created);
 
     // Find the next reading after this one to update its delta
     const nextReading = await this.findNextBySensorIdAfterTimestamp(
@@ -777,6 +793,123 @@ export class ReadingService {
     return created;
   }
 
+  async createOrUpdateHourlyReading(
+    reading: HourlyReading,
+  ): Promise<HourlyReading> {
+    let readingToSave = reading;
+    let existing: null | HourlyReading = null;
+
+    if (reading.id) {
+      // Try to find existing entity by ID
+      existing = await this.hourlyReadingsRepo.findOne({
+        where: { id: reading.id },
+      });
+
+      if (existing) {
+        // Merge and update
+        readingToSave = this.hourlyReadingsRepo.merge(existing, reading);
+      }
+    }
+
+    console.log('TO SAVE HOURLY');
+    console.log(readingToSave);
+    // Recalculate delta value for current reading
+    // Find the previous reading for this sensor (the one before the current timestamp)
+    const previousReadings = await this.findLastNHourlyBySensorIdBeforeTs(
+      reading.sensorId,
+      reading.timestamp,
+      1,
+    );
+    let previousReading: HourlyReading | undefined;
+
+    // Get the previous reading if available
+    if (previousReadings.length > 0) {
+      previousReading = previousReadings[0];
+    }
+
+    // Calculate delta based on previous reading
+    let delta = 0;
+    if (previousReading) {
+      // If current value is less than previous value (sensor reset), delta is the current value
+      // Otherwise, delta is the difference
+      delta =
+        readingToSave.value >= previousReading.value
+          ? readingToSave.value - previousReading.value
+          : readingToSave.value;
+    }
+
+    // Update the delta value
+    readingToSave.delta = delta;
+
+    console.log('HOURLY DELTA ' + delta);
+    // Update daily totals if needed
+    const dateKey = this.getDateKey(
+      readingToSave.sensorId,
+      readingToSave.timestamp,
+    );
+    const currentTotal = this.dailyTotals.get(dateKey) ?? 0;
+
+    // If this is an update, we need to adjust the daily total
+    if (reading.id) {
+      // Get the old delta value if available
+      const oldDelta = existing?.delta ?? 0;
+      // Adjust the daily total by removing the old delta and adding the new one
+      this.dailyTotals.set(dateKey, currentTotal - oldDelta + delta);
+    } else {
+      // For new readings, just add the delta to the current total
+      this.dailyTotals.set(dateKey, currentTotal + delta);
+    }
+
+    // Create new entity
+    const created = this.hourlyReadingsRepo.create(readingToSave);
+    await this.hourlyReadingsRepo.save(created);
+
+    console.log('HOURLY SAVED');
+    console.log(created);
+
+    // Find the next reading after this one to update its delta
+    const nextReadings = await this.hourlyReadingsRepo.find({
+      where: {
+        sensorId: reading.sensorId,
+        timestamp: MoreThan(reading.timestamp),
+      },
+      order: { timestamp: 'ASC' },
+      take: 1,
+    });
+
+    const nextReading = nextReadings.length > 0 ? nextReadings[0] : null;
+
+    if (nextReading) {
+      // Calculate the new delta for the next reading
+      const nextDelta =
+        nextReading.value >= readingToSave.value
+          ? nextReading.value - readingToSave.value
+          : nextReading.value;
+
+      // Only update if the delta has changed
+      if (nextDelta !== nextReading.delta) {
+        // Update the next reading's delta
+        const nextDateKey = this.getDateKey(
+          nextReading.sensorId,
+          nextReading.timestamp,
+        );
+        const nextCurrentTotal = this.dailyTotals.get(nextDateKey) ?? 0;
+
+        // Adjust the daily total for the next reading
+        this.dailyTotals.set(
+          nextDateKey,
+          nextCurrentTotal - nextReading.delta + nextDelta,
+        );
+
+        // Update the next reading in the database
+        nextReading.delta = nextDelta;
+        await this.hourlyReadingsRepo.save(nextReading);
+      }
+    }
+
+    return created;
+  }
+
   async delete(readingIds: string[]) {
     if (!readingIds || readingIds.length === 0) {
       throw new Error('No reading IDs provided for deletion.');
@@ -784,5 +917,123 @@ export class ReadingService {
 
     await this.liveReadingsRepo.delete(readingIds);
     return `Deleted ${readingIds.length} reading(s) successfully.`;
+  }
+
+  async importCsvData(sensorID: string, csvData: string) {
+    // Parse CSV data (assuming format: date,value)
+    const rows = csvData.trim().split('\n');
+
+    // Skip header row if present
+    const startIndex =
+      rows[0].includes('Czas') && rows[0].includes('Wartość') ? 1 : 0;
+
+    // Process each row
+    const parsedReadings: Partial<HourlyReading>[] = [];
+    for (let i = startIndex; i < rows.length; i++) {
+      const [dateStr, valueStr] = rows[i].split(',');
+      if (!dateStr || !valueStr) continue;
+
+      // Parse value
+      const value = parseInt(valueStr.trim(), 10);
+      if (isNaN(value)) continue;
+
+      // Convert date string to timestamp (Polish timezone)
+      // Format: DD.MM.YYYY HH:mm
+      const [datePart, timePart] = dateStr.trim().split(' ');
+      if (!datePart || !timePart) continue;
+
+      const [day, month, year] = datePart.split('.');
+      const [hour, minute] = timePart.split(':');
+
+      // Create DateTime object in Polish timezone
+      const dt = DateTime.fromObject(
+        {
+          day: parseInt(day, 10),
+          month: parseInt(month, 10),
+          year: parseInt(year, 10),
+          hour: parseInt(hour, 10),
+          minute: parseInt(minute, 10),
+        },
+        { zone: 'Europe/Warsaw' },
+      );
+
+      if (!dt.isValid) continue;
+
+      // Convert to timestamp
+      const timestamp = dt.toMillis().toString();
+
+      parsedReadings.push({
+        sensorId: +sensorID,
+        value,
+        timestamp,
+      });
+    }
+
+    if (parsedReadings.length === 0) {
+      return {
+        updated: 0,
+        added: 0,
+        message: 'No valid readings found in CSV',
+      };
+    }
+
+    // // Find existing readings for this sensor within the time range
+    const minTimestamp = Math.min(
+      ...parsedReadings
+        .filter((r) => r.timestamp != null)
+        .map((r) => +(r as HourlyReading).timestamp),
+    );
+    const maxTimestamp = Math.max(
+      ...parsedReadings
+        .filter((r) => r.timestamp != null)
+        .map((r) => +(r as HourlyReading).timestamp),
+    );
+
+    const existingReadings = await this.hourlyReadingsRepo.find({
+      where: {
+        sensorId: +sensorID,
+        timestamp: Between(minTimestamp.toString(), maxTimestamp.toString()),
+      },
+    });
+    //
+    // Create a map of existing readings by timestamp for easy lookup
+    const existingReadingsMap = new Map();
+    existingReadings.forEach((reading) => {
+      existingReadingsMap.set(reading.timestamp, reading);
+    });
+    //
+    // // Process each reading from CSV
+    let updatedCount = 0;
+    let addedCount = 0;
+    //
+    for (const reading of parsedReadings) {
+      const existingReading = existingReadingsMap.get(reading.timestamp);
+
+      if (existingReading) {
+        // Reading exists - check if value has changed
+        if (existingReading.value !== reading.value) {
+          // Update the reading
+          console.log(
+            `Updating existing reading ${existingReading.id} with value ${reading.value} - ${reading.timestamp}`,
+          );
+          await this.createOrUpdateHourlyReading({
+            ...existingReading,
+            value: reading.value,
+          });
+          updatedCount++;
+        }
+        // If value is the same, do nothing
+      } else {
+        // This is a new reading - add it
+        await this.createOrUpdateHourlyReading(reading as HourlyReading);
+        addedCount++;
+      }
+    }
+
+    return {
+      updated: updatedCount,
+      added: addedCount,
+      message: `Processed ${parsedReadings.length} readings: ${updatedCount} updated, ${addedCount} added`,
+    };
   }
 }

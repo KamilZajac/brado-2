@@ -6,11 +6,14 @@ import {
   Param,
   Res,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { ReadingService } from './reading.service';
 import { LiveReading } from '@brado/types';
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('reading')
 // @UseGuards(AuthGuard('jwt'))
@@ -56,6 +59,22 @@ export class ReadingController {
   delete(@Body() readingIds: string[]): Promise<string> {
     return this.readingsService.delete(readingIds);
   }
+
+  @Post('import-csv/:sensorID')
+  @UseInterceptors(FileInterceptor('file')) // Wymaga multer do obsługi plików
+  async importCsv(
+      @Param('sensorID') sensorID: string,
+      @UploadedFile() file:any,
+  ) {
+    if (!file) {
+      throw new Error('No file provided');
+    }
+
+    const csvData = file.buffer.toString(); // Odczytaj dane CSV z bufora
+    return await this.readingsService.importCsvData(sensorID, csvData); // Przekaż dane do ReadingService
+  }
+
+
 
   @Get('export/:fromTS/:toTS')
   async export(

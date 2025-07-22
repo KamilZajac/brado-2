@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { WorkingPeriodType } from '@brado/types';
 
 @Entity('working_period')
 export class WorkingPeriodEntity {
@@ -16,4 +17,11 @@ export class WorkingPeriodEntity {
 
   @Column({ default: false })
   isManuallyCorrected: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: WorkingPeriodType,
+    default: WorkingPeriodType.LIVE
+  })
+  type: WorkingPeriodType;
 }

@@ -11,7 +11,7 @@ export class WorkingPeriodSchedule implements OnModuleInit {
 
   constructor(private readonly workingPeriodService: WorkingPeriodService) {}
 
-  @Cron('0 15 * * *', {
+  @Cron('*/15 * * * *', {
     timeZone: 'Europe/Warsaw', // or your desired TZ
   })
   async detectWorkingPeriods(): Promise<void> {
