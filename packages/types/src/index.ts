@@ -36,12 +36,18 @@ export type HourlyReading = LiveReading & {
     average: number;
 }
 
+export enum WorkingPeriodType {
+    LIVE = 'live',
+    HOURLY = 'hourly',
+}
+
 export type WorkingPeriod = {
     id: number;
     sensorId: number;
     start: string;
     end: string | null;
     isManuallyCorrected: boolean;
+    type: WorkingPeriodType;
 }
 
 export interface SettingsRequest {

@@ -23,32 +23,16 @@ export class DataStore {
   private readonly _historicalLiveData =  signal<{ [key: string]: LiveReading[] }>({});
   private readonly _weeklyReadings = signal<{ [key: string]: HourlyReading[] }>({});
   private readonly _workPeriods = signal<{ [key: string]: WorkingPeriod[] }>({});
+  private readonly _liveWorkPeriods = signal<{ [key: string]: WorkingPeriod[] }>({});
   private readonly _monthlySummary = signal<{ [key: string]: DailyWorkingSummary }>({});
   private readonly _loading = signal(false);
   private readonly _error = signal<string | null>(null);
 
   readonly liveData: Signal<LiveUpdate> = computed(() =>  this._liveData());
-  readonly liveDataWithFallback: Signal<LiveUpdate> = computed(() =>  {
-    const liveData = this._liveData();
-    const result: LiveUpdate = {
-      [1]: {
-        readings: [],
-        growingAverage: {} as any,
-        average60: 0
-      },
-      [2]: {
-        readings: [],
-        growingAverage: {} as any,
-        average60: 0
-      }, ...liveData
-    };
-    return result
-  });
 
-
-  readonly historicalLiveData: Signal<{[key: string]: LiveReading[]} > = computed(() => this._historicalLiveData());
   readonly weeklyReadings: Signal<{ [key: string]: HourlyReading[] }> = computed(() => this._weeklyReadings());
   readonly workPeriods: Signal<{ [key: string]: WorkingPeriod[] }> = computed(() => this._workPeriods());
+  readonly liveWorkPeriods: Signal<{ [key: string]: WorkingPeriod[] }> = computed(() => this._liveWorkPeriods());
   readonly monthlySummary: Signal<{ [key: string]: DailyWorkingSummary }> = computed(() => {
     return this._monthlySummary()
   });
@@ -57,7 +41,7 @@ export class DataStore {
 
   readonly statsForCurrentPeriod: Signal<{ [key:string]: DailyWorkingSummary }> = computed(() => {
 
-    const periods = this._workPeriods();
+    const periods = this._liveWorkPeriods();
 
     const summaries: { [key: string]: DailyWorkingSummary } = {};
 
@@ -128,10 +112,28 @@ export class DataStore {
     });
   }
 
-  async loadWorkingPeriods() {
-    const workPeriods = await firstValueFrom(this.api.getWorkingPeriods());
+  async loadMonthlyWorkingPeriods() {
+    const {from, to } = getCurrentMonthTimestamps()
+
+    const workPeriods = await firstValueFrom(this.api.getWorkingPeriods(from, to, 'hourly'));
 
     this._workPeriods.update(() => {
+      const uniqueSensors = Array.from(new Set(workPeriods.map(r => r.sensorId)));
+      const sensorObject: {[key: string]: WorkingPeriod[]} = {};
+      uniqueSensors.forEach(sensor => {
+        sensorObject[sensor] = workPeriods.filter(r => r.sensorId === sensor);
+      })
+
+      return sensorObject
+    });
+  }
+
+  async loadLiveWorkingPeriods() {
+    const {from, to } = getWeeklyTimestamps()
+
+    const workPeriods = await firstValueFrom(this.api.getWorkingPeriods(from, to, 'live'));
+
+    this._liveWorkPeriods.update(() => {
       const uniqueSensors = Array.from(new Set(workPeriods.map(r => r.sensorId)));
       const sensorObject: {[key: string]: WorkingPeriod[]} = {};
       uniqueSensors.forEach(sensor => {

@@ -6,6 +6,8 @@ declare module 'chart.js' {
   interface PluginOptionsByType<TType extends ChartType> {
     hourlyBackground?: {
       workingPeriods: WorkingPeriod[]
-    };
+    },
+    annotationTooltip?: {}
+
   }
 }

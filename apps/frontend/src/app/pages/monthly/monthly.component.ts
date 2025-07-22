@@ -22,12 +22,12 @@ import {AnnotationsStore} from "../../services/annotation/annotations.store";
 
 @Component({
   selector: 'app-weekly',
-  templateUrl: './weekly.component.html',
-  styleUrls: ['./weekly.component.scss'],
+  templateUrl: './monthly.component.html',
+  styleUrls: ['./monthly.component.scss'],
   providers: [DataService],
   imports: [KeyValuePipe, IonContent, ChartComponent, IonRow, WorkingStatsComponent]
 })
-export class WeeklyComponent extends ChartWrapperDirective implements OnInit {
+export class MonthlyComponent extends ChartWrapperDirective implements OnInit {
   override mode: 'weekly' | 'live' = 'weekly';
   public hourlyTarget = 5250
   dataStore = inject(DataStore)

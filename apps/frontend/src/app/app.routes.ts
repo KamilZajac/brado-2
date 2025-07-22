@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import {WeeklyComponent} from "./pages/weekly/weekly.component";
+import {MonthlyComponent} from "./pages/monthly/monthly.component";
 import {LiveComponent} from "./pages/live/live.component";
 import {CompareComponent} from "./pages/compare/compare.component";
 import {SettingsComponent} from "./pages/settings/settings.component";
@@ -30,7 +30,7 @@ export const routes: Routes = [
   },
   {
     path: 'month',
-    component: WeeklyComponent,
+    component: MonthlyComponent,
   },
   {
     path: 'sessions',

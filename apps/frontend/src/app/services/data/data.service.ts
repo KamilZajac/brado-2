@@ -68,8 +68,8 @@ export class DataService {
     return this.http.get<HourlyReading[]>(environment.apiUrl + `/reading/hourly/${fromTS}/${toTS}`)
   }
 
-  public getWorkingPeriods(): Observable<WorkingPeriod[]> {
-    return this.http.get<WorkingPeriod[]>(environment.apiUrl + `/working-period/`)
+  public getWorkingPeriods(fromTS: number, toTS: number, type:string): Observable<WorkingPeriod[]> {
+    return this.http.get<WorkingPeriod[]>(environment.apiUrl + `/working-period/${fromTS}/${toTS}/${type}`)
   }
 
   public createOrUpdateLiveReading(data: LiveReading): Observable<LiveReading> {
@@ -105,9 +105,8 @@ export class DataService {
   public importCsvData(file: File, sensorId: string): Observable<any> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('sensorId', sensorId);
 
-    return this.http.post(environment.apiUrl + `/reading/import-csv`, formData);
+    return this.http.post(environment.apiUrl + `/reading/import-csv/${sensorId}`, formData);
   }
 
 }

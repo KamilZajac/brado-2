@@ -25,6 +25,7 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import 'chartjs-adapter-date-fns';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import {hourlyBackgroundPlugin} from "./plugins/background-plugin";
+import {annotationTooltipPlugin} from "./plugins/annotations-tooltip-plugin";
 import {
   ActionSheetController,
   AlertController,
@@ -58,7 +59,8 @@ ChartJS.register(
   Filler,
   zoomPlugin,
   annotationPlugin,
-  hourlyBackgroundPlugin
+  hourlyBackgroundPlugin,
+  annotationTooltipPlugin
 );
 
 const allowedKeys = ['delta', 'value', 'average', 'dailyTotal'];
@@ -220,20 +222,21 @@ export class ChartComponent implements OnInit {
   }
 
   async buildChartOptions() {
-    console.log(this.data)
     const annotations: any = {};
     let workingPeriods: WorkingPeriod[] = [];
 
     // Fetch working periods if we have data
     if (this.data.length > 0) {
       try {
-        const allWorkingPeriods = this.dataStore.workPeriods()[this.sensorId];
+
+        const allWorkingPeriods = (this.isLive ? this.dataStore.liveWorkPeriods() : this.dataStore.workPeriods())[this.sensorId];
 
         // Filter working periods for the current sensor
         const sensorId = this.data[0].sensorId;
         workingPeriods = allWorkingPeriods
           .filter(w => w.sensorId === sensorId)
           .sort((a, b) => +a.start - +b.start);
+
       } catch (error) {
         console.error('Error fetching working periods:', error);
       }
@@ -249,14 +252,18 @@ export class ChartComponent implements OnInit {
             type: 'line',
             borderColor: this.getAnnotationColor(pt.type),
             id: pt.id,
-            borderWidth: 1,
-            label: {
-              display: true,
-              backgroundColor: this.getAnnotationColor(pt.type),
-              borderRadius: 0,
-              color: '#fff',
-              content: [this.getAnnotationTitle(pt.type), pt.text,], //  '- ' + pt.user.username
+            borderWidth: 5,
+            tooltipData: {
+              title: this.getAnnotationTitle(pt.type),
+              text: pt.text
             },
+            // label: {
+            //   display: true,
+            //   backgroundColor: this.getAnnotationColor(pt.type),
+            //   borderRadius: 0,
+            //   color: '#fff',
+            //   // content: [this.getAnnotationTitle(pt.type), pt.text,], //  '- ' + pt.user.username
+            // },
             xMax: +pt.from_timestamp,
             xMin: +pt.to_timestamp,
             xScaleID: 'x',

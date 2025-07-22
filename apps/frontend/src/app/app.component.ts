@@ -52,7 +52,8 @@ export class AppComponent implements OnInit {
           this.dataStore.loadInitialLiveData();
           this.tempStore.loadAll()
           this.settingsService.fetchSettings().then()
-          this.dataStore.loadWorkingPeriods()
+          this.dataStore.loadMonthlyWorkingPeriods()
+          this.dataStore.loadLiveWorkingPeriods()
           this.dataStore.loadMonthlyStats()
 
           this.appPages = [
@@ -61,7 +62,7 @@ export class AppComponent implements OnInit {
             {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
             ...user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN ? [
               {title: 'Miesiac', url: '/month', icon: 'calendar-outline'},
-              {title: 'Uboje', url: '/sessions', icon: 'calendar-outline'},
+              // {title: 'Uboje', url: '/sessions', icon: 'calendar-outline'},
               {title: 'Temperatura', url: '/temperatures', icon: 'calendar-outline'},
               {title: 'Porównaj', url: '/compare', icon: 'git-compare-outline'},
               {title: 'Użytkownicy', url: '/users', icon: 'person-outline'},

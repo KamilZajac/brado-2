@@ -46,16 +46,16 @@ export const hourlyBackgroundPlugin: any = {
       const periodEnd = period.end ? +period.end : maxTimestamp;
 
       // Check if this period overlaps with any reading
-      const overlapsWithReadings = timestamps.some(ts =>
-        (ts.start >= periodStart && ts.start <= periodEnd) || // Reading starts within period
-        (ts.end >= periodStart && ts.end <= periodEnd) || // Reading ends within period
-        (ts.start <= periodStart && ts.end >= periodEnd) // Reading spans the entire period
-      );
+      // const overlapsWithReadings = timestamps.some(ts =>
+      //   (ts.start >= periodStart && ts.start <= periodEnd) || // Reading starts within period
+      //   (ts.end >= periodStart && ts.end <= periodEnd) || // Reading ends within period
+      //   (ts.start <= periodStart && ts.end >= periodEnd) // Reading spans the entire period
+      // );
 
       // Skip if no overlap with readings
-      if (!overlapsWithReadings) {
-        return;
-      }
+      // if (!overlapsWithReadings) {
+      //   return;
+      // }
 
       // Calculate visible part of the period
       const visibleStart = Math.max(periodStart, minTimestamp);
@@ -72,16 +72,16 @@ export const hourlyBackgroundPlugin: any = {
 
       // Use a nice background color
       const bgColor = period.isManuallyCorrected
-        ? 'rgba(255, 206, 86, 0.02)' // yellow for manually corrected periods
-        : 'rgba(75, 192, 192, 0.02)'; // light green for normal periods
+        ? 'rgba(255, 206, 86, 0.04)' // yellow for manually corrected periods
+        : 'rgba(75, 192, 192, 0.04)'; // light green for normal periods
 
       ctx.fillStyle = bgColor;
       ctx.fillRect(startX, top, endX - startX, bottom - top);
 
       // Optionally add a border or label
       ctx.strokeStyle = period.isManuallyCorrected
-        ? 'rgba(255, 206, 86, 0.5)'
-        : 'rgba(75, 192, 192, 0.5)';
+        ? 'rgba(255, 206, 86, 0.6)'
+        : 'rgba(75, 192, 192, 0.6)';
       ctx.lineWidth = 1;
       ctx.strokeRect(startX, top, endX - startX, bottom - top);
     });
