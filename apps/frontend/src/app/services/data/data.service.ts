@@ -86,11 +86,28 @@ export class DataService {
     });
   }
 
+  public exportRawData(fromTS: number, toTS: number, sensorId: string) {
+    return this.http.get(environment.apiUrl + `/reading/export-raw/${fromTS}/${toTS}/${sensorId}`, {
+      responseType: 'blob',
+    });
+  }
+
   public exportLiveData(fromTS: number) {
     return this.http.get(environment.apiUrl + `/reading/export-live/${fromTS}`, {
       responseType: 'blob',
     });
   }
 
+  public deleteReadings(readingIds: string[]): Observable<any> {
+    return this.http.post(environment.apiUrl + `/reading/delete`, readingIds);
+  }
+
+  public importCsvData(file: File, sensorId: string): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sensorId', sensorId);
+
+    return this.http.post(environment.apiUrl + `/reading/import-csv`, formData);
+  }
 
 }

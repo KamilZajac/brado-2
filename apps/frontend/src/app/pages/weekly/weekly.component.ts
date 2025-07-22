@@ -1,7 +1,7 @@
 import {Component, OnInit, WritableSignal, ViewChildren, inject, effect} from '@angular/core';
 import {SocketService} from "../../services/socket/socket.service";
 import {firstValueFrom, Observable, Subject} from "rxjs";
-import {DataService, getWeeklyTimestamps} from "../../services/data/data.service";
+import {DataService, getCurrentMonthTimestamps, getWeeklyTimestamps} from "../../services/data/data.service";
 
 import {KeyValuePipe} from "@angular/common";
 import {signal} from '@angular/core';
@@ -55,13 +55,13 @@ export class WeeklyComponent extends ChartWrapperDirective implements OnInit {
 
 
   exportDataToExcel() {
-    const {from, to} = getWeeklyTimestamps()
+    const {from, to} = getCurrentMonthTimestamps()
 
     this.dataService.exportData(from, to).subscribe((blob) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'report.xlsx';
+      a.download = 'raport.xlsx';
       a.click();
       window.URL.revokeObjectURL(url);
     });

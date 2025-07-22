@@ -2,6 +2,7 @@ import {Component, effect, EventEmitter, inject, input, Input, OnInit, Output, V
 import {Annotation, AnnotationType, HourlyReading, LiveReading, TempReading, User, WorkingPeriod} from "@brado/types";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
+import {DataSourceOptionsComponent} from "../shared/data-source-options/data-source-options.component";
 import {
   BarController,
   BarElement,
@@ -72,7 +73,7 @@ interface Series {
   selector: 'app-chart',
   templateUrl: './chart.component.html',
   styleUrls: ['./chart.component.scss'],
-  imports: [BaseChartDirective, IonRow, DatePipe],
+  imports: [BaseChartDirective, IonRow, DatePipe, DataSourceOptionsComponent],
   providers: [ReadingsToSeriesMultiplePipe, ReadingsToSeriesPipe, ModalController, PopoverController]
 })
 export class ChartComponent implements OnInit {
@@ -82,6 +83,9 @@ export class ChartComponent implements OnInit {
 
   // Make Math available in the template
   Math = Math;
+
+  // Make ChartOperation enum available in the template
+  protected readonly ChartOperation = ChartOperation;
 
   @Input() data: HourlyReading[] | LiveReading[] = [];
   @Input() temperature: TempReading[] = [];
@@ -95,8 +99,15 @@ export class ChartComponent implements OnInit {
   @Input() chartType: 'line' | 'bar' = 'line';
   @Input() keyToDisplay: 'total' | 'value' | 'average' | 'delta' | 'dailyTotal' = 'value';
 
+  // Data selection properties
+  dataSourceType: 'current-period' | 'last-days' = 'current-period';
+  selectedDays: number = 7; // Default to 7 days
+  daysOptions: number[] = Array.from({length: 29}, (_, i) => i + 2); // 2 to 30 days
+
   chartData!: ChartData<'line'>;
   chartOptions: ChartOptions = {}
+
+  isDisplayingOlderData = false
 
   chartMode = ChartOperation.DEFAULT;
 
@@ -112,6 +123,19 @@ export class ChartComponent implements OnInit {
   // Track the currently highlighted break
   highlightedBreak: { start: string, end: string, duration: number } | null = null;
 
+  // Track selected points for bulk deletion
+  selectedPoints: string[] = [];
+
+  // Track range selection state
+  rangeSelectionStart: string | null = null;
+  rangeSelectionEnd: string | null = null;
+  isSelectingRange = false;
+
+  // Track drag selection state
+  isDragging = false;
+  dragStartX: number | null = null;
+  dragEndX: number | null = null;
+
   @Output() reloadAnnotations = new EventEmitter()
 
   constructor(
@@ -125,6 +149,7 @@ export class ChartComponent implements OnInit {
   ) {
     effect(() => {
       if (this.annotationsStore.getAnnotationsForReadings(this.data)?.length) {
+        console.log(this.data)
         this.buildChartOptions()
       }
     })
@@ -139,14 +164,70 @@ export class ChartComponent implements OnInit {
     this.prepareChart();
   }
 
+  /**
+   * Changes the data source type and updates the chart
+   * @param type The new data source type
+   */
+  changeDataSourceType(type: 'current-period' | 'last-days') {
+    this.dataSourceType = type;
+    this.loadDataForSelectedPeriod();
+  }
+
+  /**
+   * Changes the number of days to show data for and updates the chart
+   * @param days The number of days to show data for
+   */
+  changeSelectedDays(days: number | any) {
+    // Handle both direct number input from shared component and event from select element
+    if (typeof days !== 'number') {
+      days = days.target.value;
+    }
+
+    this.selectedDays = days;
+    if (this.dataSourceType === 'last-days') {
+      this.loadDataForSelectedPeriod();
+    }
+  }
+
+  /**
+   * Loads data for the selected time period
+   */
+  loadDataForSelectedPeriod() {
+    if (this.dataSourceType === 'current-period') {
+      // Use the current data, which should be for the current work period
+      // No need to fetch new data
+      this.data = this.dataStore.liveData()[this.sensorId].readings;
+      this.prepareChart();
+    } else if (this.dataSourceType === 'last-days') {
+      // Calculate the timestamp for X days ago
+      const now = new Date();
+      const daysAgo = new Date();
+      daysAgo.setDate(now.getDate() - this.selectedDays);
+      daysAgo.setHours(0, 0, 0, 0);
+      this.isDisplayingOlderData = true
+
+      // Fetch data for the last X days
+      if (this.isLive && this.data.length > 0) {
+        const sensorId = this.data[0].sensorId;
+        this.dataService.getDataAfterTimestamp(daysAgo.getTime()).subscribe(readings => {
+          // Filter readings for the current sensor
+          const filteredReadings = readings.filter(r => r.sensorId === sensorId);
+          this.data = filteredReadings;
+          this.prepareChart();
+        });
+      }
+    }
+  }
+
   async buildChartOptions() {
+    console.log(this.data)
     const annotations: any = {};
     let workingPeriods: WorkingPeriod[] = [];
 
     // Fetch working periods if we have data
     if (this.data.length > 0) {
       try {
-        const allWorkingPeriods = await firstValueFrom(this.dataService.getWorkingPeriods());
+        const allWorkingPeriods = this.dataStore.workPeriods()[this.sensorId];
 
         // Filter working periods for the current sensor
         const sensorId = this.data[0].sensorId;
@@ -186,7 +267,7 @@ export class ChartComponent implements OnInit {
       });
 
       // Add detected breaks as annotations
-      if (this.isLive && this.detectedBreaks.length > 0) {
+      if (this.isLive && !this.isDisplayingOlderData && this.detectedBreaks.length > 0) {
         const chartValues = this.chartData.datasets[0].data.map((item: any) => item.y);
         const minValue = Math.min(...chartValues.filter(y => y !== null));
         const maxValue = Math.max(...chartValues.filter(y => y !== null));
@@ -422,10 +503,18 @@ export class ChartComponent implements OnInit {
 
           pointBackgroundColor: (context: any) => {
             const isFailure = context.raw?.data?.isConnectionFailure;
+            // Check if point is selected for bulk deletion
+            if (context.raw?.data?._id && this.selectedPoints.includes(context.raw.data._id)) {
+              return '#ff0000'; // Red for selected points
+            }
             return isFailure ? 'red' : '#3b82f6'
           },
           pointBorderColor: (context: any) => {
             const isFailure = context.raw?.data?.isConnectionFailure;
+            // Check if point is selected for bulk deletion
+            if (context.raw?.data?._id && this.selectedPoints.includes(context.raw.data._id)) {
+              return '#ff0000'; // Red for selected points
+            }
             return isFailure ? 'red' : '#3b82f6'
           }
         },
@@ -673,7 +762,7 @@ export class ChartComponent implements OnInit {
 
   public get availableKeys(): string[] {
     // console.log(this.data)
-    if (this.temperature.length) {
+    if (this.temperature.length || !this.data) {
       return []
     }
     const arr = this.dataMultiple.length > 0 ? [...this.dataMultiple[0]] : [...this.data];
@@ -681,7 +770,7 @@ export class ChartComponent implements OnInit {
   }
 
   public get sensorId(): number {
-    if (this.temperature.length) {
+    if (this.temperature.length || !this.data) {
       return 0
     }
     return this.dataMultiple.length > 0 ? this.dataMultiple[0][0].sensorId : this.data[0].sensorId
@@ -744,9 +833,9 @@ export class ChartComponent implements OnInit {
     this.chart?.chart?.resetZoom();
   }
 
-  async showConfirmAlert(): Promise<boolean> {
-    const alert = await this.alertController.create({
-      header: 'Usunąć annotacje?',
+  async showConfirmAlert(header: string = 'Usunąć annotacje?', message?: string): Promise<boolean> {
+    const alertOptions: any = {
+      header,
       buttons: [
         {
           text: 'Nie',
@@ -758,7 +847,13 @@ export class ChartComponent implements OnInit {
           handler: () => true
         }
       ]
-    });
+    };
+
+    if (message) {
+      alertOptions.message = message;
+    }
+
+    const alert = await this.alertController.create(alertOptions);
 
     await alert.present();
 
@@ -801,8 +896,91 @@ export class ChartComponent implements OnInit {
       const xValue = xScale.getValueForPixel(clickX);
 
       this.openPointEditorModal(xValue, undefined);
-
     }
+
+    if (this.chartMode === ChartOperation.BULK_DELETE_POINTS) {
+      const existingReading = event.active[0]?.element?.$context.raw?.data;
+
+      if (existingReading && existingReading._id) {
+        // Toggle selection of the point
+        const pointId = existingReading._id;
+        const index = this.selectedPoints.indexOf(pointId);
+
+        if (index === -1) {
+          // Add to selected points
+          this.selectedPoints.push(pointId);
+        } else {
+          // Remove from selected points
+          this.selectedPoints.splice(index, 1);
+        }
+
+        // Update chart to show selection
+        this.buildChartOptions();
+        this.chart?.update();
+      }
+    }
+
+    if (this.chartMode === ChartOperation.RANGE_SELECT_POINTS) {
+      const existingReading = event.active[0]?.element?.$context.raw?.data;
+
+      if (existingReading && existingReading._id) {
+        if (!this.isSelectingRange) {
+          // Start range selection
+          this.rangeSelectionStart = existingReading._id;
+          this.isSelectingRange = true;
+          this.selectedPoints = [existingReading._id]; // Clear previous selection and add start point
+          this.toast('Wybierz punkt końcowy zakresu');
+        } else {
+          // End range selection
+          this.rangeSelectionEnd = existingReading._id;
+          this.isSelectingRange = false;
+
+          // Select all points between start and end
+          this.selectPointsInRange();
+        }
+
+        // Update chart to show selection
+        this.buildChartOptions();
+        this.chart?.update();
+      }
+    }
+  }
+
+  /**
+   * Selects all points between the start and end points of the range
+   */
+  private selectPointsInRange() {
+    if (!this.rangeSelectionStart || !this.rangeSelectionEnd) {
+      return;
+    }
+
+    // Get all points from the chart data
+    const chartPoints = this.chartData.datasets[0].data
+      .filter((point: any) => point.data && point.data._id)
+      .map((point: any) => ({
+        id: point.data._id,
+        timestamp: +point.data.timestamp
+      }));
+
+    // Find the timestamps of the start and end points
+    const startPoint = chartPoints.find(point => point.id === this.rangeSelectionStart);
+    const endPoint = chartPoints.find(point => point.id === this.rangeSelectionEnd);
+
+    if (!startPoint || !endPoint) {
+      this.toast('Nie można znaleźć punktów zakresu');
+      return;
+    }
+
+    // Ensure start is before end (or swap them)
+    const startTimestamp = Math.min(startPoint.timestamp, endPoint.timestamp);
+    const endTimestamp = Math.max(startPoint.timestamp, endPoint.timestamp);
+
+    // Select all points within the range
+    this.selectedPoints = chartPoints
+      .filter(point => point.timestamp >= startTimestamp && point.timestamp <= endTimestamp)
+      .map(point => point.id);
+
+    this.toast(`Zaznaczono ${this.selectedPoints.length} punktów`);
   }
 
   async openPointEditorModal(timestamp?: number, reading?: LiveReading) {
@@ -1019,6 +1197,33 @@ export class ChartComponent implements OnInit {
     this.chart?.update();
   }
 
+  /**
+   * Deletes the selected points after confirmation
+   */
+  async deleteSelectedPoints() {
+    if (!this.selectedPoints.length) {
+      await this.toast('Nie wybrano żadnych punktów do usunięcia');
+      return;
+    }
+
+    const confirmed = await this.showConfirmAlert(
+      'Potwierdź usunięcie',
+      `Czy na pewno chcesz usunąć ${this.selectedPoints.length} wybranych punktów?`
+    );
+
+    if (confirmed) {
+      try {
+        await this.dataStore.deleteReadings(this.selectedPoints);
+        await this.toast(`Usunięto ${this.selectedPoints.length} punktów`);
+        this.selectedPoints = []; // Clear selection
+        this.chartMode = ChartOperation.DEFAULT; // Reset chart mode
+      } catch (error) {
+        console.error('Error deleting points:', error);
+        await this.toast('Wystąpił błąd podczas usuwania punktów');
+      }
+    }
+  }
+
   async openChartOperationsList(ev: Event) {
     const popover = await this.popoverCtrl.create({
       component: ChartOperationsListComponent,
@@ -1030,9 +1235,213 @@ export class ChartComponent implements OnInit {
     const {data, role} = await popover.onWillDismiss(); // or onDidDismiss()
 
     if (data?.operation) {
-      console.log(data.operation)
-      this.chartMode = data.operation;
-      console.log(this.chartMode)
+      // this.chartMode = data.operation;
+      //
+      if(
+        data.operation === ChartOperation.EXPORT_RAW
+      ) {
+        const {from, to } = getCurrentMonthTimestamps()
+
+        this.dataService.exportRawData(from, to, this.sensorId.toString()).subscribe((blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${this.sensorName}-surowe.xlsx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          });
+        }
+
+      if(
+        data.operation === ChartOperation.IMPORT_RAW
+      ) {
+        // Show a popup with file input for CSV upload
+        this.showCsvUploadAlert();
+      }
     }
+  }
+
+  /**
+   * Handles the mousedown event on the chart canvas
+   * @param event The mousedown event
+   */
+  onMouseDown(event: MouseEvent) {
+    if (this.chartMode !== ChartOperation.RANGE_SELECT_POINTS) {
+      return;
+    }
+
+    this.isDragging = true;
+    this.dragStartX = event.offsetX;
+
+    // Clear previous selection if starting a new drag
+    if (!event.ctrlKey && !event.shiftKey) {
+      this.selectedPoints = [];
+    }
+  }
+
+  /**
+   * Handles the mousemove event on the chart canvas
+   * @param event The mousemove event
+   */
+  onMouseMove(event: MouseEvent) {
+    if (!this.isDragging || this.chartMode !== ChartOperation.RANGE_SELECT_POINTS) {
+      return;
+    }
+
+    this.dragEndX = event.offsetX;
+
+    // Visual feedback could be added here (e.g., drawing a selection rectangle)
+  }
+
+  /**
+   * Handles the mouseup event on the chart canvas
+   * @param event The mouseup event
+   */
+  onMouseUp(event: MouseEvent) {
+    if (!this.isDragging || this.chartMode !== ChartOperation.RANGE_SELECT_POINTS) {
+      return;
+    }
+
+    this.dragEndX = event.offsetX;
+    this.selectPointsInDragRange();
+
+    // Reset drag state
+    this.isDragging = false;
+    this.dragStartX = null;
+    this.dragEndX = null;
+  }
+
+  /**
+   * Handles the mouseleave event on the chart canvas
+   * @param event The mouseleave event
+   */
+  onMouseLeave(event: MouseEvent) {
+    if (this.isDragging && this.chartMode === ChartOperation.RANGE_SELECT_POINTS) {
+      this.dragEndX = event.offsetX;
+      this.selectPointsInDragRange();
+
+      // Reset drag state
+      this.isDragging = false;
+      this.dragStartX = null;
+      this.dragEndX = null;
+    }
+  }
+
+  /**
+   * Shows a popup dialog for CSV upload
+   */
+  async showCsvUploadAlert() {
+    // Create a file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.csv';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    // Show confirmation dialog after file is selected
+    fileInput.onchange = async () => {
+      if (fileInput.files && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+
+        // Show confirmation dialog
+        const alert = await this.alertController.create({
+          header: 'Import CSV',
+          message: `DANE ZOSTANĄ NADPISANE. Czy chcesz zaimportować plik "${file.name}"? `,
+          buttons: [
+            {
+              text: 'Anuluj',
+              role: 'cancel',
+              handler: () => {
+                document.body.removeChild(fileInput);
+              }
+            },
+            {
+              text: 'Importuj',
+              handler: () => {
+                this.uploadCsvFile(file);
+                document.body.removeChild(fileInput);
+              }
+            }
+          ]
+        });
+
+        await alert.present();
+      } else {
+        document.body.removeChild(fileInput);
+      }
+    };
+
+    // Trigger file selection dialog
+    fileInput.click();
+  }
+
+  /**
+   * Uploads the selected CSV file to the backend
+   * @param file The file to upload
+   */
+  async uploadCsvFile(file: File) {
+    try {
+      await this.toast('Importowanie danych...');
+
+      this.dataService.importCsvData(file, this.sensorId.toString())
+        .subscribe({
+          next: (response) => {
+            this.toast('Dane zostały zaimportowane pomyślnie');
+            // Reload data to show the newly imported readings
+            this.loadDataForSelectedPeriod();
+          },
+          error: (error) => {
+            console.error('Error importing CSV:', error);
+            this.toast('Wystąpił błąd podczas importowania danych');
+          }
+        });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      await this.toast('Wystąpił błąd podczas przesyłania pliku');
+    }
+  }
+
+  /**
+   * Selects all points within the dragged range
+   */
+  private selectPointsInDragRange() {
+    if (this.dragStartX === null || this.dragEndX === null || !this.chart?.chart) {
+      return;
+    }
+
+    const chartInstance = this.chart.chart;
+    const xScale = chartInstance.scales['x'];
+
+    // Convert pixel coordinates to data values
+    const startX = xScale.getValueForPixel(Math.min(this.dragStartX, this.dragEndX));
+    const endX = xScale.getValueForPixel(Math.max(this.dragStartX, this.dragEndX));
+
+    if (!startX || !endX) {
+      return;
+    }
+
+    // Get all points from the chart data
+    const chartPoints = this.chartData.datasets[0].data
+      .filter((point: any) => point.data && point.data._id)
+      .map((point: any) => ({
+        id: point.data._id,
+        timestamp: +point.data.timestamp
+      }));
+
+    // Select all points within the range
+    const pointsInRange = chartPoints
+      .filter(point => point.timestamp >= startX && point.timestamp <= endX)
+      .map(point => point.id);
+
+    // Add to existing selection or create new selection
+    this.selectedPoints = [...new Set([...this.selectedPoints, ...pointsInRange])];
+
+    if (this.selectedPoints.length > 0) {
+      this.toast(`Zaznaczono ${this.selectedPoints.length} punktów`);
+    }
+
+    // Update chart to show selection
+    this.buildChartOptions();
+    this.chart.update();
   }
 }

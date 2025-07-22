@@ -16,6 +16,7 @@ export class WorkPeriodsComponent  implements OnInit {
   constructor(public dataStore: DataStore) { }
 
   ngOnInit() {
+    console.log('fetching periods from uboje')
     this.dataStore.loadWorkingPeriods()
   }
 

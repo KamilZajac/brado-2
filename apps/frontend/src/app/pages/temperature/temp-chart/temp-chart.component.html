@@ -7,4 +7,10 @@
       <app-chart [temperature]="tempStore.liveData()[tempID]"  />
     }
 </div>
+
+  <button
+    class="button active"
+    (click)="exportTempToExcel()">
+    Eksport do Excel
+  </button>
 </ion-content>

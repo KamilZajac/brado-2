@@ -1,0 +1,30 @@
+<div class="data-source-selector">
+  <div class="data-source-options">
+    <button
+      class="button"
+      [class.active]="dataSourceType === 'current-period'"
+      (click)="changeDataSourceType('current-period')">
+      Bieżący okres
+    </button>
+    <button
+      class="button"
+      [class.active]="dataSourceType === 'last-days'"
+      (click)="changeDataSourceType('last-days')">
+      Ostatnie dni
+    </button>
+  </div>
+
+  @if(dataSourceType === 'last-days'){
+    <div class="days-selector">
+      <label for="days-select">Liczba dni:</label>
+      <select
+        id="days-select"
+        [value]="selectedDays"
+        (change)="changeSelectedDays($event)">
+        @for(days of daysOptions; track days) {
+          <option [value]="days" [selected]="selectedDays === days">{{days}}</option>
+        }
+      </select>
+    </div>
+  }
+</div>

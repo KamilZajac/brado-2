@@ -2,17 +2,17 @@
 
   @if (data && data.readings) {
     <div class="chart-wrapper gauges" #chartContainer>
-      <p class="sensor-name">{{sensorName}}</p>
+      <p class="sensor-name">{{ sensorName }}</p>
 
       <div class="chart-container">
-        @if (workingSummary.estimatedProduction) {
+        @if (workingSummary?.estimatedProduction) {
 
-        <app-pie-chart
-          [value]="workingSummary.totalUnits"
-          [disableAnimation]="true"
-          [target]="workingSummary.estimatedProduction"
-        ></app-pie-chart>
-        <p>Narastająca</p>
+          <app-pie-chart
+            [value]="workingSummary.totalUnits"
+            [disableAnimation]="true"
+            [target]="workingSummary.estimatedProduction"
+          ></app-pie-chart>
+          <p>Narastająca</p>
         } @else {
           czekam na dane
         }
@@ -27,24 +27,25 @@
         ></app-pie-chart>
         <p>Średnia - 60min</p>
       </div>
-      @if(isDashboardMode) {
+      @if (isDashboardMode) {
         <div class="col stats">
-        <app-working-stats [workingSummary]="workingSummary" [isAdmin]="isAdminDashboard" [readings]="data.readings" [sensorId]="sensorId"></app-working-stats>
+          <app-working-stats [workingSummary]="workingSummary" [isAdmin]="isAdminDashboard" [readings]="data.readings"
+                             [sensorId]="sensorId"></app-working-stats>
         </div>
       }
 
     </div>
 
 
-    @if(!isDashboardMode) {
-    <app-chart
-      [data]="data.readings"
-      [disableAnimation]="true"
-      [isLive]="true"
-      [hourlyTarget]="hourlyTarget"
-      (reloadAnnotations)="onReloadAnnotations()"
-    >
-    </app-chart>
+    @if (!isDashboardMode) {
+      <app-chart
+        [data]="data.readings"
+        [disableAnimation]="true"
+        [isLive]="true"
+        [hourlyTarget]="hourlyTarget"
+        (reloadAnnotations)="onReloadAnnotations()"
+      >
+      </app-chart>
     }
   } @else {
     <p>Czekam na dane...</p>

@@ -4,8 +4,9 @@ import { IonicRouteStrategy, ModalController, provideIonicAngular } from '@ionic
 import { HTTP_INTERCEPTORS, withInterceptors } from '@angular/common/http'; // Import HTTP_INTERCEPTORS
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
-import {provideHttpClient} from "@angular/common/http";
-import {authInterceptor} from "./app/services/auth/auth.interceptor";
+import { provideHttpClient } from "@angular/common/http";
+import { authInterceptor } from "./app/services/auth/auth.interceptor";
+import { provideAnimations } from '@angular/platform-browser/animations';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -17,6 +18,6 @@ bootstrapApplication(AppComponent, {
       withInterceptors([authInterceptor]),
     ),
     provideRouter(routes, withPreloading(PreloadAllModules)),
-
+    provideAnimations(), // Required for Angular Material animations
   ],
 });

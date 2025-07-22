@@ -8,9 +8,10 @@ import { TemperatureEntity } from './entities/temperature.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleService } from './schedule.service';
 import { ReadingsGateway } from '../reading/readings.gateway';
+import {MailModule} from "../mail/mail.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TemperatureEntity])],
+  imports: [TypeOrmModule.forFeature([TemperatureEntity]), MailModule],
   controllers: [TemperatureController, ConnectorTemperatureController],
   providers: [TemperatureService, ScheduleService, ReadingsGateway],
 })

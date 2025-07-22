@@ -84,3 +84,30 @@
   padding-left: 1rem;
   text-align: left;
 }
+
+.view-toggle {
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+
+  ion-segment {
+    max-width: 300px;
+    margin: 0 auto;
+    --background: #f4f5f8;
+    border-radius: 8px;
+    overflow: hidden;
+
+    ion-segment-button {
+      --indicator-color: #3880ff;
+      --color-checked: #ffffff;
+      --background-checked: #3880ff;
+      --border-radius: 8px;
+      --padding-top: 8px;
+      --padding-bottom: 8px;
+
+      ion-icon {
+        margin-right: 4px;
+      }
+    }
+  }
+}

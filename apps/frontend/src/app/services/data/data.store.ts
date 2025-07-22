@@ -20,13 +20,33 @@ export class DataStore {
   private readonly annotationsStore = inject(AnnotationsStore);
 
   private readonly _liveData = signal<LiveUpdate>({});
+  private readonly _historicalLiveData =  signal<{ [key: string]: LiveReading[] }>({});
   private readonly _weeklyReadings = signal<{ [key: string]: HourlyReading[] }>({});
   private readonly _workPeriods = signal<{ [key: string]: WorkingPeriod[] }>({});
   private readonly _monthlySummary = signal<{ [key: string]: DailyWorkingSummary }>({});
   private readonly _loading = signal(false);
   private readonly _error = signal<string | null>(null);
 
-  readonly liveData: Signal<LiveUpdate> = computed(() => this._liveData());
+  readonly liveData: Signal<LiveUpdate> = computed(() =>  this._liveData());
+  readonly liveDataWithFallback: Signal<LiveUpdate> = computed(() =>  {
+    const liveData = this._liveData();
+    const result: LiveUpdate = {
+      [1]: {
+        readings: [],
+        growingAverage: {} as any,
+        average60: 0
+      },
+      [2]: {
+        readings: [],
+        growingAverage: {} as any,
+        average60: 0
+      }, ...liveData
+    };
+    return result
+  });
+
+
+  readonly historicalLiveData: Signal<{[key: string]: LiveReading[]} > = computed(() => this._historicalLiveData());
   readonly weeklyReadings: Signal<{ [key: string]: HourlyReading[] }> = computed(() => this._weeklyReadings());
   readonly workPeriods: Signal<{ [key: string]: WorkingPeriod[] }> = computed(() => this._workPeriods());
   readonly monthlySummary: Signal<{ [key: string]: DailyWorkingSummary }> = computed(() => {
@@ -47,6 +67,7 @@ export class DataStore {
       const sorted = periodsForSensor.sort((a,b) => +b.start - +a.start);
       const currentPeriod = sorted[0];
 
+      if(!this._liveData()[key]) return;
       const readingsInPeriod = this._liveData()[key].readings.filter(r => {
             if (currentPeriod.end) {
               return +r.timestamp >= +currentPeriod.start && +r.timestamp <= +currentPeriod.end
@@ -75,8 +96,6 @@ export class DataStore {
       return sorted[0]
     });
   }
-
-
 
   constructor(private socketService: SocketService, private settings: SettingsService) {
     this.socketService.onLiveUpdate().subscribe(res => {
@@ -225,5 +244,30 @@ export class DataStore {
     return settings.hourlyTarget;
   }
 
+  public async deleteReadings(readingIds: string[]) {
+    if (!readingIds.length) return;
+
+    const result = await firstValueFrom(this.api.deleteReadings(readingIds));
+
+    if (result) {
+      this.loadInitialLiveData();
+    }
+
+    return result;
+  }
+
+  async loadOlderLiveDataFrom(time: number) {
+
+
+    const liveReadings = await firstValueFrom(this.api.getDataAfterTimestamp(time));
+    const uniqueSensors = Array.from(new Set(liveReadings.map(r => r.sensorId)));
+    const sensorObject: {[key: string]: LiveReading[]} = {};
+    uniqueSensors.forEach(sensor => {
+      sensorObject[sensor] = this.removeDuplicateReadings(liveReadings.filter(r => r.sensorId === sensor))
+    })
+
+    this._historicalLiveData.set(sensorObject)
+
+  }
 
 }

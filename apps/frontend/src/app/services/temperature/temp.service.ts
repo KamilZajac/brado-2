@@ -21,6 +21,14 @@ export class TempService {
     return this.http.get<TempReading[]>(environment.apiUrl + '/temperature/latest')
   }
 
-
-
+  exportToExcel(tempID: string) {
+    return this.http.get(environment.apiUrl + `/temperature/export/${tempID}`, {
+      responseType: 'blob',
+    });
+  }
+  exportAllToExcel() {
+    return this.http.get(environment.apiUrl + `/temperature/export-all`, {
+      responseType: 'blob',
+    });
+  }
 }

@@ -10,6 +10,27 @@ function formatTimestampToPolish(msTimestamp: number): string {
   );
 }
 
+export async function exportToExcelRAW(
+  readings: HourlyReading[],
+): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Odczyty');
+  worksheet.columns = [
+    { header: 'Czas', key: 'timestamp', width: 30 },
+    { header: 'Wartość', key: 'value', width: 30 },
+  ];
+
+  readings.forEach((r: HourlyReading) => {
+    worksheet.addRow({
+      timestamp: formatTimestampToPolish(+r.timestamp),
+      value: r.value,
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer(); // Write to memory buffer
+  return Buffer.from(buffer);
+}
+
 export async function exportToExcel(
   readings: HourlyReading[],
   settings: SettingsEntity,
@@ -163,7 +184,6 @@ export const addGrowingAverage = (
     const totalDelta = readings
       .slice(firstReadingTodayIndex, idx + 1)
       .reduce((sum, item) => sum + item.delta, 0);
-
 
     return {
       ...r,

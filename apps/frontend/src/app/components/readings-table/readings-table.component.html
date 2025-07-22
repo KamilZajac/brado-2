@@ -1,0 +1,155 @@
+<div class="readings-table-container">
+  <div class="table-header">
+    <div class="header-top">
+      <h2>{{ sensorName }}</h2>
+
+      <app-data-source-options
+        [dataSourceType]="dataSourceType"
+        [selectedDays]="selectedDays"
+        [daysOptions]="daysOptions"
+        (dataSourceTypeChange)="changeDataSourceType($event)"
+        (selectedDaysChange)="changeSelectedDays($event)">
+      </app-data-source-options>
+    </div>
+
+    <div class="table-actions">
+      <ion-button fill="outline" size="small" (click)="addNewReading()" [disabled]="newReading || editingReading">
+        <ion-icon name="add-outline" slot="start"></ion-icon>
+        Dodaj odczyt
+      </ion-button>
+
+      <ion-button  color="danger" (click)="deleteSelectedReadings()"
+                  [disabled]="selectedReadings.length === 0 || newReading || editingReading">
+        <ion-icon name="trash-outline" slot="start"></ion-icon>
+          Usuń zaznaczone  ({{ selectedReadings.length }})
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- New Reading Form -->
+  @if (newReading) {
+    <ion-card class="new-reading-card">
+      <ion-card-header>
+        <ion-card-title>Add New Reading</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label position="stacked">Timestamp</ion-label>
+          <ion-input type="datetime-local" [(ngModel)]="newReading.timestamp"
+                    [value]="formatDateTimeForInput(newReading.timestamp)"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Odczyt</ion-label>
+          <ion-input type="number" [(ngModel)]="newReading.value"></ion-input>
+        </ion-item>
+<!--        <ion-item>-->
+<!--          <ion-label position="stacked">Delta</ion-label>-->
+<!--          <ion-input type="number" [(ngModel)]="newReading.delta"></ion-input>-->
+<!--        </ion-item>-->
+<!--        <ion-item>-->
+<!--          <ion-label position="stacked">Suma dzienna</ion-label>-->
+<!--          <ion-input type="number" [(ngModel)]="newReading.dailyTotal"></ion-input>-->
+<!--        </ion-item>-->
+        <div class="form-actions">
+          <ion-button fill="outline" (click)="cancelAddingReading()">Anuluj</ion-button>
+          <ion-button (click)="saveNewReading()">Save</ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  }
+
+  <!-- No Data Message -->
+  @if (readingsByDay.length === 0) {
+    <ion-card>
+      <ion-card-content>
+        <div class="no-data">Brak odczytów</div>
+      </ion-card-content>
+    </ion-card>
+  }
+
+  <!-- Readings By Day -->
+  @for (dayGroup of readingsByDay; track dayGroup.date) {
+    <ion-card class="day-group">
+      <ion-card-header (click)="toggleDayGroup(dayGroup)" class="day-header">
+        <ion-card-title>
+          <ion-icon [name]="dayGroup.expanded ? 'chevron-down-outline' : 'chevron-forward-outline'"></ion-icon>
+          {{ dayGroup.date  }}
+          <span class="reading-count">({{ dayGroup.readings.length }} odczytów)</span>
+        </ion-card-title>
+      </ion-card-header>
+
+      @if (dayGroup.expanded) {
+        <ion-card-content class="readings-list">
+          <!-- Native Ionic Table with multi-selection support -->
+          <table class="readings-table">
+            <thead>
+              <tr>
+                <th class="select-col">
+                  <ion-checkbox
+                    [checked]="areAllReadingsInDaySelected(dayGroup)"
+                    [indeterminate]="areSomeReadingsInDaySelected(dayGroup)"
+                    (click)="toggleAllReadingsInDay(dayGroup)"
+                    [disabled]="editingReading || newReading">
+                  </ion-checkbox>
+                </th>
+                <th>Czas</th>
+                <th>Odczyt</th>
+                <th>Delta</th>
+                <th>Suma dzienna</th>
+                <th>Akcje</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (reading of dayGroup.readings; track reading.timestamp) {
+                @if (editingReading && editingReading.timestamp === reading.timestamp) {
+                  <!-- Editing Row -->
+                  <tr class="editing-row">
+                    <td class="select-col"></td>
+                    <td>
+                      <ion-input type="datetime-local" [(ngModel)]="editingReading.timestamp"
+                                [value]="formatDateTimeForInput(editingReading.timestamp)"></ion-input>
+                    </td>
+                    <td>
+                      <ion-input type="number" [(ngModel)]="editingReading.value"></ion-input>
+                    </td>
+                    <td>{{ reading.delta }}</td>
+                    <td>{{ reading.dailyTotal }}</td>
+                    <td class="actions-col">
+                      <ion-button fill="clear" size="small" (click)="cancelEditing()">
+                        <ion-icon name="close-outline" color="danger"></ion-icon>
+                      </ion-button>
+                      <ion-button fill="clear" size="small" (click)="saveEditedReading()">
+                        <ion-icon name="checkmark-outline" color="success"></ion-icon>
+                      </ion-button>
+                    </td>
+                  </tr>
+                } @else {
+                  <!-- Normal Row -->
+                  <tr [class.selected]="isReadingSelected(reading)" class="reading-row">
+                    <td class="select-col">
+                      <ion-checkbox
+                        [checked]="isReadingSelected(reading)"
+                        (ionChange)="handleCheckboxClick(reading)"
+                        [disabled]="editingReading || newReading">
+                      </ion-checkbox>
+                    </td>
+                    <td>{{ formatTimestamp(reading.timestamp) }}</td>
+                    <td>{{ reading.value }}</td>
+                    <td>{{ reading.delta }}</td>
+                    <td>{{ reading.dailyTotal }}</td>
+                    <td class="actions-col">
+                      <ion-button fill="clear" size="small" (click)="editReading(reading)"
+                                [disabled]="editingReading || newReading">
+                        <ion-icon name="create-outline"></ion-icon>
+                      </ion-button>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </ion-card-content>
+      }
+    </ion-card>
+  }
+</div>

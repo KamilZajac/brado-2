@@ -116,6 +116,50 @@ export class WorkingPeriodService {
           }
         }
 
+        // Check for missing data - if there's a significant gap between current reading and next readings
+        if (currentPeriod && currentPeriod.end === null && i < readings.length - 1) {
+          const nextReadingTimeMs = parseInt(readings[i + 1].timestamp);
+          const timeDifference = nextReadingTimeMs - currentTimeMs;
+
+          // If there's a significant gap (more than our threshold)
+          if (timeDifference > BREAK_MAX_MS) {
+            // Check if there's any data in the next two hours after the current reading
+            let hasDataInNextTwoHours = false;
+            const twoHoursInMs = 2 * 60 * 60 * 1000;
+            const timeWindowEnd = currentTimeMs + twoHoursInMs;
+
+            // Look ahead to see if there's any data in the next two hours
+            for (let j = i + 1; j < readings.length; j++) {
+              const futureReadingTimeMs = parseInt(readings[j].timestamp);
+              if (futureReadingTimeMs <= timeWindowEnd) {
+                hasDataInNextTwoHours = true;
+                break;
+              }
+            }
+
+            // If no data in next two hours, end the working period
+            if (!hasDataInNextTwoHours) {
+              this.logger.debug(
+                `Ending working period for sensor ${sensorId} at ${new Date(currentTimeMs).toISOString()} due to missing data in next two hours`,
+              );
+
+              currentPeriod.end = reading.timestamp;
+
+              // Save the completed period
+              await this.periodRepo.save(
+                this.periodRepo.create({
+                  sensorId,
+                  start: currentPeriod.start,
+                  end: currentPeriod.end,
+                }),
+              );
+
+              // Reset current period
+              currentPeriod = null;
+            }
+          }
+        }
+
         // If this is the last reading and we have an open period, close it
         if (
           i === readings.length - 1 &&

@@ -9,7 +9,10 @@ export enum ChartOperation {
   REMOVE_ANNOTATION,
   ADD_EDIT_POINTS,
   REMOVE_POINTS,
-
+  BULK_DELETE_POINTS,
+  RANGE_SELECT_POINTS,
+  EXPORT_RAW,
+  IMPORT_RAW,
 }
 
 @Component({
@@ -18,7 +21,8 @@ export enum ChartOperation {
   template: `
     <ion-list>
       <ion-item button (click)="select(ChartOperation.ADD_ANNOTATION)">Dodaj Adnotacje</ion-item>
-      <ion-item button (click)="select(ChartOperation.ADD_EDIT_POINTS)">Dodaj/Edytuj odczyt</ion-item>
+      <ion-item button (click)="select(ChartOperation.EXPORT_RAW)">Exportuj surowe odczyty</ion-item>
+      <ion-item button (click)="select(ChartOperation.IMPORT_RAW)">Importuj surowe odczyty</ion-item>
     </ion-list>
   `
 })

@@ -342,9 +342,6 @@ export const sumDailySummaries = (summaries: DailyWorkingSummary[]): DailyWorkin
         totalSummary.clipsChanges = addAnnotationStats(totalSummary.clipsChanges, summary.clipsChanges);
     }
 
-
-    console.log('SUMMARIES TOTAL')
-    console.log(totalSummary)
     return totalSummary;
 }
 

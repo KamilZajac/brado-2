@@ -4,18 +4,17 @@
   @if(!isLive){
     {{sensorName}}
   }
-  <!--  <button-->
-<!--    class="button"-->
-<!--    [class.active]="chartType === 'bar'"-->
-<!--    (click)="selectChartType('bar')">-->
-<!--    <i class="icon-bar"></i> Słupkowy-->
-<!--  </button>-->
-<!--  <button-->
-<!--    class="button"-->
-<!--    [class.active]="chartType === 'line'"-->
-<!--    (click)="selectChartType('line')">-->
-<!--    <i class="icon-line"></i> Liniowy-->
-<!--  </button>-->
+
+  @if(isLive){
+    <app-data-source-options
+      [dataSourceType]="dataSourceType"
+      [selectedDays]="selectedDays"
+      [daysOptions]="daysOptions"
+      (dataSourceTypeChange)="changeDataSourceType($event)"
+      (selectedDaysChange)="changeSelectedDays($event)">
+    </app-data-source-options>
+  }
+
 </div>
 
 <div class="chart-type-selector">
@@ -43,6 +42,10 @@
           [type]="chartType"
           (dblclick)="onChartDoubleClick($event)"
           (chartClick)="onChartClick($event)"
+          (mousedown)="onMouseDown($event)"
+          (mousemove)="onMouseMove($event)"
+          (mouseup)="onMouseUp($event)"
+          (mouseleave)="onMouseLeave($event)"
   >
   </canvas>
 
@@ -106,6 +109,8 @@
       (click)="openChartOperationsList($event)">
       Operacje
     </button>
+
+
   </ion-row >
   }
 </div>

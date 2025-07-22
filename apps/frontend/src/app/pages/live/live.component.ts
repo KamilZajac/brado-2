@@ -14,16 +14,19 @@ import {ChartWrapperDirective} from "../../directives/chart-wrapper.directive";
 import {UsersStore} from "../../services/users/users.store";
 import {DataStore} from "../../services/data/data.store";
 import {AnnotationsStore} from "../../services/annotation/annotations.store";
+import {ReadingsTableComponent} from "../../components/readings-table/readings-table.component";
 
 @Component({
   selector: 'app-live',
   templateUrl: './live.component.html',
   styleUrls: ['./live.component.scss'],
-  imports: [IonicModule, SensorStatsComponent, KeyValuePipe],
+  imports: [IonicModule, SensorStatsComponent, KeyValuePipe, ReadingsTableComponent],
 
 })
 export class LiveComponent extends ChartWrapperDirective implements OnInit {
   dataStore = inject(DataStore)
+
+  displayMode: 'chart' | 'table' = 'chart';
 
   public hourlyTarget = 0;
   public sensorNames: { [key: number]: string } = {};

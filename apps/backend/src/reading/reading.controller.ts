@@ -13,7 +13,7 @@ import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('reading')
-@UseGuards(AuthGuard('jwt'))
+// @UseGuards(AuthGuard('jwt'))
 export class ReadingController {
   constructor(private readonly readingsService: ReadingService) {}
 
@@ -52,6 +52,11 @@ export class ReadingController {
     return this.readingsService.aggregate();
   }
 
+  @Post('delete')
+  delete(@Body() readingIds: string[]): Promise<string> {
+    return this.readingsService.delete(readingIds);
+  }
+
   @Get('export/:fromTS/:toTS')
   async export(
     @Param('fromTS') fromTS: string,
@@ -68,9 +73,18 @@ export class ReadingController {
     res.send(buffer);
   }
 
-  @Get('export-live/:fromTS')
-  async exportLive(@Param('fromTS') fromTS: string, @Res() res: Response) {
-    const buffer = await this.readingsService.exportLiveData(fromTS);
+  @Get('export-raw/:fromTS/:toTS/:sensorID')
+  async exportRaw(
+    @Param('fromTS') fromTS: string,
+    @Param('toTS') toTS: string,
+    @Param('sensorID') sensorID: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.readingsService.exportRawData(
+      fromTS,
+      toTS,
+      sensorID,
+    );
 
     res.setHeader(
       'Content-Type',
@@ -79,6 +93,18 @@ export class ReadingController {
     res.setHeader('Content-Disposition', 'attachment; filename="report.xlsx"');
     res.send(buffer);
   }
+
+  // @Get('export-live/:fromTS')
+  // async exportLive(@Param('fromTS') fromTS: string, @Res() res: Response) {
+  //   const buffer = await this.readingsService.exportLiveData(fromTS);
+  //
+  //   res.setHeader(
+  //     'Content-Type',
+  //     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  //   );
+  //   res.setHeader('Content-Disposition', 'attachment; filename="report.xlsx"');
+  //   res.send(buffer);
+  // }
 }
 
 @Controller('connector-reading')

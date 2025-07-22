@@ -53,7 +53,7 @@ export class ReadingsHelpers {
       result.push({
         id: 0,
         sensorId: first.sensorId,
-        timestamp: hourTimestamp.toString(),
+        timestamp: (hourTimestamp + 3600000).toString(),
         value: last.value,
         delta: delta,
         workStartTime: workStartTime || '0',

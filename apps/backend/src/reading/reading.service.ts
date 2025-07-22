@@ -15,7 +15,7 @@ import { LiveReadingEntity } from './entities/minute-reading.entity';
 import { ReadingsHelpers } from './readings-helpers';
 import { HourlyReadingEntity } from './entities/hourly-reading-entity';
 import { DateTime } from 'luxon';
-import { exportToExcel, exportToExcelLive } from './export.helper';
+import {exportToExcel, exportToExcelLive, exportToExcelRAW} from './export.helper';
 import { SettingsService } from '../settings/settings.service';
 import { AnnotationService } from '../annotation/annotation.service';
 import { WorkingPeriodService } from '../working-period/working-period.service';
@@ -274,7 +274,8 @@ export class ReadingService {
 
     const workingPeriods = await this.workPeriodsService.findLatest();
 
-    const startTimes = workingPeriods.map(p => +p.start);
+    console.log(workingPeriods);
+    const startTimes = workingPeriods.map((p) => +p.start);
 
     let startTime = Date.now() - 24 * 60 * 60 * 1000;
 
@@ -425,13 +426,43 @@ export class ReadingService {
       new Set(liveReadings.map((entity) => entity.sensorId)),
     );
 
-    const hourlyReadings = uniqueSensorIds
-      .map((sensorID) =>
-        ReadingsHelpers.aggregateToHourlyReadings(
-          liveReadings.filter((reading) => reading.sensorId === +sensorID),
-        ),
-      )
+    // Array to store filtered readings for each sensor
+    const filteredReadingsForAggregation: LiveReading[][] = [];
+
+    // For each sensor, get the latest hourly reading and filter live readings
+    for (const sensorID of uniqueSensorIds) {
+      const latestHourlyReading =
+        await this.findLastHourlyBySensorId(+sensorID);
+
+      // Filter live readings for this sensor
+      const sensorReadings = liveReadings.filter(
+        (reading) => reading.sensorId === +sensorID,
+      );
+
+      // If we have a latest hourly reading, only include readings that are newer
+      if (latestHourlyReading) {
+        const filteredReadings = sensorReadings.filter(
+          (reading) => +reading.timestamp > +latestHourlyReading.timestamp,
+        );
+
+        if (filteredReadings.length > 0) {
+          filteredReadingsForAggregation.push(filteredReadings);
+        }
+      } else {
+        // If no hourly reading exists yet, include all readings for this sensor
+        filteredReadingsForAggregation.push(sensorReadings);
+      }
+    }
+
+    // Aggregate the filtered readings for each sensor
+    const hourlyReadings = filteredReadingsForAggregation
+      .map((readings) => ReadingsHelpers.aggregateToHourlyReadings(readings))
       .flat();
+
+    // If no new hourly readings, return early
+    if (hourlyReadings.length === 0) {
+      return Promise.resolve('No new readings to aggregate');
+    }
 
     const toSave = this.hourlyReadingsRepo.create(hourlyReadings);
 
@@ -445,6 +476,17 @@ export class ReadingService {
 
   async findLastBySensorId(sensorId: number): Promise<LiveReading | null> {
     return this.liveReadingsRepo
+      .createQueryBuilder('reading')
+      .where('reading.sensorId = :sensorId', { sensorId })
+      .orderBy('reading.timestamp', 'DESC')
+      .limit(1)
+      .getOne();
+  }
+
+  async findLastHourlyBySensorId(
+    sensorId: number,
+  ): Promise<HourlyReading | null> {
+    return this.hourlyReadingsRepo
       .createQueryBuilder('reading')
       .where('reading.sensorId = :sensorId', { sensorId })
       .orderBy('reading.timestamp', 'DESC')
@@ -526,12 +568,13 @@ export class ReadingService {
     const summaries: { [key: string]: DailyWorkingSummary } = {};
 
     uniqueSensorIds.forEach((sensorId) => {
-
-      console.log('SUMA')
+      console.log('SUMA');
       console.log(
-          hourlyReadings.filter((r) => r.sensorId === sensorId)
-              .map(r => r.delta).reduce((a, b) => a + b, 0)
-      )
+        hourlyReadings
+          .filter((r) => r.sensorId === sensorId)
+          .map((r) => r.delta)
+          .reduce((a, b) => a + b, 0),
+      );
       const summary = getDailyWorkingSummary(
         hourlyReadings.filter((r) => r.sensorId === sensorId),
         annotations.filter((a) => a.sensorId === sensorId),
@@ -590,6 +633,22 @@ export class ReadingService {
     const settings = await this.settingsService.getSettings();
 
     return exportToExcel(hourly, settings);
+  }
+
+  async exportRawData(
+    fromTS: string,
+    toTS: string,
+    sensorId: string,
+  ): Promise<Buffer> {
+    const hourly = await this.hourlyReadingsRepo.find({
+      where: {
+        timestamp: Between(fromTS, toTS),
+        sensorId: +sensorId,
+      },
+      order: { timestamp: 'ASC' },
+    });
+
+    return exportToExcelRAW(hourly);
   }
 
   async exportLiveData(fromTS: string): Promise<Buffer> {
@@ -687,8 +746,6 @@ export class ReadingService {
       reading.timestamp,
     );
 
-    console.log('NEXT');
-    console.log(nextReading);
     if (nextReading) {
       // Calculate the new delta for the next reading
       const nextDelta =
@@ -718,5 +775,14 @@ export class ReadingService {
     }
 
     return created;
+  }
+
+  async delete(readingIds: string[]) {
+    if (!readingIds || readingIds.length === 0) {
+      throw new Error('No reading IDs provided for deletion.');
+    }
+
+    await this.liveReadingsRepo.delete(readingIds);
+    return `Deleted ${readingIds.length} reading(s) successfully.`;
   }
 }
