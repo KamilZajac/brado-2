@@ -13,18 +13,25 @@ export enum ChartOperation {
   RANGE_SELECT_POINTS,
   EXPORT_RAW,
   IMPORT_RAW,
+  EXPORT,
 }
 
 @Component({
   selector: 'app-operation-list',
   imports: [CommonModule, IonList, IonItem],
   template: `
-    {{isLive}}
+    @if(this.isLive) {
+      <ion-list>
+        <ion-item button (click)="select(ChartOperation.ADD_ANNOTATION)">Dodaj Adnotacje</ion-item>
+<!--        <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel</ion-item>-->
+      </ion-list>
+    } @else {
     <ion-list>
-      <ion-item button (click)="select(ChartOperation.ADD_ANNOTATION)">Dodaj Adnotacje</ion-item>
       <ion-item button (click)="select(ChartOperation.EXPORT_RAW)">Exportuj surowe odczyty</ion-item>
       <ion-item button (click)="select(ChartOperation.IMPORT_RAW)">Importuj surowe odczyty</ion-item>
+<!--      <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel </ion-item>-->
     </ion-list>
+    }
   `
 })
 export class ChartOperationsListComponent {

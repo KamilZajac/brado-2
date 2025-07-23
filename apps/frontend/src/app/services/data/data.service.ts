@@ -92,8 +92,14 @@ export class DataService {
     });
   }
 
-  public exportLiveData(fromTS: number) {
-    return this.http.get(environment.apiUrl + `/reading/export-live/${fromTS}`, {
+  public exportLiveData(sensorId: string) {
+    return this.http.get(environment.apiUrl + `/reading/export-live/${sensorId}`, {
+      responseType: 'blob',
+    });
+  }
+
+  public exportMonthlyData(fromTS: number, toTS: number, sensorId: string) {
+    return this.http.get(environment.apiUrl + `/reading/export-hourly/${fromTS}/${toTS}/${sensorId}`, {
       responseType: 'blob',
     });
   }

@@ -46,7 +46,10 @@ export class ReadingController {
   }
 
   @Get('monthly-summary/:fromTS/:toTS')
-  getHourlySummary(@Param('fromTS') fromTS: string, @Param('toTS') toTS: string) {
+  getHourlySummary(
+    @Param('fromTS') fromTS: string,
+    @Param('toTS') toTS: string,
+  ) {
     return this.readingsService.getMonthlyStats(fromTS, toTS);
   }
 
@@ -63,8 +66,8 @@ export class ReadingController {
   @Post('import-csv/:sensorID')
   @UseInterceptors(FileInterceptor('file')) // Wymaga multer do obsługi plików
   async importCsv(
-      @Param('sensorID') sensorID: string,
-      @UploadedFile() file:any,
+    @Param('sensorID') sensorID: string,
+    @UploadedFile() file: any,
   ) {
     if (!file) {
       throw new Error('No file provided');
@@ -74,7 +77,20 @@ export class ReadingController {
     return await this.readingsService.importCsvData(sensorID, csvData); // Przekaż dane do ReadingService
   }
 
+  @Get('export-live/:sensorID')
+  async exportLive(
+    @Param('sensorId') sensorId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.readingsService.exportLiveData(sensorId);
 
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="report.xlsx"');
+    res.send(buffer);
+  }
 
   @Get('export/:fromTS/:toTS')
   async export(

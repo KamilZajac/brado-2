@@ -1262,6 +1262,30 @@ export class ChartComponent implements OnInit {
         }
 
       if(
+        data.operation === ChartOperation.EXPORT
+      ) {
+
+
+        const download = (blob: Blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${this.sensorName}-surowe.xlsx`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        }
+        // (this.isLive ? this.dataService.exportLiveData(this.sensorId) : this.dataService.exportMonthlyData(from, to, this.sensorId))
+
+        if(this.isLive) {
+          this.dataService.exportLiveData(this.sensorId.toString()).subscribe((blob) => download(blob));
+        } else {
+          const {from, to } = getCurrentMonthTimestamps()
+          this.dataService.exportMonthlyData(from, to, this.sensorId.toString()).subscribe((blob) => download(blob));
+        }
+
+      }
+
+      if(
         data.operation === ChartOperation.IMPORT_RAW
       ) {
         // Show a popup with file input for CSV upload

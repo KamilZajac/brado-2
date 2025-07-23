@@ -59,15 +59,15 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
 
 
   exportDataToExcel() {
-
-    this.dataService.exportLiveData( getStartOfToday()).subscribe((blob) => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'report.xlsx';
-      a.click();
-      window.URL.revokeObjectURL(url);
-    });
+    //
+    // this.dataService.exportLiveData().subscribe((blob) => {
+    //   const url = window.URL.createObjectURL(blob);
+    //   const a = document.createElement('a');
+    //   a.href = url;
+    //   a.download = 'report.xlsx';
+    //   a.click();
+    //   window.URL.revokeObjectURL(url);
+    // });
   }
 
 }
