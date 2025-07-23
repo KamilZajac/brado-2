@@ -45,6 +45,17 @@ export class AnnotationsStore {
     });
   }
 
+  loadAnnotationsForCurrentPeriod() {
+    this._loading.set(true);
+    this._error.set(null);
+
+    this.api.getAnnotationsForCurrentPeriod().subscribe({
+      next: (annotations: Annotation[]) => this.annotationsToMerged(annotations),
+      error: (err) => this._error.set('Failed to load Annotations'),
+      complete: () => this._loading.set(false)
+    });
+  }
+
   loadAnnotationsAfter(fromTS: number) {
     this._loading.set(true);
     this._error.set(null);
@@ -78,6 +89,8 @@ export class AnnotationsStore {
           updated[key] = annotations[key];
         }
       }
+
+      console.log(updated)
       return updated;
     });
   }
@@ -97,10 +110,11 @@ export class AnnotationsStore {
 
   async createAnnotation(newAnnotation: Partial<Annotation>) {
     const res = await firstValueFrom(this.api.createAnnotation(newAnnotation))
-    console.log(res)
 
+    console.log(res)
     if(res && res.sensorId) {
       this.mergeAnnotations({[res.sensorId]: [res]})
+
     }
   }
 }

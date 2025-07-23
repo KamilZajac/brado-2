@@ -21,7 +21,6 @@ import { WorkingPeriodModule } from '../working-period/working-period.module';
       LiveReadingEntity,
       HourlyReadingEntity,
       AnnotationEntity,
-      WorkingPeriodEntity,
     ]),
     SettingsModule,
     WorkingPeriodModule,
@@ -33,5 +32,6 @@ import { WorkingPeriodModule } from '../working-period/working-period.module';
     ScheduleService,
     AnnotationService,
   ],
+  exports: [ReadingService]
 })
 export class ReadingModule {}

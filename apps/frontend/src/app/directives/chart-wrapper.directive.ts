@@ -21,7 +21,7 @@ export class ChartWrapperDirective implements OnInit {
     const {from, to} = getWeeklyTimestamps()
 
     this.mode === 'live' ?
-      this.annotationsStore.loadAnnotationsAfter(getStartOfToday()) :
+      this.annotationsStore.loadAnnotationsForCurrentPeriod() :
       this.annotationsStore.loadAnnotationsBetween(from, to);
   }
 }

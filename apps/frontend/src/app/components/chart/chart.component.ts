@@ -151,7 +151,6 @@ export class ChartComponent implements OnInit {
   ) {
     effect(() => {
       if (this.annotationsStore.getAnnotationsForReadings(this.data)?.length) {
-        console.log(this.data)
         this.buildChartOptions()
       }
     })
@@ -1137,13 +1136,13 @@ export class ChartComponent implements OnInit {
   public getAnnotationTitle(annotationType: AnnotationType): string {
     switch (annotationType) {
       case AnnotationType.BREAK_FROM_TO:
-        return 'Przerwa';
+        return 'P';
       case AnnotationType.ACCIDENT_FROM_TO:
-        return 'Awaria'
+        return 'A'
       case AnnotationType.ORGANISATION_FROM_TO:
-        return 'Organizacja';
+        return 'O';
       case AnnotationType.CLIPS_CHANGE:
-        return 'Wymiana Strzemion';
+        return 'W';
       default:
         return ''
     }
@@ -1154,11 +1153,11 @@ export class ChartComponent implements OnInit {
       case AnnotationType.BREAK_FROM_TO:
         return 'rgba(60, 180, 75, 0.8) ';
       case AnnotationType.ACCIDENT_FROM_TO:
-        return 'rgba(200, 30, 60, 0.8) '
+        return 'rgba(255, 0, 5, 0.8) '
       case AnnotationType.ORGANISATION_FROM_TO:
-        return 'rgba(20, 90, 50, 0.85) ';
+        return 'rgba(237, 227, 81 , 0.85) ';
       case AnnotationType.CLIPS_CHANGE:
-        return 'rgba(240, 200, 0, 0.8) ';
+        return 'rgba(0,100,240, 0.8) ';
       default:
         return ''
     }
@@ -1234,6 +1233,9 @@ export class ChartComponent implements OnInit {
   async openChartOperationsList(ev: Event) {
     const popover = await this.popoverCtrl.create({
       component: ChartOperationsListComponent,
+      componentProps: {
+        isLive: this.isLive
+      },
       event: ev,
       translucent: true
     });

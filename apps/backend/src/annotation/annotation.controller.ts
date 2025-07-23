@@ -39,6 +39,11 @@ export class AnnotationController {
     return this.annotationService.getAfterTime(ts);
   }
 
+  @Get('current')
+  getCurrentAnnotations() {
+    return this.annotationService.getCurrentAnnotations();
+  }
+
   @Get('between/:fromTS/:toTS')
   getFromTo(@Param('fromTS') fromTS: string, @Param('toTS') toTS: string) {
     return this.annotationService.getBetween(fromTS, toTS);

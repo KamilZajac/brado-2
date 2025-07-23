@@ -1,7 +1,8 @@
-import { Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { WorkingPeriodService } from './working-period.service';
 import { Cron } from '@nestjs/schedule';
 
+@Injectable()
 export class WorkingPeriodSchedule implements OnModuleInit {
   onModuleInit() {
     console.log('WorkingPeriodSchedule Cron service initialized');
@@ -9,7 +10,7 @@ export class WorkingPeriodSchedule implements OnModuleInit {
 
   private readonly logger = new Logger('WorkingPeriods');
 
-  constructor(private readonly workingPeriodService: WorkingPeriodService) {}
+  constructor(private workingPeriodService: WorkingPeriodService) {}
 
   @Cron('*/15 * * * *', {
     timeZone: 'Europe/Warsaw', // or your desired TZ

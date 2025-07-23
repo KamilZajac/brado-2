@@ -27,4 +27,9 @@ export class AnnotationService {
   getAnnotationsAfter(fromTS: number): Observable<Annotation[]> {
     return this.http.get<Annotation[]>(environment.apiUrl + `/annotation/after/${fromTS}`);
   }
+
+  getAnnotationsForCurrentPeriod() {
+    return this.http.get<Annotation[]>(environment.apiUrl + `/annotation/current`);
+
+  }
 }

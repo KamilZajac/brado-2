@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import {Component, Input} from '@angular/core';
 import { IonicModule, PopoverController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import {IonItem, IonList} from "@ionic/angular/standalone";
@@ -19,6 +19,7 @@ export enum ChartOperation {
   selector: 'app-operation-list',
   imports: [CommonModule, IonList, IonItem],
   template: `
+    {{isLive}}
     <ion-list>
       <ion-item button (click)="select(ChartOperation.ADD_ANNOTATION)">Dodaj Adnotacje</ion-item>
       <ion-item button (click)="select(ChartOperation.EXPORT_RAW)">Exportuj surowe odczyty</ion-item>
@@ -27,7 +28,11 @@ export enum ChartOperation {
   `
 })
 export class ChartOperationsListComponent {
-  constructor(private popoverCtrl: PopoverController) {}
+  @Input() isLive = false
+
+  constructor(private popoverCtrl: PopoverController) {
+
+  }
 
   select(operation: ChartOperation) {
     this.popoverCtrl.dismiss({ operation }); // return data to parent

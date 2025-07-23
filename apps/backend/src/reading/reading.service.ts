@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, In, LessThan, MoreThan, Repository } from 'typeorm';
 import {
@@ -27,6 +27,8 @@ import { WorkingPeriodService } from '../working-period/working-period.service';
 
 @Injectable()
 export class ReadingService {
+  private readonly logger = new Logger(ReadingService.name);
+
   constructor(
     @InjectRepository(LiveReadingEntity)
     private liveReadingsRepo: Repository<LiveReading>,
@@ -35,6 +37,7 @@ export class ReadingService {
     private readonly gateway: ReadingsGateway,
     private settingsService: SettingsService,
     private annotationService: AnnotationService,
+    @Inject(forwardRef(() => WorkingPeriodService))
     private workPeriodsService: WorkingPeriodService,
   ) {}
 
@@ -1035,5 +1038,38 @@ export class ReadingService {
       added: addedCount,
       message: `Processed ${parsedReadings.length} readings: ${updatedCount} updated, ${addedCount} added`,
     };
+  }
+
+  // Methods for working period detection
+  async getUniqueLiveSensorIds(): Promise<{ sensorId: number }[]> {
+    this.logger.debug('Getting unique sensor IDs from live readings');
+    return this.liveReadingsRepo
+      .createQueryBuilder('r')
+      .select('DISTINCT r.sensorId', 'sensorId')
+      .getRawMany();
+  }
+
+  async getUniqueHourlySensorIds(): Promise<{ sensorId: number }[]> {
+    this.logger.debug('Getting unique sensor IDs from hourly readings');
+    return this.hourlyReadingsRepo
+      .createQueryBuilder('r')
+      .select('DISTINCT r.sensorId', 'sensorId')
+      .getRawMany();
+  }
+
+  async getLiveReadingsBySensorId(sensorId: number): Promise<LiveReading[]> {
+    this.logger.debug(`Getting live readings for sensor ${sensorId}`);
+    return this.liveReadingsRepo.find({
+      where: { sensorId },
+      order: { timestamp: 'ASC' },
+    });
+  }
+
+  async getHourlyReadingsBySensorId(sensorId: number): Promise<HourlyReading[]> {
+    this.logger.debug(`Getting hourly readings for sensor ${sensorId}`);
+    return this.hourlyReadingsRepo.find({
+      where: { sensorId },
+      order: { timestamp: 'ASC' },
+    });
   }
 }

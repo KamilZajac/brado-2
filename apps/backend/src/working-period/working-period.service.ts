@@ -1,22 +1,19 @@
-import { LiveReadingEntity } from '../reading/entities/minute-reading.entity';
-import { HourlyReading, LiveReading, WorkingPeriodType } from '@brado/types';
-import { HourlyReadingEntity } from '../reading/entities/hourly-reading-entity';
+import { WorkingPeriodType } from '@brado/types';
 import { Repository, Between, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WorkingPeriodEntity } from './entities/working-period.entity';
+import { ReadingService } from '../reading/reading.service';
 
 @Injectable()
 export class WorkingPeriodService {
   private readonly logger = new Logger(WorkingPeriodService.name);
 
   constructor(
-    @InjectRepository(LiveReadingEntity)
-    private liveReadingsRepo: Repository<LiveReading>,
-    @InjectRepository(HourlyReadingEntity)
-    private hourlyReadingsRepo: Repository<HourlyReading>,
     @InjectRepository(WorkingPeriodEntity)
     private periodRepo: Repository<WorkingPeriodEntity>,
+    @Inject(forwardRef(() => ReadingService))
+    private readingService: ReadingService,
   ) {}
 
   async detectWorkingPeriods(): Promise<void> {
@@ -29,10 +26,7 @@ export class WorkingPeriodService {
   async detectLiveWorkingPeriods(): Promise<void> {
     this.logger.log('Detecting live working periods');
     // Get all unique sensor IDs
-    const sensorIds = await this.liveReadingsRepo
-      .createQueryBuilder('r')
-      .select('DISTINCT r.sensorId', 'sensorId')
-      .getRawMany();
+    const sensorIds = await this.readingService.getUniqueLiveSensorIds();
 
     // Define constants
     const BREAK_MAX_MS = 2 * 60 * 60 * 1000; // 2 hours - breaks shorter than this are not counted as end of workday
@@ -43,10 +37,7 @@ export class WorkingPeriodService {
       this.logger.debug(`Processing sensor ${sensorId} for live readings`);
 
       // Get all readings for this sensor, ordered by timestamp
-      const readings = await this.liveReadingsRepo.find({
-        where: { sensorId },
-        order: { timestamp: 'ASC' },
-      });
+      const readings = await this.readingService.getLiveReadingsBySensorId(sensorId);
 
       if (readings.length === 0) {
         this.logger.debug(`No live readings found for sensor ${sensorId}`);
@@ -194,10 +185,7 @@ export class WorkingPeriodService {
   async detectHourlyWorkingPeriods(): Promise<void> {
     this.logger.log('Detecting hourly working periods');
     // Get all unique sensor IDs
-    const sensorIds = await this.hourlyReadingsRepo
-      .createQueryBuilder('r')
-      .select('DISTINCT r.sensorId', 'sensorId')
-      .getRawMany();
+    const sensorIds = await this.readingService.getUniqueHourlySensorIds();
 
     // Define constants
     const BREAK_MAX_MS = 2 * 60 * 60 * 1000; // 2 hours - breaks shorter than this are not counted as end of workday
@@ -208,10 +196,7 @@ export class WorkingPeriodService {
       this.logger.debug(`Processing sensor ${sensorId} for hourly readings`);
 
       // Get all readings for this sensor, ordered by timestamp
-      const readings = await this.hourlyReadingsRepo.find({
-        where: { sensorId },
-        order: { timestamp: 'ASC' },
-      });
+      const readings = await this.readingService.getHourlyReadingsBySensorId(sensorId);
 
 
       // console.log(readings.filter(s => s.sensorId === 1 && +s.timestamp >= 1751320800000))

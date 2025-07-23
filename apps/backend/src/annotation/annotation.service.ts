@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { AnnotationEntity } from './entities/annotation.entity';
-import { InjectRepository} from '@nestjs/typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, Between } from 'typeorm';
 import { Annotation, User } from '@brado/types';
+import { WorkingPeriodService } from '../working-period/working-period.service';
 
 // import { Annotation } from '@brado/types';
 
@@ -11,6 +12,8 @@ export class AnnotationService {
   constructor(
     @InjectRepository(AnnotationEntity)
     private readonly annotationRepository: Repository<AnnotationEntity>,
+    @Inject(forwardRef(() => WorkingPeriodService))
+    private workPeriodsService: WorkingPeriodService,
   ) {}
 
   async create(user: User, data: Partial<Annotation>): Promise<Annotation> {
@@ -55,7 +58,6 @@ export class AnnotationService {
     });
   }
 
-
   async update(
     id: number,
     user: User,
@@ -84,5 +86,28 @@ export class AnnotationService {
 
     await this.annotationRepository.remove(annotation);
     return true;
+  }
+
+  async getCurrentAnnotations() {
+
+    const workingPeriods = await this.workPeriodsService.findLatest();
+
+    const startTimes = workingPeriods.map((p) => +p.start);
+
+    let startTime = Date.now() - 24 * 60 * 60 * 1000;
+
+    if (startTimes.length) {
+      startTime = Math.min(...startTimes);
+    }
+
+    // Todo debug only
+    // const todayData = await this.getAfterTime(startOfTheDateTS);
+
+    return this.annotationRepository.find({
+      where: {
+        from_timestamp: MoreThan(startTime.toString()),
+      },
+      order: { from_timestamp: 'ASC' },
+    });
   }
 }

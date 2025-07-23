@@ -6,8 +6,7 @@ import { HourlyReadingEntity } from './reading/entities/hourly-reading-entity';
 import { LiveReadingEntity } from './reading/entities/minute-reading.entity';
 import { SettingsModule } from './settings/settings.module';
 
-import * as path from 'path';
-import * as dotenv from 'dotenv';
+
 import { SettingsEntity } from './settings/entities/setting.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
@@ -40,13 +39,16 @@ const typeormConf = {
   // logging: true,
 };
 
+
+
+
 if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
   typeormConf.host = 'localhost';
   typeormConf.username = 'brado';
   typeormConf.password = 'brado';
   typeormConf.database = 'brado';
 
-  dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+  // dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 }
 
 console.log(typeormConf);
