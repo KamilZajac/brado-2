@@ -1,8 +1,16 @@
 import * as ExcelJS from 'exceljs';
-import { HourlyReading, LiveReading, LiveUpdate } from '@brado/types';
+import {
+  Annotation,
+  AnnotationType,
+  getAnnotationTitle,
+  HourlyReading,
+  LiveReading,
+  LiveUpdate,
+} from '@brado/types';
 import { DateTime } from 'luxon';
 import { SettingsEntity } from '../settings/entities/setting.entity';
 import { ReadingsHelpers } from './readings-helpers';
+import { AnnotationEntity } from '../annotation/entities/annotation.entity';
 
 function formatTimestampToPolish(msTimestamp: number): string {
   return DateTime.fromMillis(msTimestamp, { zone: 'Europe/Warsaw' }).toFormat(
@@ -34,116 +42,173 @@ export async function exportToExcelRAW(
 export async function exportToExcel(
   readings: HourlyReading[],
   settings: SettingsEntity,
+  annotations: AnnotationEntity[],
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
 
-  const uniqueSensorIds = Array.from(
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    new Set(readings.map((entity) => entity.sensorId)),
-  );
+  const sensorId = readings[0].sensorId;
 
-  const grouped: { [key: string]: HourlyReading[] } = {};
+  const mappedReadings = addGrowingAverage(readings, settings.hourlyTarget);
 
-  uniqueSensorIds.forEach((key: number) => {
-    grouped[key] = addGrowingAverage(
-      readings.filter((r) => r.sensorId === +key),
-      settings.hourlyTarget,
-    );
-  });
+  addHourlyWorkSheets(mappedReadings, workbook, settings);
 
-  addHourlyWorkSheets(grouped, workbook, settings);
-
+  if (annotations.length) {
+    addAnnotationsWorksheet(workbook, annotations, sensorId);
+  }
   const buffer = await workbook.xlsx.writeBuffer(); // Write to memory buffer
   return Buffer.from(buffer);
 }
 
 export async function exportToExcelLive(
-  readings: LiveUpdate,
+  readings: LiveReading[],
   settings: SettingsEntity,
+  annotations: AnnotationEntity[],
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
 
-  Object.keys(readings).forEach((sensorId: string) => {
-    const worksheet = workbook.addWorksheet(
-      settings.sensorNames[+sensorId - 1] + '- minutowe',
-    );
+  const sensorId = readings[0].sensorId;
 
-    // Define columns
-    worksheet.columns = [
-      { header: 'Czas', key: 'timestamp', width: 30 },
-      { header: 'Wartość', key: 'value', width: 30 },
-      { header: 'Delta', key: 'delta', width: 30 },
-      { header: 'Suma', key: 'dailyTotal', width: 30 },
-    ];
+  const worksheet = workbook.addWorksheet(
+    settings.sensorNames[sensorId - 1] + '- minutowe',
+  );
 
-    readings[sensorId].readings
-      .map((r: LiveReading) => ({
+  // Define columns
+  worksheet.columns = [
+    { header: 'Czas', key: 'timestamp', width: 30 },
+    { header: 'Wartość', key: 'value', width: 30 },
+    { header: 'Delta', key: 'delta', width: 30 },
+    { header: 'Suma', key: 'dailyTotal', width: 30 },
+  ];
+
+  let dailyTotal = 0;
+
+  readings
+    .map((r: LiveReading) => {
+      dailyTotal += r.delta;
+      return {
         ...r,
+        dailyTotal: dailyTotal,
         timestamp: formatTimestampToPolish(+r.timestamp),
-      }))
-      .forEach((row) => worksheet.addRow(row));
+      };
+    })
+    .forEach((row) => worksheet.addRow(row));
 
-    worksheet.getRow(1).font = { bold: true };
-  });
+  worksheet.getRow(1).font = { bold: true };
 
-  const aggregated = {};
-
-  Object.keys(readings).forEach((sensorId: string) => {
-    aggregated[sensorId] = addGrowingAverage(
-      ReadingsHelpers.aggregateToHourlyReadings(readings[sensorId].readings),
-      settings.hourlyTarget,
-    );
-  });
+  const aggregated = addGrowingAverage(
+    ReadingsHelpers.aggregateToHourlyReadings(readings),
+    settings.hourlyTarget,
+  );
 
   addHourlyWorkSheets(aggregated, workbook, settings);
+
+  // Add annotations worksheet if there are any annotations
+  if (annotations.length > 0) {
+    addAnnotationsWorksheet(workbook, annotations, sensorId);
+  }
 
   const buffer = await workbook.xlsx.writeBuffer(); // Write to memory buffer
   return Buffer.from(buffer);
 }
 
+const addAnnotationsWorksheet = (
+  workbook: ExcelJS.Workbook,
+  annotations: Annotation[],
+  sensorId: number,
+) => {
+  const annotationsWorksheet = workbook.addWorksheet('Adnotacje');
+
+  // Define columns for annotations
+  annotationsWorksheet.columns = [
+    { header: 'Typ', key: 'type', width: 20 },
+    { header: 'Tekst', key: 'text', width: 40 },
+    { header: 'Czas rozpoczęcia', key: 'from_timestamp', width: 30 },
+    { header: 'Czas zakończenia', key: 'to_timestamp', width: 30 },
+    { header: 'Czas trwania (min)', key: 'duration', width: 20 },
+  ];
+
+  // Add annotation rows
+  annotations
+    .filter((a) => a.sensorId === sensorId) // Only include annotations for the current sensor
+    .map((annotation) => {
+      const fromTimestamp = +annotation.from_timestamp;
+      const toTimestamp = annotation.to_timestamp
+        ? +annotation.to_timestamp
+        : 0;
+
+      // Calculate duration in minutes if both timestamps are available
+      //
+      let durationMinutes = 0;
+      if (toTimestamp) {
+        durationMinutes = Math.round(
+          (toTimestamp - fromTimestamp) / (1000 * 60),
+        );
+      }
+
+      return {
+        type: getAnnotationTitle(annotation.type), // Convert enum value to string
+        text: annotation.text,
+        from_timestamp: formatTimestampToPolish(fromTimestamp),
+        to_timestamp: toTimestamp
+          ? formatTimestampToPolish(toTimestamp)
+          : 'N/A',
+        duration: durationMinutes !== null ? durationMinutes : 'N/A',
+      };
+    })
+    .forEach((row) => annotationsWorksheet.addRow(row));
+
+  annotationsWorksheet.getRow(1).font = { bold: true };
+};
+
 export const addHourlyWorkSheets = (
-  aggregated: {
-    [key: string]: HourlyReading[];
-  },
+  aggregated: HourlyReading[],
   workbook: ExcelJS.Workbook,
   settings: SettingsEntity,
 ) => {
-  Object.keys(aggregated).forEach((sensorId: string) => {
-    const worksheet = workbook.addWorksheet(
-      settings.sensorNames[+sensorId - 1] + '- godzinowe',
-    );
+  const sensorId = aggregated[0].sensorId;
+  const worksheet = workbook.addWorksheet(
+    settings.sensorNames[+sensorId - 1] + '- godzinowe',
+  );
 
-    // Define columns
-    worksheet.columns = [
-      { header: 'Czas', key: 'timestamp', width: 30 },
-      { header: 'Wartość', key: 'value', width: 30 },
-      { header: 'Delta', key: 'delta', width: 30 },
-      { header: 'Średnio/min', key: 'average', width: 30 },
-      { header: 'Suma', key: 'dailyTotal', width: 30 },
-      { header: 'Estymacja', key: 'growingAverageEst', width: 30 },
-      { header: 'Średnia rosnąca', key: 'growingAveragePerc', width: 30 },
-    ];
+  // Define columns
+  worksheet.columns = [
+    { header: 'Czas', key: 'timestamp', width: 30 },
+    { header: 'Od', key: 'workStartTime', width: 30 },
+    { header: 'Do', key: 'workEndTime', width: 30 },
+    { header: 'Wartość', key: 'value', width: 30 },
+    { header: 'Delta', key: 'delta', width: 30 },
+    { header: 'Średnio/min', key: 'average', width: 30 },
+    { header: 'Suma', key: 'dailyTotal', width: 30 },
+    // { header: 'Estymacja', key: 'growingAverageEst', width: 30 },
+    // { header: 'Średnia rosnąca', key: 'growingAveragePerc', width: 30 },
+  ];
 
-    aggregated[sensorId]
-      .map((r: LiveReading) => {
-        const estimated = r.growingAverage?.estimatedProduction ?? 0;
-        const estToPrint = estimated > 0 ? estimated : 0;
+  let totalSum = 0;
 
-        const real = r.growingAverage?.realProduction ?? 0;
+  aggregated
+    .map((r: HourlyReading) => {
+      const estimated = r.growingAverage?.estimatedProduction ?? 0;
+      const estToPrint = estimated > 0 ? estimated : 0;
 
-        const growingPerc = estToPrint > 0 ? real / estToPrint : 0;
+      const real = r.growingAverage?.realProduction ?? 0;
 
-        return {
-          ...r,
-          growingAverageEst: estToPrint,
-          growingAveragePerc: growingPerc,
-          timestamp: formatTimestampToPolish(+r.timestamp),
-        };
-      })
-      .forEach((row) => worksheet.addRow(row));
+      const growingPerc = estToPrint > 0 ? real / estToPrint : 0;
 
-    worksheet.getRow(1).font = { bold: true };
-  });
+      totalSum += r.delta;
+
+      return {
+        ...r,
+        growingAverageEst: estToPrint,
+        growingAveragePerc: growingPerc,
+        dailyTotal: totalSum,
+        timestamp: formatTimestampToPolish(+r.timestamp),
+        workStartTime: formatTimestampToPolish(+r.workStartTime),
+        workEndTime: formatTimestampToPolish(+r.workEndTime),
+      };
+    })
+    .forEach((row) => worksheet.addRow(row));
+
+  worksheet.getRow(1).font = { bold: true };
 };
 
 export const addGrowingAverage = (

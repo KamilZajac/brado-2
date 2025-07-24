@@ -41,7 +41,7 @@ export class AnnotationService {
     });
   }
 
-  getBetween(fromTS: string, toTS: string) {
+  getBetween(fromTS: string, toTS: string ) {
     return this.annotationRepository.find({
       where: {
         from_timestamp: Between(fromTS, toTS),

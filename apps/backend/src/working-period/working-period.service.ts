@@ -37,7 +37,8 @@ export class WorkingPeriodService {
       this.logger.debug(`Processing sensor ${sensorId} for live readings`);
 
       // Get all readings for this sensor, ordered by timestamp
-      const readings = await this.readingService.getLiveReadingsBySensorId(sensorId);
+      const readings =
+        await this.readingService.getLiveReadingsBySensorId(sensorId);
 
       if (readings.length === 0) {
         this.logger.debug(`No live readings found for sensor ${sensorId}`);
@@ -113,7 +114,11 @@ export class WorkingPeriodService {
         }
 
         // Check for missing data - if there's a significant gap between current reading and next readings
-        if (currentPeriod && currentPeriod.end === null && i < readings.length - 1) {
+        if (
+          currentPeriod &&
+          currentPeriod.end === null &&
+          i < readings.length - 1
+        ) {
           const nextReadingTimeMs = parseInt(readings[i + 1].timestamp);
           const timeDifference = nextReadingTimeMs - currentTimeMs;
 
@@ -196,8 +201,8 @@ export class WorkingPeriodService {
       this.logger.debug(`Processing sensor ${sensorId} for hourly readings`);
 
       // Get all readings for this sensor, ordered by timestamp
-      const readings = await this.readingService.getHourlyReadingsBySensorId(sensorId);
-
+      const readings =
+        await this.readingService.getHourlyReadingsBySensorId(sensorId);
 
       // console.log(readings.filter(s => s.sensorId === 1 && +s.timestamp >= 1751320800000))
 
@@ -259,7 +264,7 @@ export class WorkingPeriodService {
             );
             currentPeriod.end = currentPeriod.lastActiveTimestamp;
 
-            console.log(currentPeriod.start, currentPeriod.end)
+            console.log(currentPeriod.start, currentPeriod.end);
 
             // Save the completed period
             await this.periodRepo.save(
@@ -277,7 +282,11 @@ export class WorkingPeriodService {
         }
 
         // Check for missing data - if there's a significant gap between current reading and next readings
-        if (currentPeriod && currentPeriod.end === null && i < readings.length - 1) {
+        if (
+          currentPeriod &&
+          currentPeriod.end === null &&
+          i < readings.length - 1
+        ) {
           const nextReadingTimeMs = parseInt(readings[i + 1].timestamp);
           const timeDifference = nextReadingTimeMs - currentTimeMs;
 
@@ -350,6 +359,7 @@ export class WorkingPeriodService {
     fromTS: string,
     toTS: string,
     type?: WorkingPeriodType,
+    sensorId?: string
   ): Promise<WorkingPeriodEntity[]> {
     const whereConditions = [
       {
@@ -366,8 +376,14 @@ export class WorkingPeriodService {
 
     if (type) {
       // Add type condition to each where clause
-      whereConditions.forEach(condition => {
+      whereConditions.forEach((condition) => {
         condition['type'] = type;
+      });
+    }
+    if (sensorId) {
+      // Add type condition to each where clause
+      whereConditions.forEach((condition) => {
+        condition['sensorId'] = sensorId;
       });
     }
 
@@ -376,7 +392,10 @@ export class WorkingPeriodService {
     });
   }
 
-  async findLatest(type?: WorkingPeriodType): Promise<WorkingPeriodEntity[]> {
+  async findLatest(
+    type?: WorkingPeriodType,
+    sensorId?: string,
+  ): Promise<WorkingPeriodEntity[]> {
     // Step 1: Get max start per sensorId (and type if specified)
     let queryBuilder = this.periodRepo
       .createQueryBuilder('wp')
@@ -387,6 +406,14 @@ export class WorkingPeriodService {
         .andWhere('wp.type = :type', { type })
         .addSelect('wp.type', 'type');
     }
+
+    if (sensorId) {
+      console.log('FAIFLAKJSLFKAJLKF')
+      queryBuilder = queryBuilder
+          .andWhere('wp.sensorId = :sensorId', { sensorId: sensorId })
+          .addSelect('wp.sensorId', 'sensorId');
+    }
+
 
     queryBuilder = queryBuilder
       .addSelect('MAX(wp.start)', 'maxStart')
@@ -435,7 +462,10 @@ export class WorkingPeriodService {
   /**
    * Get working periods for a specific sensor
    */
-  async getBySensorId(sensorId: number, type?: WorkingPeriodType): Promise<WorkingPeriodEntity[]> {
+  async getBySensorId(
+    sensorId: number,
+    type?: WorkingPeriodType,
+  ): Promise<WorkingPeriodEntity[]> {
     const whereCondition: any = { sensorId };
 
     if (type) {

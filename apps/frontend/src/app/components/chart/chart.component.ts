@@ -1,5 +1,14 @@
 import {Component, effect, EventEmitter, inject, input, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {Annotation, AnnotationType, HourlyReading, LiveReading, TempReading, User, WorkingPeriod} from "@brado/types";
+import {
+  Annotation,
+  AnnotationType,
+  getAnnotationTitle, getPolishDayKey,
+  HourlyReading,
+  LiveReading,
+  TempReading,
+  User,
+  WorkingPeriod
+} from "@brado/types";
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ReadingsToSeriesPipe} from "../../misc/readings-to-series.pipe";
 import {DataSourceOptionsComponent} from "../shared/data-source-options/data-source-options.component";
@@ -253,7 +262,7 @@ export class ChartComponent implements OnInit {
             id: pt.id,
             borderWidth: 5,
             tooltipData: {
-              title: this.getAnnotationTitle(pt.type),
+              title: getAnnotationTitle(pt.type),
               text: pt.text
             },
             // label: {
@@ -1133,21 +1142,6 @@ export class ChartComponent implements OnInit {
     }
   }
 
-  public getAnnotationTitle(annotationType: AnnotationType): string {
-    switch (annotationType) {
-      case AnnotationType.BREAK_FROM_TO:
-        return 'P';
-      case AnnotationType.ACCIDENT_FROM_TO:
-        return 'A'
-      case AnnotationType.ORGANISATION_FROM_TO:
-        return 'O';
-      case AnnotationType.CLIPS_CHANGE:
-        return 'W';
-      default:
-        return ''
-    }
-  }
-
   private getAnnotationColor(annotationType: AnnotationType) {
     switch (annotationType) {
       case AnnotationType.BREAK_FROM_TO:
@@ -1270,7 +1264,8 @@ export class ChartComponent implements OnInit {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `${this.sensorName}-surowe.xlsx`;
+
+          a.download = `${this.sensorName}-${getPolishDayKey(new Date().getTime())}.xlsx`;
           a.click();
           window.URL.revokeObjectURL(url);
         }

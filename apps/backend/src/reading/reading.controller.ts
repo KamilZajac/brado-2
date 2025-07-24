@@ -77,11 +77,9 @@ export class ReadingController {
     return await this.readingsService.importCsvData(sensorID, csvData); // Przekaż dane do ReadingService
   }
 
-  @Get('export-live/:sensorID')
-  async exportLive(
-    @Param('sensorId') sensorId: string,
-    @Res() res: Response,
-  ) {
+  @Get('export-live/:sensorId')
+  async exportLive(@Param('sensorId') sensorId: string, @Res() res: Response) {
+    console.log(sensorId);
     const buffer = await this.readingsService.exportLiveData(sensorId);
 
     res.setHeader(
@@ -92,13 +90,19 @@ export class ReadingController {
     res.send(buffer);
   }
 
-  @Get('export/:fromTS/:toTS')
+  // export-hourly/${fromTS}/${toTS}/${sensorIdd}
+  @Get('export-hourly/:fromTS/:toTS/:sensorId')
   async export(
     @Param('fromTS') fromTS: string,
     @Param('toTS') toTS: string,
+    @Param('sensorId') sensorId: string,
     @Res() res: Response,
   ) {
-    const buffer = await this.readingsService.exportData(fromTS, toTS);
+    const buffer = await this.readingsService.exportData(
+      fromTS,
+      toTS,
+      +sensorId,
+    );
 
     res.setHeader(
       'Content-Type',

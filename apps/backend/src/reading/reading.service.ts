@@ -1,4 +1,4 @@
-import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, In, LessThan, MoreThan, Repository } from 'typeorm';
 import {
@@ -24,6 +24,7 @@ import {
 import { SettingsService } from '../settings/settings.service';
 import { AnnotationService } from '../annotation/annotation.service';
 import { WorkingPeriodService } from '../working-period/working-period.service';
+import { TimeHelper } from '../shared/time.helpers';
 
 @Injectable()
 export class ReadingService {
@@ -280,7 +281,9 @@ export class ReadingService {
   async getInitialLiveData(startOfTheDateTS: string): Promise<LiveUpdate> {
     console.log('Getting initial live data', startOfTheDateTS);
 
-    const workingPeriods = await this.workPeriodsService.findLatest();
+    const workingPeriods = await this.workPeriodsService.findLatest(
+      WorkingPeriodType.LIVE,
+    );
 
     console.log(workingPeriods);
     const startTimes = workingPeriods.map((p) => +p.start);
@@ -290,6 +293,8 @@ export class ReadingService {
     if (startTimes.length) {
       startTime = Math.min(...startTimes);
     }
+
+    console.log(workingPeriods);
 
     // Todo debug only
     // const todayData = await this.getAfterTime(startOfTheDateTS);
@@ -644,11 +649,24 @@ export class ReadingService {
     return readings;
   }
 
-  async exportData(fromTS: string, toTS: string): Promise<Buffer> {
-    const hourly = await this.getHourly(fromTS, toTS);
+  async exportData(
+    fromTS: string,
+    toTS: string,
+    sensorId: number,
+  ): Promise<Buffer> {
+    const hourly = await this.hourlyReadingsRepo.find({
+      where: {
+        timestamp: Between(fromTS, toTS),
+        sensorId: sensorId,
+      },
+      order: { timestamp: 'ASC' },
+    });
+
+    const annotations = await this.annotationService.getBetween(fromTS, toTS);
+
     const settings = await this.settingsService.getSettings();
 
-    return exportToExcel(hourly, settings);
+    return exportToExcel(hourly, settings, annotations);
   }
 
   async exportRawData(
@@ -667,12 +685,45 @@ export class ReadingService {
     return exportToExcelRAW(hourly);
   }
 
-  async exportLiveData(fromTS: string): Promise<Buffer> {
-    const liveData = await this.getInitialLiveData(fromTS);
+  async exportLiveData(sensorId: string): Promise<Buffer> {
+    const newestWorkingPeriod = await this.workPeriodsService.findLatest(
+      WorkingPeriodType.LIVE,
+      sensorId,
+    );
+
+    let from, to;
+
+    if (!newestWorkingPeriod.length) {
+      const polandToday = TimeHelper.todayFromTo();
+      from = polandToday.from;
+      to = polandToday.to;
+    } else {
+      const workingPeriod = newestWorkingPeriod[0];
+      from = workingPeriod.start;
+      to = workingPeriod.end != null ? workingPeriod.end : new Date().getTime();
+    }
+
+    const annotations = await this.annotationService.getBetween(from, to);
+
+    const liveReadings = await this.liveReadingsRepo.find({
+      where: {
+        sensorId: +sensorId,
+        timestamp: Between(from, to),
+      },
+      order: { timestamp: 'ASC' },
+    });
+
     const settings = await this.settingsService.getSettings();
 
-    return exportToExcelLive(liveData, settings);
+    return exportToExcelLive(liveReadings, settings, annotations);
   }
+
+  // async exportLiveDataOLD(fromTS: string): Promise<Buffer> {
+  //   const liveData = await this.getInitialLiveData(fromTS);
+  //   const settings = await this.settingsService.getSettings();
+  //
+  //   return exportToExcelLive(liveData, settings);
+  // }
 
   async deleteOldReadings() {
     const fourWeeksAgo = new Date();
@@ -1065,7 +1116,9 @@ export class ReadingService {
     });
   }
 
-  async getHourlyReadingsBySensorId(sensorId: number): Promise<HourlyReading[]> {
+  async getHourlyReadingsBySensorId(
+    sensorId: number,
+  ): Promise<HourlyReading[]> {
     this.logger.debug(`Getting hourly readings for sensor ${sensorId}`);
     return this.hourlyReadingsRepo.find({
       where: { sensorId },

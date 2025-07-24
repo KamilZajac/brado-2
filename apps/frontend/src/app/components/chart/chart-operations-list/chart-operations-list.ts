@@ -23,13 +23,13 @@ export enum ChartOperation {
     @if(this.isLive) {
       <ion-list>
         <ion-item button (click)="select(ChartOperation.ADD_ANNOTATION)">Dodaj Adnotacje</ion-item>
-<!--        <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel</ion-item>-->
+        <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel</ion-item>
       </ion-list>
     } @else {
     <ion-list>
       <ion-item button (click)="select(ChartOperation.EXPORT_RAW)">Exportuj surowe odczyty</ion-item>
       <ion-item button (click)="select(ChartOperation.IMPORT_RAW)">Importuj surowe odczyty</ion-item>
-<!--      <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel </ion-item>-->
+      <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel </ion-item>
     </ion-list>
     }
   `

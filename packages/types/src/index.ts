@@ -139,7 +139,7 @@ export function groupBy<T>(array: T[], getKey: (item: T) => string): Record<stri
     return result;
 }
 
-const getPolishDayKey = (timestamp: number | string): string => {
+export const getPolishDayKey = (timestamp: number | string): string => {
     const date = new Date(+timestamp);
     const formatter = new Intl.DateTimeFormat('pl-PL', {
         timeZone: 'Europe/Warsaw',
@@ -398,4 +398,20 @@ export const MTTR = (dailyWorkingStats: DailyWorkingSummary): number => {
         return 0
     }
     return dailyWorkingStats.accidents.totalDurationMs / dailyWorkingStats.accidents.count
+}
+
+
+export const getAnnotationTitle = (annotationType: AnnotationType): string => {
+    switch (annotationType) {
+        case AnnotationType.BREAK_FROM_TO:
+            return 'P';
+        case AnnotationType.ACCIDENT_FROM_TO:
+            return 'A'
+        case AnnotationType.ORGANISATION_FROM_TO:
+            return 'O';
+        case AnnotationType.CLIPS_CHANGE:
+            return 'W';
+        default:
+            return ''
+    }
 }
