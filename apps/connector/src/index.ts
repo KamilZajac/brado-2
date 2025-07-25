@@ -233,6 +233,9 @@ async function pollSensors(): Promise<void> {
 async function postReadings(): Promise<void> {
     const timestamp = getTimestamp();
 
+    logger.debug("Starting temperature readings collection");
+    readTemperatures();
+
     logger.info(`Preparing to send readings at ${timestamp}`);
 
     // Get readings from the send buffer (resets)
@@ -292,8 +295,7 @@ async function postReadings(): Promise<void> {
         saveUnsentToFile(allReadings);
     }
 
-    logger.debug("Starting temperature readings collection");
-    readTemperatures();
+
 }
 
 // --- Initialization ---
