@@ -17,14 +17,11 @@ export class WorkingPeriodService {
   ) {}
 
   async detectWorkingPeriods(): Promise<void> {
-    this.logger.log('Detecting working periods');
     await this.detectLiveWorkingPeriods();
     await this.detectHourlyWorkingPeriods();
-    this.logger.log('Working period detection completed');
   }
 
   async detectLiveWorkingPeriods(): Promise<void> {
-    this.logger.log('Detecting live working periods');
     // Get all unique sensor IDs
     const sensorIds = await this.readingService.getUniqueLiveSensorIds();
 
@@ -34,14 +31,12 @@ export class WorkingPeriodService {
 
     for (const row of sensorIds) {
       const sensorId = row.sensorId;
-      this.logger.debug(`Processing sensor ${sensorId} for live readings`);
 
       // Get all readings for this sensor, ordered by timestamp
       const readings =
         await this.readingService.getLiveReadingsBySensorId(sensorId);
 
       if (readings.length === 0) {
-        this.logger.debug(`No live readings found for sensor ${sensorId}`);
         continue;
       }
 
@@ -66,9 +61,7 @@ export class WorkingPeriodService {
 
         // Start a new period if we detect activity and don't have an active period
         if (isActive && !currentPeriod) {
-          this.logger.debug(
-            `Starting new live working period for sensor ${sensorId} at ${new Date(currentTimeMs).toISOString()}`,
-          );
+
           currentPeriod = {
             start: reading.timestamp,
             end: null,
@@ -80,9 +73,6 @@ export class WorkingPeriodService {
           currentPeriod.lastActiveTimestamp = reading.timestamp;
           // If the period was previously ended, reopen it
           if (currentPeriod.end !== null) {
-            this.logger.debug(
-              `Reopening live working period for sensor ${sensorId}`,
-            );
             currentPeriod.end = null;
           }
         }
@@ -93,9 +83,7 @@ export class WorkingPeriodService {
 
           // Only end the period if inactivity exceeds the maximum break time
           if (inactivityDuration > BREAK_MAX_MS) {
-            this.logger.debug(
-              `Ending live working period for sensor ${sensorId} at ${new Date(lastActiveTimeMs).toISOString()} due to ${inactivityDuration / 60000} minutes of inactivity`,
-            );
+
             currentPeriod.end = currentPeriod.lastActiveTimestamp;
 
             // Save the completed period
@@ -140,9 +128,7 @@ export class WorkingPeriodService {
 
             // If no data in next two hours, end the working period
             if (!hasDataInNextTwoHours) {
-              this.logger.debug(
-                `Ending live working period for sensor ${sensorId} at ${new Date(currentTimeMs).toISOString()} due to missing data in next two hours`,
-              );
+
 
               currentPeriod.end = reading.timestamp;
 
@@ -168,9 +154,7 @@ export class WorkingPeriodService {
           currentPeriod &&
           currentPeriod.end === null
         ) {
-          this.logger.debug(
-            `Closing final live working period for sensor ${sensorId} at ${new Date(parseInt(currentPeriod.lastActiveTimestamp)).toISOString()}`,
-          );
+
 
           await this.periodRepo.save(
             this.periodRepo.create({
@@ -184,11 +168,9 @@ export class WorkingPeriodService {
       }
     }
 
-    this.logger.log('Live working period detection completed');
   }
 
   async detectHourlyWorkingPeriods(): Promise<void> {
-    this.logger.log('Detecting hourly working periods');
     // Get all unique sensor IDs
     const sensorIds = await this.readingService.getUniqueHourlySensorIds();
 
@@ -198,7 +180,6 @@ export class WorkingPeriodService {
 
     for (const row of sensorIds) {
       const sensorId = row.sensorId;
-      this.logger.debug(`Processing sensor ${sensorId} for hourly readings`);
 
       // Get all readings for this sensor, ordered by timestamp
       const readings =
@@ -207,7 +188,6 @@ export class WorkingPeriodService {
       // console.log(readings.filter(s => s.sensorId === 1 && +s.timestamp >= 1751320800000))
 
       if (readings.length === 0) {
-        this.logger.debug(`No hourly readings found for sensor ${sensorId}`);
         continue;
       }
 
@@ -232,9 +212,6 @@ export class WorkingPeriodService {
 
         // Start a new period if we detect activity and don't have an active period
         if (isActive && !currentPeriod) {
-          this.logger.debug(
-            `Starting new hourly working period for sensor ${sensorId} at ${new Date(currentTimeMs).toISOString()}`,
-          );
           currentPeriod = {
             start: reading.timestamp,
             end: null,
@@ -246,9 +223,6 @@ export class WorkingPeriodService {
           currentPeriod.lastActiveTimestamp = reading.timestamp;
           // If the period was previously ended, reopen it
           if (currentPeriod.end !== null) {
-            this.logger.debug(
-              `Reopening hourly working period for sensor ${sensorId}`,
-            );
             currentPeriod.end = null;
           }
         }
@@ -259,12 +233,7 @@ export class WorkingPeriodService {
 
           // Only end the period if inactivity exceeds the maximum break time
           if (inactivityDuration > BREAK_MAX_MS) {
-            this.logger.debug(
-              `Ending hourly working period for sensor ${sensorId} at ${new Date(lastActiveTimeMs).toISOString()} due to ${inactivityDuration / 60000} minutes of inactivity`,
-            );
             currentPeriod.end = currentPeriod.lastActiveTimestamp;
-
-            console.log(currentPeriod.start, currentPeriod.end);
 
             // Save the completed period
             await this.periodRepo.save(
@@ -308,9 +277,6 @@ export class WorkingPeriodService {
 
             // If no data in next two hours, end the working period
             if (!hasDataInNextTwoHours) {
-              this.logger.debug(
-                `Ending hourly working period for sensor ${sensorId} at ${new Date(currentTimeMs).toISOString()} due to missing data in next two hours`,
-              );
 
               currentPeriod.end = reading.timestamp;
 
@@ -336,9 +302,6 @@ export class WorkingPeriodService {
           currentPeriod &&
           currentPeriod.end === null
         ) {
-          this.logger.debug(
-            `Closing final hourly working period for sensor ${sensorId} at ${new Date(parseInt(currentPeriod.lastActiveTimestamp)).toISOString()}`,
-          );
 
           await this.periodRepo.save(
             this.periodRepo.create({
@@ -351,8 +314,6 @@ export class WorkingPeriodService {
         }
       }
     }
-
-    this.logger.log('Hourly working period detection completed');
   }
 
   async getBetween(
@@ -408,7 +369,6 @@ export class WorkingPeriodService {
     }
 
     if (sensorId) {
-      console.log('FAIFLAKJSLFKAJLKF')
       queryBuilder = queryBuilder
           .andWhere('wp.sensorId = :sensorId', { sensorId: sensorId })
           .addSelect('wp.sensorId', 'sensorId');
@@ -482,7 +442,6 @@ export class WorkingPeriodService {
    * Manually trigger the working period detection process
    */
   async manualDetection(): Promise<void> {
-    this.logger.log('Manually triggering working period detection');
     return this.detectWorkingPeriods();
   }
 
@@ -490,7 +449,6 @@ export class WorkingPeriodService {
    * Manually trigger the live working period detection process
    */
   async manualLiveDetection(): Promise<void> {
-    this.logger.log('Manually triggering live working period detection');
     return this.detectLiveWorkingPeriods();
   }
 
@@ -498,7 +456,6 @@ export class WorkingPeriodService {
    * Manually trigger the hourly working period detection process
    */
   async manualHourlyDetection(): Promise<void> {
-    this.logger.log('Manually triggering hourly working period detection');
     return this.detectHourlyWorkingPeriods();
   }
 }

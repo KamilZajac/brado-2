@@ -19,7 +19,6 @@ export class ScheduleService implements OnModuleInit {
     this.readingService
       .aggregate()
       .then((res) => {
-        this.logger.log(res);
       })
       .catch((err) => {
         this.logger.error(err);
@@ -34,7 +33,6 @@ export class ScheduleService implements OnModuleInit {
     this.readingService
       .deleteOldReadings()
       .then((res) => {
-        this.logger.log(res);
       })
       .catch((err) => {
         this.logger.error(err);

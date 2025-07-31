@@ -32,10 +32,8 @@ export class UsersService {
     role: UserRole,
   ): Promise<UserEntity> {
     const hash = await bcrypt.hash(password, 10);
-    console.log(username);
 
     const user = this.repo.create({ username, passwordHash: hash, role });
-    console.log(user)
     return this.repo.save(user);
   }
 
@@ -51,8 +49,6 @@ export class UsersService {
 
   async create(data: User): Promise<User> {
     const user = await this.repo.create(data);
-    console.log('enttoity')
-    console.log(user)
     return this.repo.save(user);
   }
 

@@ -19,7 +19,6 @@ export class SettingsController {
 
   @Get()
   async getSettings(): Promise<SettingsEntity | null> {
-    console.log(await this.settingsService.getSettings());
     return this.settingsService.getSettings();
   }
 }

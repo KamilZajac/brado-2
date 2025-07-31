@@ -30,6 +30,8 @@ export class TemperatureService {
   ) {}
 
   async addReading(data: TempReading[]) {
+    const date = new Date().toISOString();
+    console.log(date + ' Received temperature reading - ' + data.length);
     const toSave = this.tempReadingsRepo.create(data);
     try {
       await this.tempReadingsRepo.save(toSave);
@@ -38,6 +40,7 @@ export class TemperatureService {
       // Process temperature alerts for sensors with 'szok' in their name
       this.processSensorTemperatureAlerts(toSave);
 
+      console.log(date + 'Saved and processed');
       return 'ok';
     } catch (error) {
       throw error;

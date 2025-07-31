@@ -79,7 +79,6 @@ export class ReadingController {
 
   @Get('export-live/:sensorId')
   async exportLive(@Param('sensorId') sensorId: string, @Res() res: Response) {
-    console.log(sensorId);
     const buffer = await this.readingsService.exportLiveData(sensorId);
 
     res.setHeader(
@@ -152,7 +151,6 @@ export class ConnectorReadingController {
 
   @Post()
   add(@Body() readings: { data: [LiveReading] }) {
-    console.log(readings);
     return this.readingsService.addReading(readings.data);
   }
 

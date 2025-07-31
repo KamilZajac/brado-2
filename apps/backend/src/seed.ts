@@ -68,7 +68,6 @@ async function seedDatabase() {
         await AppDataSource.getRepository(LiveReadingEntity).save(chunk);
     }
 
-    console.log(`✅ Seeded ${readings.length} sensor readings.`);
     await AppDataSource.destroy();
 }
 

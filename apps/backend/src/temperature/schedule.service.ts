@@ -20,7 +20,6 @@ export class ScheduleService implements OnModuleInit {
     this.tempService
       .deleteOldReadings()
       .then((res) => {
-        this.logger.log(res);
       })
       .catch((err) => {
         this.logger.error(err);
@@ -35,7 +34,6 @@ export class ScheduleService implements OnModuleInit {
     this.tempService
       .exportAllTempsAndSend()
       .then((res) => {
-        this.logger.log(res);
       })
       .catch((err) => {
         this.logger.error(err);

@@ -279,13 +279,11 @@ export class ReadingService {
   }
 
   async getInitialLiveData(startOfTheDateTS: string): Promise<LiveUpdate> {
-    console.log('Getting initial live data', startOfTheDateTS);
 
     const workingPeriods = await this.workPeriodsService.findLatest(
       WorkingPeriodType.LIVE,
     );
 
-    console.log(workingPeriods);
     const startTimes = workingPeriods.map((p) => +p.start);
 
     let startTime = Date.now() - 24 * 60 * 60 * 1000;
@@ -293,8 +291,6 @@ export class ReadingService {
     if (startTimes.length) {
       startTime = Math.min(...startTimes);
     }
-
-    console.log(workingPeriods);
 
     // Todo debug only
     // const todayData = await this.getAfterTime(startOfTheDateTS);
@@ -750,8 +746,6 @@ export class ReadingService {
       }
     }
 
-    console.log('TO SAVE');
-    console.log(readingToSave);
     // Recalculate delta value for current reading
     // Find the previous reading for this sensor
     const previousReadings = await this.findLastNBySensorIdBeforeTs(
@@ -784,7 +778,6 @@ export class ReadingService {
     // Update the delta value
     readingToSave.delta = delta;
 
-    console.log('DELTA ' + delta);
     // Update daily totals if needed
     const dateKey = this.getDateKey(
       readingToSave.sensorId,
@@ -807,8 +800,6 @@ export class ReadingService {
     const created = this.liveReadingsRepo.create(readingToSave);
     await this.liveReadingsRepo.save(created);
 
-    console.log('SAVED');
-    console.log(created);
 
     // Find the next reading after this one to update its delta
     const nextReading = await this.findNextBySensorIdAfterTimestamp(
@@ -865,8 +856,6 @@ export class ReadingService {
       }
     }
 
-    console.log('TO SAVE HOURLY');
-    console.log(readingToSave);
     // Recalculate delta value for current reading
     // Find the previous reading for this sensor (the one before the current timestamp)
     const previousReadings = await this.findLastNHourlyBySensorIdBeforeTs(
@@ -895,7 +884,6 @@ export class ReadingService {
     // Update the delta value
     readingToSave.delta = delta;
 
-    console.log('HOURLY DELTA ' + delta);
     // Update daily totals if needed
     const dateKey = this.getDateKey(
       readingToSave.sensorId,
@@ -917,9 +905,6 @@ export class ReadingService {
     // Create new entity
     const created = this.hourlyReadingsRepo.create(readingToSave);
     await this.hourlyReadingsRepo.save(created);
-
-    console.log('HOURLY SAVED');
-    console.log(created);
 
     // Find the next reading after this one to update its delta
     const nextReadings = await this.hourlyReadingsRepo.find({
@@ -1067,9 +1052,7 @@ export class ReadingService {
         // Reading exists - check if value has changed
         if (existingReading.value !== reading.value) {
           // Update the reading
-          console.log(
-            `Updating existing reading ${existingReading.id} with value ${reading.value} - ${reading.timestamp}`,
-          );
+
           await this.createOrUpdateHourlyReading({
             ...existingReading,
             value: reading.value,
@@ -1093,7 +1076,6 @@ export class ReadingService {
 
   // Methods for working period detection
   async getUniqueLiveSensorIds(): Promise<{ sensorId: number }[]> {
-    this.logger.debug('Getting unique sensor IDs from live readings');
     return this.liveReadingsRepo
       .createQueryBuilder('r')
       .select('DISTINCT r.sensorId', 'sensorId')
@@ -1101,7 +1083,6 @@ export class ReadingService {
   }
 
   async getUniqueHourlySensorIds(): Promise<{ sensorId: number }[]> {
-    this.logger.debug('Getting unique sensor IDs from hourly readings');
     return this.hourlyReadingsRepo
       .createQueryBuilder('r')
       .select('DISTINCT r.sensorId', 'sensorId')
@@ -1109,7 +1090,6 @@ export class ReadingService {
   }
 
   async getLiveReadingsBySensorId(sensorId: number): Promise<LiveReading[]> {
-    this.logger.debug(`Getting live readings for sensor ${sensorId}`);
     return this.liveReadingsRepo.find({
       where: { sensorId },
       order: { timestamp: 'ASC' },
@@ -1119,7 +1099,6 @@ export class ReadingService {
   async getHourlyReadingsBySensorId(
     sensorId: number,
   ): Promise<HourlyReading[]> {
-    this.logger.debug(`Getting hourly readings for sensor ${sensorId}`);
     return this.hourlyReadingsRepo.find({
       where: { sensorId },
       order: { timestamp: 'ASC' },
