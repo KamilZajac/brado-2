@@ -1,7 +1,7 @@
 import {computed, inject, Injectable, Signal, signal} from "@angular/core";
 import {DataService, getCurrentMonthTimestamps, getWeeklyTimestamps} from "./data.service";
 import {
-  addGrowingAverage,
+  addGrowingAverageLive,
   DailyWorkingSummary, getDailyWorkingSummary,
   GrowingAverage,
   HourlyReading,
@@ -97,7 +97,7 @@ export class DataStore {
           const mergedReadings =
             this.removeDuplicateReadings([...updated[key].readings, ...newData[key].readings]).sort((a,b) => +a.timestamp - +b.timestamp)
 
-          const newReadings = addGrowingAverage(mergedReadings, this.getHourlyTarget());
+          const newReadings = addGrowingAverageLive(mergedReadings, this.getHourlyTarget());
           updated[key] = {
             readings: newReadings,
             growingAverage: newReadings[newReadings.length-1].growingAverage || {} as GrowingAverage,
@@ -160,7 +160,7 @@ export class DataStore {
     this.api.getInitialLiveData().subscribe({
       next: (liveUpdate) => {
         Object.keys(liveUpdate).forEach((key) => {
-          const readings =  addGrowingAverage(liveUpdate[key].readings.sort((a,b) => +a.timestamp - +b.timestamp), this.getHourlyTarget())
+          const readings =  addGrowingAverageLive(liveUpdate[key].readings.sort((a, b) => +a.timestamp - +b.timestamp), this.getHourlyTarget())
           liveUpdate[key] = {...liveUpdate[key], readings: this.removeDuplicateReadings(readings)}
         })
 

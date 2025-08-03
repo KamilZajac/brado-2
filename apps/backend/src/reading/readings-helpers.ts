@@ -56,6 +56,7 @@ export class ReadingsHelpers {
         timestamp: (hourTimestamp + 3600000).toString(),
         value: last.value,
         delta: delta,
+        dailyTotal: last.dailyTotal,
         workStartTime: workStartTime || '0',
         workEndTime: workEndTime || '0',
         average,

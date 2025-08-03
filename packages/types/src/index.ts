@@ -157,7 +157,7 @@ const addAnnotationStats = (a: AnnotationStats, b: AnnotationStats): AnnotationS
     totalDurationMs: a.totalDurationMs + b.totalDurationMs
 });
 
-export const addGrowingAverage = (readings: LiveReading[], hourlyTarget: number): LiveReading[] => {
+export const addGrowingAverageLive = (readings: LiveReading[], hourlyTarget: number): LiveReading[] => {
     const firstReadingWithValue = readings.find(r => r.delta >= 5);
 
     if (!firstReadingWithValue || !hourlyTarget) {
@@ -184,6 +184,48 @@ export const addGrowingAverage = (readings: LiveReading[], hourlyTarget: number)
             }
         }
     })
+
+    return readings
+}
+
+export const addGrowingAverageHourly = (readings: HourlyReading[], hourlyTarget: number): HourlyReading[] => {
+    const firstReadingWithValueIdx = readings.findIndex(r => r.delta >= 5);
+    const lastReadingWithValueIdx = [...readings].reverse().findIndex(r => r.delta >= 5);
+
+    if (firstReadingWithValueIdx === -1 || !hourlyTarget || lastReadingWithValueIdx === -1) {
+        console.error('no first reading, or hourly target');
+        return readings;
+    }
+
+    const sumUpToIndex = (targetIndex: number) => {
+        return readings.slice(firstReadingWithValueIdx, targetIndex + 1).reduce((a,b) => {
+            return a + b.delta
+        }, 0);
+    }
+
+    readings = readings.map(((r, idx) => {
+        const isLastReadingInRange = idx === lastReadingWithValueIdx;
+
+        const endTime = isLastReadingInRange ? r.workEndTime : r.timestamp;
+
+        const minutesSinceFirstReading = Math.floor(
+            (+endTime - +readings[firstReadingWithValueIdx].workStartTime) / 60000,
+        );
+
+
+        const estimatedProduction = Math.round(minutesSinceFirstReading * (hourlyTarget / 60));
+
+        return {
+            ...r,
+            growingAverage: {
+                realProduction: r.dailyTotal ?? sumUpToIndex(idx),
+                estimatedProduction,
+                endTime: r.timestamp,
+                fromTime: readings[firstReadingWithValueIdx].timestamp,
+                sensorId: r.sensorId
+            }
+        }
+    }));
 
     return readings
 }

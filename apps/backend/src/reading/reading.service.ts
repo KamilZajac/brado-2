@@ -134,7 +134,10 @@ export class ReadingService {
 
       return 'ok';
     } catch (error) {
-      throw error;
+      console.log('ERROR ON STORING LIVE READING');
+      console.log(toSave);
+      console.error(error);
+      // throw error;
     }
   }
 
@@ -1005,8 +1008,11 @@ export class ReadingService {
         sensorId: +sensorID,
         value,
         timestamp,
+        workStartTime: (+timestamp - 3600000).toString(),
+        workEndTime: timestamp,
       });
     }
+
 
     if (parsedReadings.length === 0) {
       return {
@@ -1056,6 +1062,8 @@ export class ReadingService {
           await this.createOrUpdateHourlyReading({
             ...existingReading,
             value: reading.value,
+            workStartTime: reading.workStartTime,
+            workEndTime: reading.workEndTime,
           });
           updatedCount++;
         }

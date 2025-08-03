@@ -16,7 +16,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('reading')
-// @UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'))
 export class ReadingController {
   constructor(private readonly readingsService: ReadingService) {}
 

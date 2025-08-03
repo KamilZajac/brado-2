@@ -15,13 +15,6 @@ import { WorkingPeriodType } from '@brado/types';
 export class WorkingPeriodController {
   constructor(private readonly workingPeriodService: WorkingPeriodService) {}
 
-  // @Get()
-  // async getAll(
-  //   @Query('type', new ParseEnumPipe(WorkingPeriodType, { optional: true })) type?: WorkingPeriodType,
-  // ): Promise<WorkingPeriodEntity[]> {
-  //   return this.workingPeriodService.getAll(type);
-  // }
-
   @Get(':fromTS/:toTS/:type')
   async getFromTo(
     @Param('fromTS') fromTS: string,
