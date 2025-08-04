@@ -112,8 +112,8 @@ export class DataStore {
     });
   }
 
-  async loadMonthlyWorkingPeriods() {
-    const {from, to } = getCurrentMonthTimestamps()
+  async loadMonthlyWorkingPeriods(period? : {from: number, to: number}) {
+    const {from, to } = period ? period : getCurrentMonthTimestamps()
 
     const workPeriods = await firstValueFrom(this.api.getWorkingPeriods(from, to, 'hourly'));
 

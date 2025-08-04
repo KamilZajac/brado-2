@@ -282,7 +282,6 @@ export class ReadingService {
   }
 
   async getInitialLiveData(startOfTheDateTS: string): Promise<LiveUpdate> {
-
     const workingPeriods = await this.workPeriodsService.findLatest(
       WorkingPeriodType.LIVE,
     );
@@ -661,11 +660,18 @@ export class ReadingService {
       order: { timestamp: 'ASC' },
     });
 
+    const workPeriods = await this.workPeriodsService.getBetween(
+      fromTS,
+      toTS,
+      WorkingPeriodType.HOURLY,
+      sensorId.toString()
+    );
+
     const annotations = await this.annotationService.getBetween(fromTS, toTS);
 
     const settings = await this.settingsService.getSettings();
 
-    return exportToExcel(hourly, settings, annotations);
+    return exportToExcel(hourly, settings, annotations, workPeriods);
   }
 
   async exportRawData(
@@ -702,6 +708,7 @@ export class ReadingService {
       to = workingPeriod.end != null ? workingPeriod.end : new Date().getTime();
     }
 
+    // Todo filter by sensorID?
     const annotations = await this.annotationService.getBetween(from, to);
 
     const liveReadings = await this.liveReadingsRepo.find({
@@ -802,7 +809,6 @@ export class ReadingService {
     // Create new entity
     const created = this.liveReadingsRepo.create(readingToSave);
     await this.liveReadingsRepo.save(created);
-
 
     // Find the next reading after this one to update its delta
     const nextReading = await this.findNextBySensorIdAfterTimestamp(
@@ -1012,7 +1018,6 @@ export class ReadingService {
         workEndTime: timestamp,
       });
     }
-
 
     if (parsedReadings.length === 0) {
       return {

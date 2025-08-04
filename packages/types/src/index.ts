@@ -188,9 +188,20 @@ export const addGrowingAverageLive = (readings: LiveReading[], hourlyTarget: num
     return readings
 }
 
-export const addGrowingAverageHourly = (readings: HourlyReading[], hourlyTarget: number): HourlyReading[] => {
+export const addGrowingAverageHourly = (groupedReadings: HourlyReading[][], hourlyTarget: number): HourlyReading[] => {
+    let readings: Array<HourlyReading & { isFirstInPeriod: boolean, isLastInPeriod: boolean }> = [];
+    groupedReadings.forEach(grReadings => {
+        readings.push(...grReadings.map((r, idx) => ({
+            ...r, isFirstInPeriod: idx === 0, isLastInPeriod: idx === grReadings.length - 1,
+        })))
+    });
+
     const firstReadingWithValueIdx = readings.findIndex(r => r.delta >= 5);
     const lastReadingWithValueIdx = [...readings].reverse().findIndex(r => r.delta >= 5);
+
+    let firstReadingInWorkPeriod = firstReadingWithValueIdx;
+
+    let lastPeriodEstimate = 0;
 
     if (firstReadingWithValueIdx === -1 || !hourlyTarget || lastReadingWithValueIdx === -1) {
         console.error('no first reading, or hourly target');
@@ -198,28 +209,36 @@ export const addGrowingAverageHourly = (readings: HourlyReading[], hourlyTarget:
     }
 
     const sumUpToIndex = (targetIndex: number) => {
-        return readings.slice(firstReadingWithValueIdx, targetIndex + 1).reduce((a,b) => {
+        return readings.slice(firstReadingWithValueIdx, targetIndex + 1).reduce((a, b) => {
             return a + b.delta
         }, 0);
     }
 
     readings = readings.map(((r, idx) => {
-        const isLastReadingInRange = idx === lastReadingWithValueIdx;
+        if(r.isFirstInPeriod) {
+            firstReadingInWorkPeriod = idx;
+        }
+
+
+        const isLastReadingInRange = readings[idx].isFirstInPeriod
 
         const endTime = isLastReadingInRange ? r.workEndTime : r.timestamp;
 
         const minutesSinceFirstReading = Math.floor(
-            (+endTime - +readings[firstReadingWithValueIdx].workStartTime) / 60000,
+            (+endTime - +readings[firstReadingInWorkPeriod].workStartTime) / 60000,
         );
 
+        const currentEstimate = lastPeriodEstimate + Math.round(minutesSinceFirstReading * (hourlyTarget / 60));
 
-        const estimatedProduction = Math.round(minutesSinceFirstReading * (hourlyTarget / 60));
+        if(r.isLastInPeriod) {
+            lastPeriodEstimate = currentEstimate;
+        }
 
         return {
             ...r,
             growingAverage: {
                 realProduction: r.dailyTotal ?? sumUpToIndex(idx),
-                estimatedProduction,
+                estimatedProduction: currentEstimate,
                 endTime: r.timestamp,
                 fromTime: readings[firstReadingWithValueIdx].timestamp,
                 sensorId: r.sensorId
@@ -378,7 +397,7 @@ export const sumDailySummaries = (summaries: DailyWorkingSummary[]): DailyWorkin
     };
 
     totalSummary.start = summaries[0].start;
-    totalSummary.end = summaries[summaries.length-1].end ?? ''
+    totalSummary.end = summaries[summaries.length - 1].end ?? ''
 
     for (const summary of summaries) {
         totalSummary.totalTime += summary.totalTime;

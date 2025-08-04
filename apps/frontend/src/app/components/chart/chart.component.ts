@@ -52,6 +52,7 @@ import {PointEditorComponent} from "./chart-point-editor/chart-point-editor";
 import {DataStore} from "../../services/data/data.store";
 import {AnnotationsStore} from "../../services/annotation/annotations.store";
 import {DatePipe} from "@angular/common";
+import {TimeRange} from "../date-picker/date-picker.component";
 
 ChartJS.register(
   LineController,
@@ -101,6 +102,7 @@ export class ChartComponent implements OnInit {
   @Input() data: HourlyReading[] | LiveReading[] = [];
   @Input() temperature: TempReading[] = [];
   @Input() dataMultiple: HourlyReading[][] | LiveReading[][] = [];
+  @Input() ranges: TimeRange[] = [];
   @Input() disableAnimation = false;
   @Input() isLive = false;
   @Input() hourlyTarget = 0;
@@ -234,13 +236,14 @@ export class ChartComponent implements OnInit {
     let workingPeriods: WorkingPeriod[] = [];
 
     // Fetch working periods if we have data
-    if (this.data.length > 0) {
+    if (this.data.length > 0 || this.dataMultiple.length > 0) {
       try {
 
         const allWorkingPeriods = (this.isLive ? this.dataStore.liveWorkPeriods() : this.dataStore.workPeriods())[this.sensorId];
 
+
         // Filter working periods for the current sensor
-        const sensorId = this.data[0].sensorId;
+        const sensorId = this.sensorId
         workingPeriods = allWorkingPeriods
           .filter(w => w.sensorId === sensorId)
           .sort((a, b) => +a.start - +b.start);
@@ -1228,7 +1231,8 @@ export class ChartComponent implements OnInit {
     const popover = await this.popoverCtrl.create({
       component: ChartOperationsListComponent,
       componentProps: {
-        isLive: this.isLive
+        isLive: this.isLive,
+        showExport: !(this.dataMultiple.length > 1)
       },
       event: ev,
       translucent: true
@@ -1271,9 +1275,15 @@ export class ChartComponent implements OnInit {
         }
         // (this.isLive ? this.dataService.exportLiveData(this.sensorId) : this.dataService.exportMonthlyData(from, to, this.sensorId))
 
-        if(this.isLive) {
+        if(this.isLive) { // live
           this.dataService.exportLiveData(this.sensorId.toString()).subscribe((blob) => download(blob));
-        } else {
+        } else if (this.ranges.length) { // compare
+
+          const range = this.ranges[0] // we allow to export only single range charts;
+          this.dataService.exportMonthlyData(+range.from, +range.to, this.sensorId.toString()).subscribe((blob) => download(blob));
+
+
+        } else { // hourly
           const {from, to } = getCurrentMonthTimestamps()
           this.dataService.exportMonthlyData(from, to, this.sensorId.toString()).subscribe((blob) => download(blob));
         }

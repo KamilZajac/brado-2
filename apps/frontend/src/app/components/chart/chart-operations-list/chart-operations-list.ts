@@ -20,22 +20,25 @@ export enum ChartOperation {
   selector: 'app-operation-list',
   imports: [CommonModule, IonList, IonItem],
   template: `
-    @if(this.isLive) {
+    @if (this.isLive) {
       <ion-list>
         <ion-item button (click)="select(ChartOperation.ADD_ANNOTATION)">Dodaj Adnotacje</ion-item>
         <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel</ion-item>
       </ion-list>
     } @else {
-    <ion-list>
-      <ion-item button (click)="select(ChartOperation.EXPORT_RAW)">Exportuj surowe odczyty</ion-item>
-      <ion-item button (click)="select(ChartOperation.IMPORT_RAW)">Importuj surowe odczyty</ion-item>
-      <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel </ion-item>
-    </ion-list>
+      <ion-list>
+        <ion-item button (click)="select(ChartOperation.EXPORT_RAW)">Exportuj surowe odczyty</ion-item>
+        <ion-item button (click)="select(ChartOperation.IMPORT_RAW)">Importuj surowe odczyty</ion-item>
+        @if (showExport) {
+          <ion-item button (click)="select(ChartOperation.EXPORT)">Exportuj do excel</ion-item>
+        }
+      </ion-list>
     }
   `
 })
 export class ChartOperationsListComponent {
   @Input() isLive = false
+  @Input() showExport = true
 
   constructor(private popoverCtrl: PopoverController) {
 

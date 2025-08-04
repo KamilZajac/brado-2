@@ -7,7 +7,7 @@
       @for (keypar of readings | keyvalue ; track keypar.key) {
         <div class="sensor-card">
 
-        <app-chart [dataMultiple]="keypar.value" />
+        <app-chart [dataMultiple]="keypar.value" [ranges]="ranges" />
 
         </div>
 

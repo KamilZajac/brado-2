@@ -2,12 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import {DatePickerComponent, TimeRange} from "../../components/date-picker/date-picker.component";
 import {DataService} from "../../services/data/data.service";
 import { firstValueFrom, forkJoin } from 'rxjs';
-import { HourlyReading } from '@brado/types';
+import {HourlyReading, WorkingPeriodType} from '@brado/types';
 import {LineChartComponent} from "../../components/line-chart/line-chart.component";
 import { KeyValuePipe } from '@angular/common';
 import {ReadingsToSeriesMultiplePipe} from "../../misc/readings-to-series-multiple.pipe";
 import {ChartComponent} from "../../components/chart/chart.component";
 import { IonContent } from '@ionic/angular/standalone';
+import {DataStore} from "../../services/data/data.store";
 
 @Component({
   selector: 'app-compare',
@@ -25,16 +26,18 @@ export class CompareComponent {
   readings: {[key: string]: HourlyReading[][]} = {};
   public isDataLoaded: boolean = false;
 
+  ranges: TimeRange[] = [];
 
-  constructor(private dataService: DataService) { }
+
+  constructor(private dataService: DataService, private dataStore: DataStore) { }
 
   runCompare(ranges: TimeRange[]) {
 
+    this.ranges = ranges;
 
     forkJoin(ranges.map(range => this.dataService.getHourlyBetween(+range.from, +range.to) ))
       .subscribe(results => {
 
-        console.log(results)
         results.forEach((result, index) => {
 
           const uniqueSensors = Array.from(new Set(result.map(r => r.sensorId)));
@@ -49,9 +52,14 @@ export class CompareComponent {
 
         })
 
-        console.log(this.readings)
         this.isDataLoaded = true
       });
+
+    if(ranges.length === 1) {
+      this.dataStore.loadMonthlyWorkingPeriods({from: +ranges[0].from, to: +ranges[0].to})
+      // this.dataService.getWorkingPeriods(+ranges[0].from, +ranges[0].to, WorkingPeriodType.HOURLY)
+
+    }
   }
 }
 

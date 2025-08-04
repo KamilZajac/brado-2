@@ -5,6 +5,7 @@ import {
   getAnnotationTitle,
   HourlyReading,
   LiveReading,
+  WorkingPeriod,
 } from '@brado/types';
 import { DateTime } from 'luxon';
 import { SettingsEntity } from '../settings/entities/setting.entity';
@@ -12,8 +13,8 @@ import { ReadingsHelpers } from './readings-helpers';
 import { AnnotationEntity } from '../annotation/entities/annotation.entity';
 
 function formatTimestampToPolish(msTimestamp: number): string {
-  if(msTimestamp === 0) {
-    return '0'
+  if (msTimestamp === 0) {
+    return '0';
   }
   return DateTime.fromMillis(msTimestamp, { zone: 'Europe/Warsaw' }).toFormat(
     'dd.MM.yyyy HH:mm',
@@ -46,17 +47,42 @@ export async function exportToExcel(
   readings: HourlyReading[],
   settings: SettingsEntity,
   annotations: AnnotationEntity[],
+  workPeriods?: WorkingPeriod[],
 ): Promise<Buffer> {
+
   const workbook = new ExcelJS.Workbook();
 
+  const groupedReadings: HourlyReading[][] = [];
+
+  if (workPeriods?.length) {
+    workPeriods.forEach((period) => {
+      groupedReadings.push(
+        readings.filter((r) => {
+          if (period.end != null) {
+            return (
+              r.workStartTime >= period.start && r.workEndTime <= period.end
+            );
+          } else {
+            return r.workStartTime >= period.start;
+          }
+        }),
+      );
+    });
+  } else {
+    groupedReadings.push(readings);
+  }
+
   const sensorId = readings[0].sensorId;
+  const worksheet = workbook.addWorksheet(
+    settings.sensorNames[+sensorId - 1] + '- godzinowe',
+  );
 
   const mappedReadings = addGrowingAverageHourly(
-    readings,
+    groupedReadings,
     settings.hourlyTarget,
   );
 
-  addHourlyWorkSheets(mappedReadings, workbook, settings);
+  addHourlyWorkSheets(mappedReadings, worksheet);
 
   if (annotations.length) {
     addAnnotationsWorksheet(workbook, annotations, sensorId);
@@ -81,7 +107,7 @@ export async function exportToExcelLive(
   // Define columns
   worksheet.columns = [
     { header: 'Czas', key: 'timestamp', width: 30 },
-    { header: 'Wartość', key: 'value', width: 30 },
+    { header: 'Stan licznika', key: 'value', width: 30 },
     { header: 'Delta', key: 'delta', width: 30 },
     { header: 'Suma', key: 'dailyTotal', width: 30 },
   ];
@@ -106,11 +132,15 @@ export async function exportToExcelLive(
   worksheet.getRow(1).font = { bold: true };
 
   const aggregated = addGrowingAverageHourly(
-    ReadingsHelpers.aggregateToHourlyReadings(readingsWithDailyTotal),
+    [ReadingsHelpers.aggregateToHourlyReadings(readingsWithDailyTotal)],
     settings.hourlyTarget,
   );
 
-  addHourlyWorkSheets(aggregated, workbook, settings);
+  const worksheetHourly = workbook.addWorksheet(
+    settings.sensorNames[+sensorId - 1] + '- godzinowe',
+  );
+
+  addHourlyWorkSheets(aggregated, worksheetHourly);
 
   // Add annotations worksheet if there are any annotations
   if (annotations.length > 0) {
@@ -172,20 +202,14 @@ const addAnnotationsWorksheet = (
 
 export const addHourlyWorkSheets = (
   aggregated: HourlyReading[],
-  workbook: ExcelJS.Workbook,
-  settings: SettingsEntity,
+  worksheet: ExcelJS.Worksheet,
 ) => {
-  const sensorId = aggregated[0].sensorId;
-  const worksheet = workbook.addWorksheet(
-    settings.sensorNames[+sensorId - 1] + '- godzinowe',
-  );
-
   // Define columns
   worksheet.columns = [
     { header: 'Czas', key: 'timestamp', width: 30 },
     { header: 'Od', key: 'workStartTime', width: 30 },
     { header: 'Do', key: 'workEndTime', width: 30 },
-    { header: 'Wartość', key: 'value', width: 30 },
+    { header: 'Stan licznika', key: 'value', width: 30 },
     { header: 'Delta', key: 'delta', width: 30 },
     { header: 'Średnio/min', key: 'average', width: 30 },
     { header: 'Suma', key: 'dailyTotal', width: 30 },
