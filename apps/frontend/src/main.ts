@@ -7,6 +7,8 @@ import { AppComponent } from './app/app.component';
 import { provideHttpClient } from "@angular/common/http";
 import { authInterceptor } from "./app/services/auth/auth.interceptor";
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { isDevMode } from '@angular/core';
+import { provideServiceWorker } from '@angular/service-worker';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -18,6 +20,9 @@ bootstrapApplication(AppComponent, {
       withInterceptors([authInterceptor]),
     ),
     provideRouter(routes, withPreloading(PreloadAllModules)),
-    provideAnimations(), // Required for Angular Material animations
+    provideAnimations(), provideServiceWorker('ngsw-worker.js', {
+            enabled: !isDevMode(),
+            registrationStrategy: 'registerWhenStable:30000'
+          }),
   ],
 });
