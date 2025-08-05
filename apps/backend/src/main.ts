@@ -22,6 +22,8 @@ async function bootstrap() {
       'http://frontend:8080',
       'http://57.129.131.80:8080',
       'http://57.129.131.80',
+      'https://brado-2.harea.digital',
+      'http://brado-2.harea.digital',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,

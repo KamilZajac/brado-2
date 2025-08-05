@@ -1,13 +1,38 @@
 version: "3.8"
 
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/acme.json
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=zajackamil1@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/acme.json"
+    networks:
+      - internal
+      - web
+
   backend:
     build:
       context: .
       target: backend
     image: brado-backend
-    ports:
-      - "3100:3000"
+    expose:
+      - "3000"
     restart: always
     depends_on:
       - postgres
@@ -18,8 +43,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       NODE_ENV: "production"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.brado-2.harea.digital`)" # or your preferred subdomain
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
     networks:
       - internal
+      - web
 
   connector:
     build:
@@ -28,8 +60,8 @@ services:
     image: brado-connector
     volumes:
       - /home/ubuntu/apps/brado/apps/connector/logs:/app/logs
-    ports:
-      - "4100:4000" # Adjust as needed
+    expose:
+      - "4000"
     restart: always
     networks:
       - internal
@@ -41,9 +73,16 @@ services:
       context: .
       target: frontend
     image: brado-frontend
-    ports:
-      - "8080:80" # Nginx default
     restart: always
+    networks:
+      - internal
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`brado-2.harea.digital`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
   postgres:
     image: postgres:15
@@ -63,6 +102,8 @@ services:
 
 networks:
   internal:
+    driver: bridge
+  web:
     driver: bridge
 
 volumes:

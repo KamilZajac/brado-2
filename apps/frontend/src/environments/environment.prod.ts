@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://57.129.131.80:3100', // Todo make it dynamic
+  apiUrl: 'https://backend:3000', // Using Docker service name and port
 };
