@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://backend:3000', // Using Docker service name and port
+  apiUrl: 'https://api.brado-2.harea.digital', // Using public domain name
 };

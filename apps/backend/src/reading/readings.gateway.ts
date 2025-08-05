@@ -8,7 +8,12 @@ import { Injectable } from '@nestjs/common';
 import { LiveReading, LiveUpdate, TempReading } from '@brado/types';
 
 @Injectable()
-@WebSocketGateway({ cors: true })
+@WebSocketGateway({
+  cors: {
+    origin: ['https://brado-2.harea.digital'],
+    credentials: true
+  }
+})
 export class ReadingsGateway implements OnGatewayInit {
   @WebSocketServer()
   server: Server;

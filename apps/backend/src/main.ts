@@ -24,6 +24,7 @@ async function bootstrap() {
       'http://57.129.131.80',
       'https://brado-2.harea.digital',
       'http://brado-2.harea.digital',
+      'https://api.brado-2.harea.digital',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
