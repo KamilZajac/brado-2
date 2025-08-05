@@ -19,7 +19,7 @@ import {
   calendarOutline,
   gitCompareOutline,
   personOutline,
-  settingsOutline
+  settingsOutline, downloadOutline
 } from 'ionicons/icons';
 import {SettingsService} from "./services/settings/settings.service";
 import {HeaderComponent} from "./components/header/header.component";
@@ -28,13 +28,14 @@ import {UserRole} from "@brado/types";
 import {DataStore} from "./services/data/data.store";
 import {TemperatureStore} from "./services/temperature/temp.store";
 import {AnnotationsStore} from "./services/annotation/annotations.store";
+import {PwaInstallComponent} from "./components/pwa-install/pwa-install.component";
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
   providers: [SettingsService],
-  imports: [HeaderComponent, RouterLink, RouterLinkActive, IonApp, IonSplitPane, IonMenu, IonContent, IonList, IonMenuToggle, IonItem, IonIcon, IonLabel, IonRouterLink, IonRouterOutlet],
+  imports: [HeaderComponent, RouterLink, RouterLinkActive, IonApp, IonSplitPane, IonMenu, IonContent, IonList, IonMenuToggle, IonItem, IonIcon, IonLabel, IonRouterLink, IonRouterOutlet, PwaInstallComponent],
 })
 export class AppComponent implements OnInit {
 
@@ -83,7 +84,8 @@ export class AppComponent implements OnInit {
       pulseOutline,
       gitCompareOutline,
       personOutline,
-      settingsOutline
+      settingsOutline,
+      downloadOutline
     });
   }
 
