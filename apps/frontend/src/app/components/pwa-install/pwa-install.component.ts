@@ -1,13 +1,13 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { PwaInstallService } from '../../services/pwa/pwa-install.service';
-import { IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle } from '@ionic/angular/standalone';
+import { IonButton, IonIcon} from '@ionic/angular/standalone';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-pwa-install',
   standalone: true,
-  imports: [CommonModule, IonButton, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle],
+  imports: [CommonModule, IonButton, IonIcon],
   template: `
     <!-- For non-iOS devices -->
     <ion-button *ngIf="showInstallButton && !isIOS" (click)="installPwa()" color="primary">

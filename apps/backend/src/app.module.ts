@@ -5,8 +5,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { HourlyReadingEntity } from './reading/entities/hourly-reading-entity';
 import { LiveReadingEntity } from './reading/entities/minute-reading.entity';
 import { SettingsModule } from './settings/settings.module';
-
-
 import { SettingsEntity } from './settings/entities/setting.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
@@ -17,7 +15,7 @@ import { AnnotationEntity } from './annotation/entities/annotation.entity';
 import { TemperatureModule } from './temperature/temperature.module';
 import { TemperatureEntity } from './temperature/entities/temperature.entity';
 import { WorkingPeriodModule } from './working-period/working-period.module';
-import {WorkingPeriodEntity} from "./working-period/entities/working-period.entity";
+import { WorkingPeriodEntity } from './working-period/entities/working-period.entity';
 
 const typeormConf = {
   type: 'postgres',
@@ -38,9 +36,6 @@ const typeormConf = {
   synchronize: true,
   // logging: true,
 };
-
-
-
 
 if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
   typeormConf.host = 'localhost';
