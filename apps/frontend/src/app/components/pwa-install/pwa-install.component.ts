@@ -14,21 +14,6 @@ import { CommonModule } from '@angular/common';
       <ion-icon name="download-outline" slot="start"></ion-icon>
       Install App
     </ion-button>
-
-    <!-- For iOS devices -->
-    <ion-card *ngIf="isIOS && !isPwaInstalled" class="ios-install-card">
-      <ion-card-header>
-        <ion-card-title>Install Our App</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>To install this app on your iPhone:</p>
-        <ol>
-          <li>Tap the Share button <ion-icon name="share-outline"></ion-icon> in Safari</li>
-          <li>Scroll down and tap "Add to Home Screen"</li>
-          <li>Tap "Add" in the top-right corner</li>
-        </ol>
-      </ion-card-content>
-    </ion-card>
   `,
   styles: [`
     .ios-install-card {

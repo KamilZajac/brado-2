@@ -29,6 +29,9 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
+              "src/favicon.ico",
+              "src/assets",
+              "public/manifest.webmanifest",
               {
                 "glob": "**/*",
                 "input": "src/assets",
