@@ -5,28 +5,36 @@ import { BehaviorSubject } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })
+@Injectable({
+  providedIn: 'root'
+})
 export class PwaInstallService {
   private deferredPrompt: any;
   private installPromptEvent = new BehaviorSubject<any>(null);
+  private isIOSDevice = new BehaviorSubject<boolean>(false);
 
   installPromptEvent$ = this.installPromptEvent.asObservable();
+  isIOSDevice$ = this.isIOSDevice.asObservable();
 
   constructor(private platform: Platform) {
     this.init();
   }
 
   init() {
+    // Check if it's an iOS device
+    this.isIOSDevice.next(
+      this.platform.is('ios') ||
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+
     window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later
       this.deferredPrompt = e;
-      // Update UI to notify the user they can install the PWA
       this.installPromptEvent.next(e);
     });
 
     window.addEventListener('appinstalled', () => {
-      // Clear the deferredPrompt so it can be garbage collected
       this.deferredPrompt = null;
       this.installPromptEvent.next(null);
       console.log('PWA was installed');
@@ -37,22 +45,22 @@ export class PwaInstallService {
     return !!this.deferredPrompt;
   }
 
+  isIOS(): boolean {
+    return this.isIOSDevice.getValue();
+  }
+
   promptForInstallation() {
     if (!this.deferredPrompt) {
       return Promise.reject(new Error('Installation prompt not available'));
     }
 
-    // Show the install prompt
     this.deferredPrompt.prompt();
-
-    // Wait for the user to respond to the prompt
     return this.deferredPrompt.userChoice.then((choiceResult: { outcome: string }) => {
       if (choiceResult.outcome === 'accepted') {
         console.log('User accepted the install prompt');
       } else {
         console.log('User dismissed the install prompt');
       }
-      // We no longer need the prompt
       this.deferredPrompt = null;
       this.installPromptEvent.next(null);
     });
