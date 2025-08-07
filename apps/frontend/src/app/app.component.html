@@ -28,5 +28,5 @@
 
   </ion-split-pane>
 </ion-app>
-<button (click)="enablePush()" class="push-btn">Włącz notyfikacje</button>
+<button (click)="enable()" *ngIf="showEnableButton" class="push-btn">Włącz notyfikacje</button>
 <!--<app-pwa-install></app-pwa-install>-->

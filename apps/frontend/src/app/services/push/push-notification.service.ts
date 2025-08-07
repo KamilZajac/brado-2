@@ -12,92 +12,101 @@ export class PushNotificationService {
   private swPush: SwPush | null = null;
   private platformId = inject(PLATFORM_ID);
 
-  constructor(private http: HttpClient, private injector: Injector) {
-    // Only try to get SwPush if we're not in dev mode and we're in a browser
-    if (!isDevMode() && isPlatformBrowser(this.platformId)) {
-      runInInjectionContext(this.injector, () => {
-        try {
-          this.swPush = inject(SwPush, { optional: true });
-          if (!this.swPush) {
-            console.log('duda')
-            console.log('SwPush is not available (optional inject)');
-          }
-        } catch (e) {
-          console.log('duap')
-          console.log('SwPush is not available:', e);
-          this.swPush = null;
-        }
-      });
+
+  constructor(private swPush: SwPush, private http: HttpClient) {}
+
+  async getExistingSubscription(): Promise<PushSubscription | null> {
+    if (this.swPush == null || !this.swPush.isEnabled) {
+      console.log('NO SWPUSH')
+      return null;
     }
+    const reg = await navigator.serviceWorker.ready;
+    return reg.pushManager.getSubscription();
   }
 
-
-  async subscribeToNotifications() {
-    if(this.swPush == null) {
-      console.log('SWPush is not available');
-      return
+  async subscribeAndSendToBackend(): Promise<boolean> {
+    if (this.swPush == null || !this.swPush.isEnabled) {
+      console.log('NO SWPUSH')
+      return false;
     }
 
-    if (!this.swPush.isEnabled) {
-      console.warn('SW not enabled – are you on https and running a prod build?');
-      return;
-    }
+    // 1) Ensure SW is active
+    await navigator.serviceWorker.ready;
 
-    // Request permission first (must be from a user gesture)
+    // 2) Ask permission (must be called from user gesture)
     if (Notification.permission !== 'granted') {
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        console.warn('Notifications permission denied by user');
-        return;
-      }
+      if (perm !== 'granted') return false;
     }
 
-
-
-    try {
-      const sub = await this.swPush.requestSubscription({
-        serverPublicKey: this.VAPID_PUBLIC_KEY
+    // 3) Reuse existing or create new subscription
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await this.swPush.requestSubscription({
+        serverPublicKey: this.VAPID_PUBLIC_KEY.trim(),
       });
-      console.log(sub)
-      console.log('worworkwor')
-      await this.http.post(environment.apiUrl + '/notifications/subscribe', sub).toPromise();
-      console.log('Subscribed!');
-    } catch (err) {
-      console.error('Push subscription error', err);
+    }
+
+    // 4) Send to backend
+    await this.http.post(environment.apiUrl + '/notifications/subscribe', sub).toPromise();
+    return true;
+  }
+
+  async unsubscribeEverywhere(): Promise<void> {
+    const sub = await this.getExistingSubscription();
+    if (sub) {
+      await this.http.post(environment.apiUrl + '/notifications/unsubscribe', { endpoint: sub.endpoint }).toPromise();
+      await sub.unsubscribe();
     }
   }
-  // subscribeToNotifications() {
+  //
+  //
+  //
+  //   try {
+  //     const sub = await this.swPush.requestSubscription({
+  //       serverPublicKey: this.VAPID_PUBLIC_KEY
+  //     });
+  //     console.log(sub)
+  //     console.log('worworkwor')
+  //     await this.http.post(environment.apiUrl + '/notifications/subscribe', sub).toPromise();
+  //     console.log('Subscribed!');
+  //   } catch (err) {
+  //     console.error('Push subscription error', err);
+  //   }
+  // }
+  // // subscribeToNotifications() {
+  // //   if (!this.swPush) {
+  // //     console.log('Service Worker is not enabled in development mode');
+  // //     return;
+  // //   }
+  // //
+  // //   console.log('subscribeToNotifications()');
+  // //   console.log(this.swPush.isEnabled)
+  // //   if (this.swPush.isEnabled) {
+  // //     this.swPush.requestSubscription({
+  // //       serverPublicKey: this.VAPID_PUBLIC_KEY
+  // //     }).then(sub => {
+  // //       console.log('SYB')
+  // //       console.log(sub)
+  // //       this.http.post(environment.apiUrl + '/notifications/subscribe', sub).subscribe();
+  // //     }).catch(err => console.error('Push subscription error', err));
+  // //   }
+  // // }
+  //
+  // listenForMessages() {
   //   if (!this.swPush) {
   //     console.log('Service Worker is not enabled in development mode');
   //     return;
   //   }
   //
-  //   console.log('subscribeToNotifications()');
-  //   console.log(this.swPush.isEnabled)
-  //   if (this.swPush.isEnabled) {
-  //     this.swPush.requestSubscription({
-  //       serverPublicKey: this.VAPID_PUBLIC_KEY
-  //     }).then(sub => {
-  //       console.log('SYB')
-  //       console.log(sub)
-  //       this.http.post(environment.apiUrl + '/notifications/subscribe', sub).subscribe();
-  //     }).catch(err => console.error('Push subscription error', err));
-  //   }
+  //   this.swPush.messages.subscribe(msg => {
+  //     console.log('Push message received:', msg);
+  //     alert(JSON.stringify(msg));
+  //   });
+  //
+  //   this.swPush.notificationClicks.subscribe(event => {
+  //     console.log('Notification clicked:', event);
+  //   });
   // }
-
-  listenForMessages() {
-    if (!this.swPush) {
-      console.log('Service Worker is not enabled in development mode');
-      return;
-    }
-
-    this.swPush.messages.subscribe(msg => {
-      console.log('Push message received:', msg);
-      alert(JSON.stringify(msg));
-    });
-
-    this.swPush.notificationClicks.subscribe(event => {
-      console.log('Notification clicked:', event);
-    });
-  }
 }

@@ -39,6 +39,7 @@ import {PushNotificationService} from "./services/push/push-notification.service
   imports: [HeaderComponent, RouterLink, RouterLinkActive, IonApp, IonSplitPane, IonMenu, IonContent, IonList, IonMenuToggle, IonItem, IonIcon, IonLabel, IonRouterLink, IonRouterOutlet, PwaInstallComponent],
 })
 export class AppComponent implements OnInit {
+  showEnableButton = false;
 
   currentUser = this.auth.currentUser
 
@@ -97,24 +98,17 @@ export class AppComponent implements OnInit {
   }
 
 
-  public ngOnInit() {
+  public async ngOnInit() {
     this.auth.getCurrentUser();
 
     // Initialize push notifications if available
-    this.pushService.listenForMessages();
+    const sub = await this.pushService.getExistingSubscription();
+    this.showEnableButton = !sub;
   }
 
-  async enablePush() {
-    // 1) Ask for notification permission first
-    if (Notification.permission === 'default') {
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        console.warn('User did not grant notifications');
-        return;
-      }
-    }
-    // 2) Then subscribe to push
-    this.pushService.subscribeToNotifications();
+  async enable() {
+    const ok = await this.pushService.subscribeAndSendToBackend();
+    this.showEnableButton = !ok ? true : false;
   }
 
 
