@@ -16,6 +16,7 @@ import { TemperatureModule } from './temperature/temperature.module';
 import { TemperatureEntity } from './temperature/entities/temperature.entity';
 import { WorkingPeriodModule } from './working-period/working-period.module';
 import { WorkingPeriodEntity } from './working-period/entities/working-period.entity';
+import { NotificationsModule } from './notifications/notifications.module';
 
 const typeormConf = {
   type: 'postgres',
@@ -57,6 +58,7 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
     AnnotationModule,
     TemperatureModule,
     WorkingPeriodModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [],

@@ -5,9 +5,6 @@ import { BehaviorSubject } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })
-@Injectable({
-  providedIn: 'root'
-})
 export class PwaInstallService {
   private deferredPrompt: any;
   private installPromptEvent = new BehaviorSubject<any>(null);

@@ -34,7 +34,8 @@ export class LiveComponent extends ChartWrapperDirective implements OnInit {
   public dailyWorkingStats  = this.dataStore.statsForCurrentPeriod
 
   constructor(
-    private dataService: DataService,
+
+  private dataService: DataService,
     private settingsService: SettingsService, annotationStore: AnnotationsStore ) {
     super(annotationStore)
     effect(() => {

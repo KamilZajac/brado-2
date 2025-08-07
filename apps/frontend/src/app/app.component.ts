@@ -29,6 +29,7 @@ import {DataStore} from "./services/data/data.store";
 import {TemperatureStore} from "./services/temperature/temp.store";
 import {AnnotationsStore} from "./services/annotation/annotations.store";
 import {PwaInstallComponent} from "./components/pwa-install/pwa-install.component";
+import {PushNotificationService} from "./services/push/push-notification.service";
 
 @Component({
   selector: 'app-root',
@@ -45,7 +46,13 @@ export class AppComponent implements OnInit {
           {title: 'Login', url: '/login', icon: 'settings-outline'},
         ]
 
-  constructor(private settingsService: SettingsService, private auth: AuthService, private dataStore: DataStore, private tempStore: TemperatureStore, private annotationsStore: AnnotationsStore) {
+  constructor(
+    private settingsService: SettingsService,
+    private auth: AuthService,
+    private dataStore: DataStore,
+    private tempStore: TemperatureStore,
+    private pushService: PushNotificationService
+  ) {
     effect(() => {
          const user = this.currentUser();
         if(user && user.username) {
@@ -91,7 +98,14 @@ export class AppComponent implements OnInit {
 
 
   public ngOnInit() {
-    this.auth.getCurrentUser()
+    this.auth.getCurrentUser();
+
+    // Initialize push notifications if available
+    this.pushService.listenForMessages();
+  }
+
+  enablePush() {
+    this.pushService.subscribeToNotifications();
   }
 
   // public get appPages(){
@@ -100,4 +114,3 @@ export class AppComponent implements OnInit {
 
   // }
 }
-

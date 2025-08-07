@@ -1,9 +1,12 @@
 {
   "$schema": "./node_modules/@angular/service-worker/config/schema.json",
   "index": "/index.html",
+  "notifications": {
+    "enabled": true
+  },
   "assetGroups": [
     {
-      "name": "app",
+      "name": "Brado app",
       "installMode": "prefetch",
       "resources": {
         "files": [
