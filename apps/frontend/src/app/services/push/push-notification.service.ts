@@ -3,6 +3,7 @@ import { SwPush } from '@angular/service-worker';
 import { HttpClient } from '@angular/common/http';
 import { EMPTY } from 'rxjs';
 import { isPlatformBrowser } from '@angular/common';
+import {environment} from "../../../environments/environment";
 
 @Injectable({ providedIn: 'root' })
 export class PushNotificationService {
@@ -36,11 +37,13 @@ export class PushNotificationService {
       return;
     }
 
+    console.log('subscribeToNotifications()');
+    console.log(this.swPush.isEnabled)
     if (this.swPush.isEnabled) {
       this.swPush.requestSubscription({
         serverPublicKey: this.VAPID_PUBLIC_KEY
       }).then(sub => {
-        this.http.post('/api/notifications/subscribe', sub).subscribe();
+        this.http.post(environment.apiUrl + '/notifications/subscribe', sub).subscribe();
       }).catch(err => console.error('Push subscription error', err));
     }
   }
