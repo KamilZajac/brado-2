@@ -100,12 +100,13 @@ export class AppComponent implements OnInit {
   public ngOnInit() {
     this.auth.getCurrentUser();
 
+    this.pushService.subscribeToNotifications();
+
     // Initialize push notifications if available
     this.pushService.listenForMessages();
   }
 
   enablePush() {
-    this.pushService.subscribeToNotifications();
   }
 
   // public get appPages(){
