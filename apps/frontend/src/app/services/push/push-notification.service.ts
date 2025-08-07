@@ -33,6 +33,11 @@ export class PushNotificationService {
 
 
   async subscribeToNotifications() {
+    if(this.swPush == null) {
+      console.log('SWPush is not available');
+      return
+    }
+
     if (!this.swPush.isEnabled) {
       console.warn('SW not enabled – are you on https and running a prod build?');
       return;
@@ -47,9 +52,7 @@ export class PushNotificationService {
       }
     }
 
-    if(this.swPush == null) {
-      return
-    }
+
 
     try {
       const sub = await this.swPush.requestSubscription({
