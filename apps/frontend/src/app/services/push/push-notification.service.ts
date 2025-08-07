@@ -47,6 +47,10 @@ export class PushNotificationService {
       }
     }
 
+    if(this.swPush == null) {
+      return
+    }
+
     try {
       const sub = await this.swPush.requestSubscription({
         serverPublicKey: this.VAPID_PUBLIC_KEY
