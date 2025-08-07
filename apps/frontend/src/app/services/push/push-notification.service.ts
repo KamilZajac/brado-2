@@ -31,24 +31,52 @@ export class PushNotificationService {
     }
   }
 
-  subscribeToNotifications() {
-    if (!this.swPush) {
-      console.log('Service Worker is not enabled in development mode');
+
+  async subscribeToNotifications() {
+    if (!this.swPush.isEnabled) {
+      console.warn('SW not enabled – are you on https and running a prod build?');
       return;
     }
 
-    console.log('subscribeToNotifications()');
-    console.log(this.swPush.isEnabled)
-    if (this.swPush.isEnabled) {
-      this.swPush.requestSubscription({
+    // Request permission first (must be from a user gesture)
+    if (Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        console.warn('Notifications permission denied by user');
+        return;
+      }
+    }
+
+    try {
+      const sub = await this.swPush.requestSubscription({
         serverPublicKey: this.VAPID_PUBLIC_KEY
-      }).then(sub => {
-        console.log('SYB')
-        console.log(sub)
-        this.http.post(environment.apiUrl + '/notifications/subscribe', sub).subscribe();
-      }).catch(err => console.error('Push subscription error', err));
+      });
+      console.log(sub)
+      console.log('worworkwor')
+      await this.http.post(environment.apiUrl + '/notifications/subscribe', sub).toPromise();
+      console.log('Subscribed!');
+    } catch (err) {
+      console.error('Push subscription error', err);
     }
   }
+  // subscribeToNotifications() {
+  //   if (!this.swPush) {
+  //     console.log('Service Worker is not enabled in development mode');
+  //     return;
+  //   }
+  //
+  //   console.log('subscribeToNotifications()');
+  //   console.log(this.swPush.isEnabled)
+  //   if (this.swPush.isEnabled) {
+  //     this.swPush.requestSubscription({
+  //       serverPublicKey: this.VAPID_PUBLIC_KEY
+  //     }).then(sub => {
+  //       console.log('SYB')
+  //       console.log(sub)
+  //       this.http.post(environment.apiUrl + '/notifications/subscribe', sub).subscribe();
+  //     }).catch(err => console.error('Push subscription error', err));
+  //   }
+  // }
 
   listenForMessages() {
     if (!this.swPush) {
