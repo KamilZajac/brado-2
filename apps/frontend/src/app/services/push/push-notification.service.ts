@@ -93,6 +93,7 @@ export class PushNotificationService {
 
     this.swPush.messages.subscribe(msg => {
       console.log('Push message received:', msg);
+      alert(JSON.stringify(msg));
     });
 
     this.swPush.notificationClicks.subscribe(event => {
