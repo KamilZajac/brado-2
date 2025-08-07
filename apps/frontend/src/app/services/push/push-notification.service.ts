@@ -43,6 +43,8 @@ export class PushNotificationService {
       this.swPush.requestSubscription({
         serverPublicKey: this.VAPID_PUBLIC_KEY
       }).then(sub => {
+        console.log('SYB')
+        console.log(sub)
         this.http.post(environment.apiUrl + '/notifications/subscribe', sub).subscribe();
       }).catch(err => console.error('Push subscription error', err));
     }
