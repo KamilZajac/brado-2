@@ -100,14 +100,23 @@ export class AppComponent implements OnInit {
   public ngOnInit() {
     this.auth.getCurrentUser();
 
-    this.pushService.subscribeToNotifications();
-
     // Initialize push notifications if available
     this.pushService.listenForMessages();
   }
 
-  enablePush() {
+  async enablePush() {
+    // 1) Ask for notification permission first
+    if (Notification.permission === 'default') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        console.warn('User did not grant notifications');
+        return;
+      }
+    }
+    // 2) Then subscribe to push
+    this.pushService.subscribeToNotifications();
   }
+
 
   // public get appPages(){
   //   const user = this.auth.currentUser();
