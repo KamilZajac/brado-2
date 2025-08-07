@@ -9,7 +9,6 @@ import {environment} from "../../../environments/environment";
 export class PushNotificationService {
   readonly VAPID_PUBLIC_KEY = 'BHNL3RvLa0HJwkjUb89LPIngTkkwn1BqAM89cit0022znyww_EI0BT-j0rbHTDLjEXSQiTzwe7NzCIh-ADxWA0I';
   private isServiceWorkerEnabled = !isDevMode();
-  private swPush: SwPush | null = null;
   private platformId = inject(PLATFORM_ID);
 
 
