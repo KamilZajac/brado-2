@@ -56,6 +56,17 @@
 
 }
 
+@media (max-width: 550px) {
+  .chart-grid {
+    .gauges {
+      .chart-container {
+        width: 100%;
+        margin-right: 0;
+      }
+    }
+  }
+}
+
 .chart-wrapper {
   background: #fff;
   //padding: 1rem;
