@@ -28,7 +28,7 @@ bootstrapApplication(AppComponent, {
     //   enabled: !isDevMode(),
     //   registrationStrategy: 'registerWhenStable:30000'
     // }),
-    provideServiceWorker('ngsw-worker-custom.js', { enabled: !isDevMode() })
+    provideServiceWorker('custom-service-worker.js', { enabled: true })
 
   ],
 });

@@ -32,6 +32,7 @@
               "src/favicon.ico",
               "src/icons",
               "src/manifest.webmanifest",
+              { "glob": "custom-service-worker.js", "input": "src", "output": "/" },
               {
                 "glob": "**/*",
                 "input": "src/assets",

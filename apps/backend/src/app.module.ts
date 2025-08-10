@@ -17,6 +17,7 @@ import { TemperatureEntity } from './temperature/entities/temperature.entity';
 import { WorkingPeriodModule } from './working-period/working-period.module';
 import { WorkingPeriodEntity } from './working-period/entities/working-period.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PushSubscriptionEntity } from './notifications/notifications.entity';
 
 const typeormConf = {
   type: 'postgres',
@@ -33,6 +34,7 @@ const typeormConf = {
     AnnotationEntity,
     TemperatureEntity,
     WorkingPeriodEntity,
+    PushSubscriptionEntity,
   ],
   synchronize: true,
   // logging: true,

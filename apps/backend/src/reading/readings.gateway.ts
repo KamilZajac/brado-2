@@ -12,8 +12,8 @@ import { LiveReading, LiveUpdate, TempReading } from '@brado/types';
   cors: {
     origin: [
       'https://brado-2.harea.digital',
-      'http://localhost:8100',
-      'http://127.0.0.1:8100',
+      'https://localhost:8100',
+      'https://127.0.0.1:8100',
     ],
     credentials: true
   }

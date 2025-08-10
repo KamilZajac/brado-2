@@ -1,18 +1,18 @@
 import { Column, PrimaryGeneratedColumn } from 'typeorm';
 
 export class BaseReading {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column()
-    sensorId: number;
+  @Column()
+  sensorId: number;
 
-    @Column('integer')
-    value: number;
+  @Column('integer')
+  value: number;
 
-    @Column('bigint')
-    timestamp: string;
+  @Column('bigint')
+  timestamp: string;
 
-    @Column({ type: 'int' })
-    delta: number;
+  @Column({ type: 'int' })
+  delta: number;
 }

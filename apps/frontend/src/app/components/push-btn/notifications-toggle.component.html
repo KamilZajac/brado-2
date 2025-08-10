@@ -1,0 +1,26 @@
+<!-- src/app/shared/notifications-toggle/notifications-toggle.component.html -->
+
+<ng-container *ngIf="state$ | async as state">
+  <ion-card *ngIf="state === 'unsupported'">
+    <ion-card-content>
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <div>Notifications aren’t supported in this browser.</div>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-button expand="block" color="primary" *ngIf="state === 'prompt' || state === 'idle'" (click)="enable()">
+    <ion-icon name="notifications-outline" slot="start"></ion-icon>
+    Enable Notifications
+  </ion-button>
+
+  <ion-item color="success" lines="none" *ngIf="state === 'enabled'">
+    <ion-icon name="notifications" slot="start"></ion-icon>
+    <ion-label>Notifications enabled</ion-label>
+    <ion-button fill="clear" color="medium" slot="end" (click)="disable()">Disable</ion-button>
+  </ion-item>
+
+  <ion-item color="warning" lines="none" *ngIf="state === 'denied'">
+    <ion-icon name="close-circle" slot="start"></ion-icon>
+    <ion-label>Notifications blocked in browser settings</ion-label>
+  </ion-item>
+</ng-container>

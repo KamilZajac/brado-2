@@ -27,18 +27,19 @@ import {AuthService} from "./services/auth/auth.service";
 import {UserRole} from "@brado/types";
 import {DataStore} from "./services/data/data.store";
 import {TemperatureStore} from "./services/temperature/temp.store";
-import {AnnotationsStore} from "./services/annotation/annotations.store";
 import {PwaInstallComponent} from "./components/pwa-install/pwa-install.component";
-import {PushNotificationService} from "./services/push/push-notification.service";
+import {PushService} from "./services/push/push-notification.service";
+import {NotificationsToggleComponent} from "./components/push-btn/notifications-toggle.component";
+import {PushInAppService} from "./services/annotation/push-inapp.service";
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
   providers: [SettingsService],
-  imports: [HeaderComponent, RouterLink, RouterLinkActive, IonApp, IonSplitPane, IonMenu, IonContent, IonList, IonMenuToggle, IonItem, IonIcon, IonLabel, IonRouterLink, IonRouterOutlet, PwaInstallComponent],
+  imports: [HeaderComponent, RouterLink, RouterLinkActive, IonApp, IonSplitPane, IonMenu, IonContent, IonList, IonMenuToggle, IonItem, IonIcon, IonLabel, IonRouterLink, IonRouterOutlet, PwaInstallComponent, NotificationsToggleComponent],
 })
-export class AppComponent implements OnInit {
+export class AppComponent {
   showEnableButton = false;
 
   currentUser = this.auth.currentUser
@@ -52,7 +53,9 @@ export class AppComponent implements OnInit {
     private auth: AuthService,
     private dataStore: DataStore,
     private tempStore: TemperatureStore,
-    private pushService: PushNotificationService
+    private pushService: PushService,
+    private inapp: PushInAppService
+
   ) {
     effect(() => {
          const user = this.currentUser();
@@ -101,15 +104,12 @@ export class AppComponent implements OnInit {
   public async ngOnInit() {
     this.auth.getCurrentUser();
 
-    // Initialize push notifications if available
-    const sub = await this.pushService.getExistingSubscription();
-    this.showEnableButton = !sub;
+    this.pushService.heartbeatOnAppStart();
+    this.inapp.bindServiceWorkerMessages();
+
   }
 
-  async enable() {
-    const ok = await this.pushService.subscribeAndSendToBackend();
-    this.showEnableButton = !ok ? true : false;
-  }
+
 
 
   // public get appPages(){
