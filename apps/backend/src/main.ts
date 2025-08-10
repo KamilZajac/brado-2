@@ -17,15 +17,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost',
-      'http://localhost:8100',
-      'http://localhost:8080',
-      'http://frontend:8080',
-      'http://57.129.131.80:8080',
-      'http://57.129.131.80',
-      'https://brado-2.harea.digital',
-      'http://brado-2.harea.digital',
-      'https://api.brado-2.harea.digital',
-        'https://127.0.0.1:8100'
+      'https://brado-2.harea.digital'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
