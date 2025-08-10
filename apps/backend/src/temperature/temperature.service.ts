@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { TempReading } from '@brado/types';
 import { TemperatureEntity } from './entities/temperature.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,6 +7,7 @@ import { ReadingsGateway } from '../reading/readings.gateway';
 import * as ExcelJS from 'exceljs';
 import { DateTime } from 'luxon';
 import { MailService } from '../mail/mail.service';
+import {NotificationsService} from "../notifications/notifications.service";
 
 @Injectable()
 export class TemperatureService {
@@ -27,6 +28,8 @@ export class TemperatureService {
     private tempReadingsRepo: Repository<TemperatureEntity>,
     private readonly gateway: ReadingsGateway,
     private readonly mailService: MailService,
+    @Inject(forwardRef(() => NotificationsService))
+    private pushService: NotificationsService
   ) {}
 
   async addReading(data: TempReading[]) {
@@ -104,6 +107,13 @@ export class TemperatureService {
    * Send an email alert about a sensor's temperature condition
    */
   private sendTemperatureAlert(sensorId: string, temperature: number) {
+    // push
+    this.pushService.broadcastAll({
+      title: 'Alert Temperatury: Czujnik ${sensorId}',
+      body: 'Obecna Temperatura: ${temperature}°C'
+    })
+
+    // email
     const subject = `Alert Temperatury: Czujnik ${sensorId}`;
     const text = `
       Alert

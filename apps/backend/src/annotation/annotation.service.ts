@@ -1,9 +1,10 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { AnnotationEntity } from './entities/annotation.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, Between } from 'typeorm';
-import { Annotation, User } from '@brado/types';
+import { Between, MoreThan, Repository } from 'typeorm';
+import { Annotation, AnnotationType, User } from '@brado/types';
 import { WorkingPeriodService } from '../working-period/working-period.service';
+import {NotificationsService} from "../notifications/notifications.service";
 
 // import { Annotation } from '@brado/types';
 
@@ -14,6 +15,8 @@ export class AnnotationService {
     private readonly annotationRepository: Repository<AnnotationEntity>,
     @Inject(forwardRef(() => WorkingPeriodService))
     private workPeriodsService: WorkingPeriodService,
+    @Inject(forwardRef(() => NotificationsService))
+    private pushService: NotificationsService
   ) {}
 
   async create(user: User, data: Partial<Annotation>): Promise<Annotation> {
@@ -21,7 +24,15 @@ export class AnnotationService {
       ...data,
       user: { id: user.id },
     });
-    return await this.annotationRepository.save(annotation);
+
+    if (data.type === AnnotationType.ACCIDENT_FROM_TO) {
+      this.pushService.broadcastAll({
+        title: 'Awaria',
+        body: 'Zgłoszono awarię'
+      })
+
+    }
+      return await this.annotationRepository.save(annotation);
   }
 
   async findAllByUser(user: User): Promise<Annotation[]> {
@@ -41,7 +52,7 @@ export class AnnotationService {
     });
   }
 
-  getBetween(fromTS: string, toTS: string ) {
+  getBetween(fromTS: string, toTS: string) {
     return this.annotationRepository.find({
       where: {
         from_timestamp: Between(fromTS, toTS),
@@ -89,7 +100,6 @@ export class AnnotationService {
   }
 
   async getCurrentAnnotations() {
-
     const workingPeriods = await this.workPeriodsService.findLatest();
 
     const startTimes = workingPeriods.map((p) => +p.start);

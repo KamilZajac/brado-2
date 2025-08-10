@@ -11,7 +11,9 @@ import { LiveReading, LiveUpdate, TempReading } from '@brado/types';
 @WebSocketGateway({
   cors: {
     origin: [
-      'https://brado-2.harea.digital'
+      'https://brado-2.harea.digital',
+        'http://localhost:8100',
+        'https://127.0.0.1:8100'
     ],
     credentials: true
   }

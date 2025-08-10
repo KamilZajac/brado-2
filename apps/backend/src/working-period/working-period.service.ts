@@ -26,7 +26,7 @@ export class WorkingPeriodService {
     const sensorIds = await this.readingService.getUniqueLiveSensorIds();
 
     // Define constants
-    const BREAK_MAX_MS = 2 * 60 * 60 * 1000; // 2 hours - breaks shorter than this are not counted as end of workday
+    const BREAK_MAX_MS = 4 * 60 * 60 * 1000; // 4 hours - breaks shorter than this are not counted as end of workday
     const ACTIVITY_THRESHOLD = 10; // Delta values below this are considered inactive
 
     for (const row of sensorIds) {

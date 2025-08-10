@@ -25,10 +25,16 @@ import { SettingsService } from '../settings/settings.service';
 import { AnnotationService } from '../annotation/annotation.service';
 import { WorkingPeriodService } from '../working-period/working-period.service';
 import { TimeHelper } from '../shared/time.helpers';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReadingService {
   private readonly logger = new Logger(ReadingService.name);
+
+  private lastReadingTime: number | null = null;
+  private hasNotifiedNoReadings = false;
+  private hasNotifiedReadingsResumed = false;
+  private readonly NOTIFICATION_THRESHOLD_MS = 10 * 60 * 1000; // 5 minutes in milliseconds
 
   constructor(
     @InjectRepository(LiveReadingEntity)
@@ -40,6 +46,7 @@ export class ReadingService {
     private annotationService: AnnotationService,
     @Inject(forwardRef(() => WorkingPeriodService))
     private workPeriodsService: WorkingPeriodService,
+    private notificationsService: NotificationsService,
   ) {}
 
   private dailyTotals = new Map<string, number>(); // key: `${sensorId}-${yyyy-mm-dd}`
@@ -53,6 +60,36 @@ export class ReadingService {
   }
 
   async addReading(readings: [LiveReading]) {
+    const currentTime = Date.now();
+
+    // Check if we need to send a notification for no readings in the last 5 minutes
+    if (this.lastReadingTime !== null) {
+      const timeSinceLastReading = currentTime - this.lastReadingTime;
+
+      if (timeSinceLastReading > this.NOTIFICATION_THRESHOLD_MS && !this.hasNotifiedNoReadings) {
+        // No readings for more than 10 minutes and we haven't notified yet
+        await this.notificationsService.broadcastAll({
+          title: 'Brak odczytów',
+          body: 'Nie otrzymano odcztytów przez 10 min.'
+        });
+        this.hasNotifiedNoReadings = true;
+        this.hasNotifiedReadingsResumed = false;
+      }
+    }
+
+    // If we're receiving readings again after a notification was sent
+    if (this.hasNotifiedNoReadings && !this.hasNotifiedReadingsResumed) {
+      await this.notificationsService.broadcastAll({
+        title: 'Odczyty wznowione',
+        body: 'Odczyty zostały wznowione po przerwie'
+      });
+      this.hasNotifiedReadingsResumed = true;
+      this.hasNotifiedNoReadings = false;
+    }
+
+    // Update the last reading time
+    this.lastReadingTime = currentTime;
+
     const uniqueSensorIds = Array.from(
       new Set(readings.map((entity) => entity.sensorId)),
     );
@@ -623,26 +660,100 @@ export class ReadingService {
       new Set(readings.map((entity) => entity.sensorId)),
     );
 
-    uniqueSensorIds.forEach((sensorId) => {
-      let currentlyCalculatedDate = '';
-      let currentSum = 0;
+    // Process each sensor separately
+    for (const sensorId of uniqueSensorIds) {
+      // Get working periods for this sensor and time range
+      const workingPeriods = await this.workPeriodsService.getBetween(
+        fromTS,
+        toTS,
+        WorkingPeriodType.HOURLY,
+        sensorId.toString()
+      );
 
-      readings
+      // Sort working periods by start time
+      workingPeriods.sort((a, b) => +a.start - +b.start);
+
+      // Filter readings for this sensor and sort by timestamp
+      const sensorReadings = readings
         .filter((r) => r.sensorId === sensorId)
-        .sort((a, b) => +a.timestamp - +b.timestamp)
-        .forEach((r) => {
-          const dt = ReadingsHelpers.tsToPolishDate(+r.timestamp).toFormat(
-            'dd-MM-yyyy',
-          );
+        .sort((a, b) => +a.timestamp - +b.timestamp);
 
-          if (currentlyCalculatedDate !== dt) {
-            currentlyCalculatedDate = dt;
-            currentSum = 0;
-          }
+      if (sensorReadings.length === 0) continue;
+
+      // If no working periods found, treat all readings as one period
+      if (workingPeriods.length === 0) {
+        let currentSum = 0;
+        sensorReadings.forEach((r) => {
           currentSum += r.delta;
           r.dailyTotal = currentSum;
         });
-    });
+        continue;
+      }
+
+      // Process readings by working period
+      let currentWorkPeriodIndex = -1;
+      let currentSum = 0;
+
+      sensorReadings.forEach((reading) => {
+        const readingTimestamp = +reading.timestamp;
+
+        // Find which working period this reading belongs to
+        let foundPeriod = false;
+        for (let i = 0; i < workingPeriods.length; i++) {
+          const period = workingPeriods[i];
+          const periodStart = +period.start;
+          const periodEnd = period.end ? +period.end : Infinity;
+
+          if (readingTimestamp >= periodStart && readingTimestamp <= periodEnd) {
+            // If we've moved to a new working period, reset the sum
+            if (currentWorkPeriodIndex !== i) {
+              currentWorkPeriodIndex = i;
+              currentSum = 0;
+            }
+            foundPeriod = true;
+            break;
+          }
+        }
+
+        // If reading doesn't belong to any working period, check if it's before the first period
+        if (!foundPeriod && workingPeriods.length > 0) {
+          if (readingTimestamp < +workingPeriods[0].start) {
+            // Before first period, use a special index
+            if (currentWorkPeriodIndex !== -2) {
+              currentWorkPeriodIndex = -2;
+              currentSum = 0;
+            }
+          } else {
+            // After all periods or between periods, find the closest previous period
+            let closestPeriodIndex = -1;
+            let closestDistance = Infinity;
+
+            for (let i = 0; i < workingPeriods.length; i++) {
+              const period = workingPeriods[i];
+              const periodEnd = period.end ? +period.end : Infinity;
+
+              if (readingTimestamp > periodEnd) {
+                const distance = readingTimestamp - periodEnd;
+                if (distance < closestDistance) {
+                  closestDistance = distance;
+                  closestPeriodIndex = i;
+                }
+              }
+            }
+
+            // If we found a closest period and it's different from current, reset sum
+            if (closestPeriodIndex !== -1 && currentWorkPeriodIndex !== closestPeriodIndex) {
+              currentWorkPeriodIndex = closestPeriodIndex;
+              currentSum = 0;
+            }
+          }
+        }
+
+        // Update the running total for this working period
+        currentSum += reading.delta;
+        reading.dailyTotal = currentSum;
+      });
+    }
 
     return readings;
   }

@@ -13,16 +13,17 @@ import {
 } from '@ionic/angular/standalone';
 import {SettingsService} from "../../services/settings/settings.service";
 import { AsyncPipe } from '@angular/common';
+import {NotificationsToggleComponent} from "../../components/push-btn/notifications-toggle.component";
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
-  imports: [IonHeader, IonToolbar,
-    IonTitle,
-    IonContent,
-    IonList, IonItem, IonLabel, IonInput, FormsModule, AsyncPipe,
-    IonButton],
+    imports: [IonHeader, IonToolbar,
+        IonTitle,
+        IonContent,
+        IonList, IonItem, IonLabel, IonInput, FormsModule, AsyncPipe,
+        IonButton, NotificationsToggleComponent],
 })
 export class SettingsComponent {
   hourlyTarget: number = 0; // Wartosc domyślna

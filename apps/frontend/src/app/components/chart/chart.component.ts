@@ -53,6 +53,7 @@ import {DataStore} from "../../services/data/data.store";
 import {AnnotationsStore} from "../../services/annotation/annotations.store";
 import {DatePipe} from "@angular/common";
 import {TimeRange} from "../date-picker/date-picker.component";
+import {key} from "ionicons/icons";
 
 ChartJS.register(
   LineController,
@@ -324,6 +325,53 @@ export class ChartComponent implements OnInit {
       }
     }
 
+    // Add target growth lines for each working period
+    const shouldShowGrowthLines = (this.keyToDisplay ==='value' || this.keyToDisplay === 'dailyTotal');
+    console.log(this.keyToDisplay)
+    if (shouldShowGrowthLines &&  this.hourlyTarget && workingPeriods.length > 0 && this.chartData?.datasets?.[0]?.data?.length > 0) {
+      const chartData = this.chartData.datasets[0].data;
+
+      workingPeriods.forEach((period, index) => {
+        // Find the first data point in this period
+        const periodStart = +period.start;
+        const periodEnd = period.end ? +period.end : Date.now();
+
+        // Find the first data point in this period
+        const firstPointInPeriod: any = chartData.find((point: any) =>
+          +point.x >= periodStart && +point.x <= periodEnd
+        );
+
+        if (firstPointInPeriod) {
+          const startX = +firstPointInPeriod.x;
+          const startY = +firstPointInPeriod.y;
+          const hourlyGrowth =  this.hourlyTarget;
+
+          // Calculate end point (growing by hourlyTarget each hour)
+          const durationHours = (periodEnd - startX) / (1000 * 60 * 60); // duration in hours
+          const endY = startY + (hourlyGrowth * durationHours);
+
+          // Add annotation for target growth line
+          annotations[`targetGrowth${index}`] = {
+            type: 'line',
+            xMin: startX,
+            xMax: periodEnd,
+            yMin: startY,
+            yMax: endY,
+            borderColor: 'green',
+            borderWidth: 2,
+            borderDash: [10,5],
+            label: {
+              display: true,
+              content: '',
+              position: 'start',
+              backgroundColor: 'rgba(0,255,0,0.1)',
+              color: '#000'
+            }
+          };
+        }
+      });
+    }
+
     this.chartOptions = {
       responsive: true,
       animation: {
@@ -341,26 +389,26 @@ export class ChartComponent implements OnInit {
             mode: 'point'  // <-- this is crucial
           },
           annotations: {
-            ...(this.getTarget ? {
-              thresholdLine: {
-                type: 'line',
-
-                yMin: this.getTarget,
-                yMax: this.getTarget,
-
-                borderColor: 'red',
-                borderWidth: 2,
-                borderDash: [6, 6], // optional dashed line
-                label: {
-                  display: true,
-                  content: 'Cel',
-                  position: 'start',
-                  backgroundColor: 'rgba(255,0,0,0.1)',
-                  color: '#000'
-                }
-              }
-
-            } : {}),
+            // ...(this.getTarget ? {
+            //   thresholdLine: {
+            //     type: 'line',
+            //
+            //     yMin: this.getTarget,
+            //     yMax: this.getTarget,
+            //
+            //     borderColor: 'red',
+            //     borderWidth: 2,
+            //     borderDash: [6, 6], // optional dashed line
+            //     label: {
+            //       display: true,
+            //       content: 'Cel',
+            //       position: 'start',
+            //       backgroundColor: 'rgba(255,0,0,0.1)',
+            //       color: '#000'
+            //     }
+            //   }
+            //
+            // } : {}),
             ...annotations
           },
         },
@@ -539,6 +587,10 @@ export class ChartComponent implements OnInit {
 
 
       ]
+
+      console.log(datasets);
+      console.log(this.keyToDisplay)
+
     }
 
 

@@ -65,7 +65,6 @@ export class NotificationsService {
     let sent = 0,
       cleaned = 0;
 
-    console.log(payload);
 
     const qb = this.repo
       .createQueryBuilder('s')
@@ -75,8 +74,7 @@ export class NotificationsService {
     if (lastId) qb.andWhere('s.id > :lastId', { lastId });
 
     const batch = await qb.getMany();
-    console.log('BATCH');
-    console.log(batch);
+
     if (!batch.length) {
       return
     }
