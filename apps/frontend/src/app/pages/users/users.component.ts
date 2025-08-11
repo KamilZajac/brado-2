@@ -24,22 +24,17 @@ export class UsersComponent  implements OnInit {
     this.usersStore.loadAll()
   }
 
-
   onRoleChange(user: User, newRole: UserRole) {
     if (user.role !== newRole) {
       this.usersStore.update(user.id, { role: newRole });
     }
   }
 
-
   async openAddUserModal() {
-    console.log('asflmas;f')
     const modal = await this.modalCtrl.create({
       component: AddUserModalComponent,
     });
     modal.present();
-
-    console.log(modal)
 
     const { data, role } = await modal.onDidDismiss();
     if (role === 'confirm' && data) {

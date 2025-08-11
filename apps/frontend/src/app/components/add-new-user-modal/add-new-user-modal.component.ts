@@ -45,7 +45,7 @@ import {
           <ion-select formControlName="role" interface="popover">
             <ion-select-option value="superadmin">Superadmin</ion-select-option>
             <ion-select-option value="admin">Admin</ion-select-option>
-            <ion-select-option value="worker">Worker</ion-select-option>
+            <ion-select-option value="worker">Pracownik</ion-select-option>
           </ion-select>
         </ion-item>
 

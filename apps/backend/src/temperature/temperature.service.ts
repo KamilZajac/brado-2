@@ -20,8 +20,8 @@ export class TemperatureService {
   // Temperature threshold (-15°C)
   private readonly TEMPERATURE_THRESHOLD = -15;
 
-  // Duration threshold (5 minutes in milliseconds)
-  private readonly DURATION_THRESHOLD_MS = 5 * 60 * 1000;
+  // Duration threshold (60 minutes in milliseconds)
+  private readonly DURATION_THRESHOLD_MS = 60 * 60 * 1000;
 
   constructor(
     @InjectRepository(TemperatureEntity)
@@ -34,7 +34,6 @@ export class TemperatureService {
 
   async addReading(data: TempReading[]) {
     const date = new Date().toISOString();
-    console.log(date + ' Received temperature reading - ' + data.length);
     const toSave = this.tempReadingsRepo.create(data);
     try {
       await this.tempReadingsRepo.save(toSave);
@@ -43,7 +42,6 @@ export class TemperatureService {
       // Process temperature alerts for sensors with 'szok' in their name
       this.processSensorTemperatureAlerts(toSave);
 
-      console.log(date + 'Saved and processed');
       return 'ok';
     } catch (error) {
       throw error;
@@ -109,8 +107,8 @@ export class TemperatureService {
   private sendTemperatureAlert(sensorId: string, temperature: number) {
     // push
     this.pushService.broadcastAll({
-      title: 'Alert Temperatury: Czujnik ${sensorId}',
-      body: 'Obecna Temperatura: ${temperature}°C'
+      title: `${sensorId}`,
+      body: `Obecna Temperatura: ${temperature}°C`
     })
 
     // email

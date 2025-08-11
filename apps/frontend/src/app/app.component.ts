@@ -70,12 +70,12 @@ export class AppComponent {
 
           this.appPages = [
             {title: 'Pulpit ( hala )', url: '/dashboard', icon: 'pulse-outline'},
-            {title: 'Pulpit ( admin )', url: '/dashboard-admin', icon: 'pulse-outline'},
             {title: 'Na żywo', url: '/live', icon: 'pulse-outline'},
+            {title: 'Temperatura', url: '/temperatures', icon: 'calendar-outline'},
             ...user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN ? [
+              {title: 'Pulpit ( admin )', url: '/dashboard-admin', icon: 'pulse-outline'},
               {title: 'Miesiac', url: '/month', icon: 'calendar-outline'},
               // {title: 'Uboje', url: '/sessions', icon: 'calendar-outline'},
-              {title: 'Temperatura', url: '/temperatures', icon: 'calendar-outline'},
               {title: 'Własny wykres', url: '/compare', icon: 'git-compare-outline'},
               {title: 'Użytkownicy', url: '/users', icon: 'person-outline'},
               {title: 'Ustawienia', url: '/settings', icon: 'settings-outline'},

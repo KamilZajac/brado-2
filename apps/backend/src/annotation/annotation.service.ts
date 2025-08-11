@@ -25,6 +25,7 @@ export class AnnotationService {
       user: { id: user.id },
     });
 
+
     if (data.type === AnnotationType.ACCIDENT_FROM_TO) {
       this.pushService.broadcastAll({
         title: 'Awaria',

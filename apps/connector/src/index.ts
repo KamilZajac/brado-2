@@ -62,7 +62,6 @@ const POLL_INTERVAL = 10_000;
 const POST_INTERVAL = 60_000;
 const CONNECTION_TIMEOUT = 5000;
 const UNSENT_FILE = path.join(__dirname, "unsent_readings.json");
-const API_URL = "https://your-api.com/sensor-readings";
 
 // Data structures
 const lastReadings = new Map<number, LiveReading>();       // sensorId -> LiveReading (last reading)

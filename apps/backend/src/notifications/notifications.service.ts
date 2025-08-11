@@ -27,9 +27,7 @@ export class NotificationsService {
   }) {
     const { endpoint, keys } = sub;
     const existing = await this.repo.findOne({ where: { endpoint } });
-
-    console.log(sub, meta)
-
+    
     if (existing) {
       existing.p256dh = keys?.p256dh ?? existing.p256dh;
       existing.auth   = keys?.auth ?? existing.auth;
@@ -55,8 +53,6 @@ export class NotificationsService {
   }
 
   async revokeByEndpoint(endpoint: string) {
-    console.log('REVOKE')
-    console.log(endpoint);
     await this.repo.update({ endpoint }, { revokedAt: new Date() });
   }
 
@@ -86,7 +82,6 @@ export class NotificationsService {
 
     lastId = batch[batch.length - 1].id;
 
-    this.logger.log(`Broadcast finished: sent=${sent}, cleaned=${cleaned}`);
     return { sent, cleaned };
   }
 
@@ -97,9 +92,6 @@ export class NotificationsService {
     let sent = 0, cleaned = 0;
     const queue = subs.slice();
     const workers: Promise<void>[] = [];
-
-    console.log('SUBS')
-    console.log(subs)
 
     const worker = async () => {
       for (;;) {

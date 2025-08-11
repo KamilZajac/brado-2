@@ -128,8 +128,6 @@ export class WorkingPeriodService {
 
             // If no data in next two hours, end the working period
             if (!hasDataInNextTwoHours) {
-
-
               currentPeriod.end = reading.timestamp;
 
               // Save the completed period
@@ -175,7 +173,7 @@ export class WorkingPeriodService {
     const sensorIds = await this.readingService.getUniqueHourlySensorIds();
 
     // Define constants
-    const BREAK_MAX_MS = 2 * 60 * 60 * 1000; // 2 hours - breaks shorter than this are not counted as end of workday
+    const BREAK_MAX_MS = 4 * 60 * 60 * 1000; // 2 hours - breaks shorter than this are not counted as end of workday
     const ACTIVITY_THRESHOLD = 10; // Delta values below this are considered inactive
 
     for (const row of sensorIds) {

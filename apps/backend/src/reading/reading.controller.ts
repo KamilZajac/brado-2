@@ -151,6 +151,7 @@ export class ConnectorReadingController {
 
   @Post()
   add(@Body() readings: { data: [LiveReading] }) {
+
     return this.readingsService.addReading(readings.data);
   }
 

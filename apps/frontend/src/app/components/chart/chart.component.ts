@@ -2,9 +2,11 @@ import {Component, effect, EventEmitter, inject, input, Input, OnInit, Output, V
 import {
   Annotation,
   AnnotationType,
+  detectBreaks,
   getAnnotationTitle, getPolishDayKey,
   HourlyReading,
   LiveReading,
+  ProductionBreak,
   TempReading,
   User,
   WorkingPeriod
@@ -132,10 +134,10 @@ export class ChartComponent implements OnInit {
   newAnnotation: Annotation | null = null;
 
   // Store detected breaks
-  detectedBreaks: { start: string, end: string, duration: number }[] = [];
+  detectedBreaks: ProductionBreak[] = [];
 
   // Track the currently highlighted break
-  highlightedBreak: { start: string, end: string, duration: number } | null = null;
+  highlightedBreak: ProductionBreak | null = null;
 
   // Track selected points for bulk deletion
   selectedPoints: string[] = [];
@@ -650,74 +652,14 @@ export class ChartComponent implements OnInit {
    * @param readings The LiveReading array to detect breaks in
    * @returns An array of detected breaks, each with a start and end timestamp
    */
-  public detectBreaks(readings: LiveReading[]): { start: string, end: string, duration: number }[] {
+  public detectBreaks(readings: LiveReading[]): ProductionBreak[] {
     if (!this.isLive || readings.length < 2) return [];
 
-    let breaks: { start: string, end: string, duration: number }[] = [];
-    let breakStart: string | null = null;
-    let lastValue: number | null = null;
-    let lastDelta: number | null = null;
-    let lastTimestamp: string | null = null;
+    // Use the shared detectBreaks function from @brado/types
+    let breaks = detectBreaks(readings);
 
-    // Sort readings by timestamp
+    // Sort readings by timestamp (needed for filtering)
     const sortedReadings = [...readings].sort((a, b) => +a.timestamp - +b.timestamp);
-
-    for (let i = 0; i < sortedReadings.length; i++) {
-      const reading = sortedReadings[i];
-
-      // Skip the first reading as we need a previous reading to compare
-      if (i === 0) {
-        lastValue = reading.value;
-        lastDelta = reading.delta;
-        lastTimestamp = reading.timestamp;
-        continue;
-      }
-
-      // Check if value and delta haven't changed
-      const valueUnchanged = reading.value === lastValue || (lastValue != null && Math.abs(reading.value - lastValue) < 8);
-      const deltaUnchanged = reading.delta === lastDelta || (lastDelta != null && Math.abs(reading.delta - lastDelta) < 8);
-
-      // Calculate time difference in minutes
-      const timeDiff = (+reading.timestamp - +lastTimestamp!) / (1000 * 60);
-
-      // If we're in a break and either value or delta has changed, end the break
-      if (breakStart && (!valueUnchanged || !deltaUnchanged)) {
-        const duration = (+reading.timestamp - +breakStart) / (1000 * 60);
-        // Only consider breaks of 5 minutes or more
-        if (duration >= 5) {
-          breaks.push({
-            start: breakStart,
-            end: lastTimestamp!,
-            duration: duration
-          });
-        }
-        breakStart = null;
-      }
-
-      // If value and delta haven't changed and time difference is significant, start a break
-      if ((valueUnchanged && deltaUnchanged)) {
-        if (!breakStart) {
-          breakStart = lastTimestamp!;
-        }
-      }
-
-      lastValue = reading.value;
-      lastDelta = reading.delta;
-      lastTimestamp = reading.timestamp;
-    }
-
-    // Check if we're still in a break at the end of the array
-    if (breakStart && lastTimestamp) {
-      const duration = (+lastTimestamp - +breakStart) / (1000 * 60);
-      if (duration >= 5) {
-        breaks.push({
-          start: breakStart,
-          end: lastTimestamp,
-          duration: duration
-        });
-      }
-    }
-
 
     // Filter out breaks that are already covered by existing annotations
     breaks = breaks.filter(breakItem => {
@@ -1237,7 +1179,7 @@ export class ChartComponent implements OnInit {
    * Highlights the annotation corresponding to a break when hovering over its chip
    * @param breakItem The break to highlight
    */
-  highlightBreakAnnotation(breakItem: { start: string, end: string, duration: number }) {
+  highlightBreakAnnotation(breakItem: ProductionBreak) {
     this.highlightedBreak = breakItem;
     this.buildChartOptions();
     this.chart?.update();

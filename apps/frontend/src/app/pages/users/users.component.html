@@ -20,7 +20,7 @@
         (ionChange)="onRoleChange(user, $event.detail.value)"
       >
         <ion-select-option *ngFor="let role of roles" [value]="role">
-          {{ role }}
+          {{ role === 'worker' ? 'Pracownik' : role }}
         </ion-select-option>
       </ion-select>
     </ion-item>

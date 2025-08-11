@@ -4,11 +4,13 @@ import { Between, In, LessThan, MoreThan, Repository } from 'typeorm';
 import {
   DailyWorkingSummary,
   DataReadingWithDeltas,
+  detectBreaks,
   getDailyWorkingSummary,
   GrowingAverage,
   HourlyReading,
   LiveReading,
   LiveUpdate,
+  ProductionBreak,
   WorkingPeriodType,
 } from '@brado/types';
 import { ReadingsGateway } from './readings.gateway';
@@ -35,6 +37,8 @@ export class ReadingService {
   private hasNotifiedNoReadings = false;
   private hasNotifiedReadingsResumed = false;
   private readonly NOTIFICATION_THRESHOLD_MS = 10 * 60 * 1000; // 5 minutes in milliseconds
+  private readonly BREAK_THRESHOLD_MINUTES = 5; // 5 minutes
+  private lastNotifiedBreaks: Map<number, string> = new Map(); // Map of sensorId to break end timestamp
 
   constructor(
     @InjectRepository(LiveReadingEntity)
@@ -59,6 +63,105 @@ export class ReadingService {
     return `${sensorId}-${ymd}`;
   }
 
+  /**
+   * Checks for breaks in production and sends notifications if breaks are detected
+   * @param newReadings The new readings to check for breaks
+   */
+  private async checkForBreaks(newReadings: [LiveReading]): Promise<void> {
+    // For each sensor in the new readings, get the last N readings
+    const uniqueSensorIds = Array.from(
+      new Set(newReadings.map((entity) => entity.sensorId)),
+    );
+
+    for (const sensorId of uniqueSensorIds.filter(sensorId => sensorId === 2)) { // for now - check only production sensor
+      const currentWorkPeriod = await this.workPeriodsService.findLatest(
+        WorkingPeriodType.LIVE, sensorId.toString()
+      );
+
+      const periodStart = currentWorkPeriod.length > 0 ? currentWorkPeriod[0].start : undefined;
+
+      // Get the last 30 readings for this sensor (including the new ones)
+      const lastReadings = await this.findLastNBySensorId(sensorId, 240, periodStart)
+
+      // Detect breaks in these readings
+      const detectedBreaks = this.detectBreaks(lastReadings);
+
+      const breakItem = detectedBreaks[detectedBreaks.length - 1];
+
+      if(!breakItem) {
+        return
+      }
+      // Send notifications for new breaks
+        // Check if we've already notified about this break
+        const lastNotifiedBreakEnd = this.lastNotifiedBreaks.get(
+          breakItem.sensorId,
+        );
+
+        // If we haven't notified about this break yet, or it's a different break
+        if (!lastNotifiedBreakEnd || lastNotifiedBreakEnd != breakItem.end) {
+          // Format the duration in minutes
+          const durationMinutes = Math.floor(breakItem.duration);
+
+          // Send notification
+          await this.notificationsService.broadcastAll({
+            title: `Wykryto przerwę w produkcji`,
+            body: `Przerwa: ${durationMinutes} minut.`
+          });
+
+          // Update the last notified break for this sensor
+          this.lastNotifiedBreaks.set(breakItem.sensorId, breakItem.end);
+
+        }
+
+    }
+  }
+
+  /**
+   * Detects breaks in the data array where 'delta' and/or 'value' doesn't change for 5 minutes or more
+   * Skips breaks when the company is not working (surrounded by non-real values)
+   * @param readings The LiveReading array to detect breaks in
+   * @returns An array of detected breaks, each with a start and end timestamp and sensorId
+   */
+  private detectBreaks(readings: LiveReading[]): ProductionBreak[] {
+    if (readings.length < 2) return [];
+
+    // Use the shared detectBreaks function from @brado/types
+    // Set groupBySensor to true to process each sensor's readings separately
+    let breaks = detectBreaks(readings, this.BREAK_THRESHOLD_MINUTES, true);
+
+    // Group readings by sensorId for filtering
+    const readingsBySensor = this.groupBySensorId(readings);
+
+    // Filter out breaks that are at the beginning or end of the working period
+    // (surrounded by non-real values)
+    return breaks.filter((breakItem) => {
+      if (!breakItem.sensorId) return false;
+
+      const sensorReadings = readingsBySensor[
+        breakItem.sensorId.toString()
+      ].sort((a, b) => +a.timestamp - +b.timestamp);
+      const breakStartIndex = sensorReadings.findIndex(
+        (r) => r.timestamp === breakItem.start,
+      );
+      const breakEndIndex = sensorReadings.findIndex(
+        (r) => r.timestamp === breakItem.end,
+      );
+
+      // Check if there are real values before the break
+      const hasRealValuesBefore = sensorReadings
+        .slice(Math.max(0, breakStartIndex - 5), breakStartIndex)
+        .some((r) => r.delta > 0);
+
+      // Check if there are real values after the break
+      const hasRealValuesAfter = sensorReadings
+        .slice(breakEndIndex + 1, breakEndIndex + 6)
+        .some((r) => r.delta > 0);
+
+      // Only keep breaks that are surrounded by real values
+      return hasRealValuesBefore && hasRealValuesAfter;
+    });
+  }
+
   async addReading(readings: [LiveReading]) {
     const currentTime = Date.now();
 
@@ -66,11 +169,14 @@ export class ReadingService {
     if (this.lastReadingTime !== null) {
       const timeSinceLastReading = currentTime - this.lastReadingTime;
 
-      if (timeSinceLastReading > this.NOTIFICATION_THRESHOLD_MS && !this.hasNotifiedNoReadings) {
+      if (
+        timeSinceLastReading > this.NOTIFICATION_THRESHOLD_MS &&
+        !this.hasNotifiedNoReadings
+      ) {
         // No readings for more than 10 minutes and we haven't notified yet
         await this.notificationsService.broadcastAll({
           title: 'Brak odczytów',
-          body: 'Nie otrzymano odcztytów przez 10 min.'
+          body: 'Nie otrzymano odcztytów przez 10 min.',
         });
         this.hasNotifiedNoReadings = true;
         this.hasNotifiedReadingsResumed = false;
@@ -81,7 +187,7 @@ export class ReadingService {
     if (this.hasNotifiedNoReadings && !this.hasNotifiedReadingsResumed) {
       await this.notificationsService.broadcastAll({
         title: 'Odczyty wznowione',
-        body: 'Odczyty zostały wznowione po przerwie'
+        body: 'Odczyty zostały wznowione po przerwie',
       });
       this.hasNotifiedReadingsResumed = true;
       this.hasNotifiedNoReadings = false;
@@ -89,6 +195,9 @@ export class ReadingService {
 
     // Update the last reading time
     this.lastReadingTime = currentTime;
+
+    // Check for breaks in production
+    this.checkForBreaks(readings);
 
     const uniqueSensorIds = Array.from(
       new Set(readings.map((entity) => entity.sensorId)),
@@ -319,38 +428,89 @@ export class ReadingService {
   }
 
   async getInitialLiveData(startOfTheDateTS: string): Promise<LiveUpdate> {
-    const workingPeriods = await this.workPeriodsService.findLatest(
+    // First, get all working periods to extract unique sensor IDs
+    const allWorkingPeriods = await this.workPeriodsService.findLatest(
       WorkingPeriodType.LIVE,
     );
 
-    const startTimes = workingPeriods.map((p) => +p.start);
-
-    let startTime = Date.now() - 24 * 60 * 60 * 1000;
-
-    if (startTimes.length) {
-      startTime = Math.min(...startTimes);
-    }
-
-    // Todo debug only
-    // const todayData = await this.getAfterTime(startOfTheDateTS);
-
-    const todayData = await this.liveReadingsRepo.find({
-      where: {
-        timestamp: MoreThan(startTime.toString()),
-      },
-      order: { timestamp: 'ASC' },
-    });
-
+    // Extract unique sensor IDs from working periods
     const uniqueSensorIds = Array.from(
-      new Set(todayData.map((entity) => entity.sensorId)),
+      new Set(allWorkingPeriods.map((wp) => wp.sensorId)),
     );
 
-    if (!todayData.length) {
+    // If no working periods found, use a fallback approach
+    if (uniqueSensorIds.length === 0) {
+      // Fallback: get readings from the last 24 hours
+      const fallbackStartTime = Date.now() - 24 * 60 * 60 * 1000;
+
+      const fallbackData = await this.liveReadingsRepo.find({
+        where: {
+          timestamp: MoreThan(fallbackStartTime.toString()),
+        },
+        order: { timestamp: 'ASC' },
+      });
+
+      if (fallbackData.length === 0) {
+        return {};
+      }
+
+      // Extract unique sensor IDs from fallback data
+      const fallbackSensorIds = Array.from(
+        new Set(fallbackData.map((entity) => entity.sensorId)),
+      );
+
+      // Process fallback data
+      return this.processLiveReadings(fallbackData, fallbackSensorIds, startOfTheDateTS);
+    }
+
+    // Initialize container for all readings
+    let allReadings: LiveReading[] = [];
+
+    // For each sensor, get its working periods and load readings
+    for (const sensorId of uniqueSensorIds) {
+      // Get working periods for this specific sensor
+      const sensorWorkingPeriods = await this.workPeriodsService.findLatest(
+        WorkingPeriodType.LIVE,
+        sensorId.toString(),
+      );
+
+      if (sensorWorkingPeriods.length === 0) {
+        continue; // Skip if no working periods for this sensor
+      }
+
+      // Get the start time for this sensor's readings
+      const sensorStartTimes = sensorWorkingPeriods.map((p) => +p.start);
+      const sensorStartTime = Math.min(...sensorStartTimes);
+
+      // Load readings for this sensor
+      const sensorReadings = await this.liveReadingsRepo.find({
+        where: {
+          sensorId,
+          timestamp: MoreThan(sensorStartTime.toString()),
+        },
+        order: { timestamp: 'ASC' },
+      });
+
+      // Add to all readings
+      allReadings = [...allReadings, ...sensorReadings];
+    }
+
+    if (allReadings.length === 0) {
       return {};
     }
 
+    // Process all readings
+    return this.processLiveReadings(allReadings, uniqueSensorIds, startOfTheDateTS);
+  }
+
+  // Helper method to process live readings
+  private async processLiveReadings(
+    readings: LiveReading[],
+    sensorIds: number[],
+    startOfTheDateTS: string,
+  ): Promise<LiveUpdate> {
     const average60 = await this.getAverageSpeedsLastXMinutes(
-      uniqueSensorIds,
+      sensorIds,
       60,
     );
 
@@ -358,10 +518,14 @@ export class ReadingService {
 
     const liveUpdate: LiveUpdate = {};
 
-    uniqueSensorIds.forEach((id) => {
-      const todayWithTotal = this.attachRunningTotal(
-        todayData.filter((reading) => reading.sensorId === id),
-      );
+    sensorIds.forEach((id) => {
+      const sensorReadings = readings.filter((reading) => reading.sensorId === id);
+
+      if (sensorReadings.length === 0) {
+        return; // Skip if no readings for this sensor
+      }
+
+      const todayWithTotal = this.attachRunningTotal(sensorReadings);
 
       const lastRWithTotal = todayWithTotal[todayWithTotal.length - 1];
       const dateKey = this.getDateKey(
@@ -571,15 +735,22 @@ export class ReadingService {
   }
 
   async findLastNBySensorId(
-    sensorId: number,
-    n: number,
+      sensorId: number,
+      n: number,
+      afterTimestamp?: string, // optional
   ): Promise<LiveReading[]> {
-    return this.liveReadingsRepo
-      .createQueryBuilder('reading')
-      .where('reading.sensorId = :sensorId', { sensorId })
-      .orderBy('reading.timestamp', 'DESC')
-      .limit(n)
-      .getMany();
+    const query = this.liveReadingsRepo
+        .createQueryBuilder('reading')
+        .where('reading.sensorId = :sensorId', { sensorId });
+
+    if (afterTimestamp) {
+      query.andWhere('reading.timestamp > :afterTimestamp', { afterTimestamp });
+    }
+
+    return query
+        .orderBy('reading.timestamp', 'DESC')
+        .limit(n)
+        .getMany();
   }
 
   async findNextBySensorIdAfterTimestamp(
@@ -667,7 +838,7 @@ export class ReadingService {
         fromTS,
         toTS,
         WorkingPeriodType.HOURLY,
-        sensorId.toString()
+        sensorId.toString(),
       );
 
       // Sort working periods by start time
@@ -704,7 +875,10 @@ export class ReadingService {
           const periodStart = +period.start;
           const periodEnd = period.end ? +period.end : Infinity;
 
-          if (readingTimestamp >= periodStart && readingTimestamp <= periodEnd) {
+          if (
+            readingTimestamp >= periodStart &&
+            readingTimestamp <= periodEnd
+          ) {
             // If we've moved to a new working period, reset the sum
             if (currentWorkPeriodIndex !== i) {
               currentWorkPeriodIndex = i;
@@ -742,7 +916,10 @@ export class ReadingService {
             }
 
             // If we found a closest period and it's different from current, reset sum
-            if (closestPeriodIndex !== -1 && currentWorkPeriodIndex !== closestPeriodIndex) {
+            if (
+              closestPeriodIndex !== -1 &&
+              currentWorkPeriodIndex !== closestPeriodIndex
+            ) {
               currentWorkPeriodIndex = closestPeriodIndex;
               currentSum = 0;
             }
@@ -775,7 +952,7 @@ export class ReadingService {
       fromTS,
       toTS,
       WorkingPeriodType.HOURLY,
-      sensorId.toString()
+      sensorId.toString(),
     );
 
     const annotations = await this.annotationService.getBetween(fromTS, toTS);

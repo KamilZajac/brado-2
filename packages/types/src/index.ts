@@ -476,3 +476,147 @@ export const getAnnotationTitle = (annotationType: AnnotationType): string => {
             return ''
     }
 }
+
+export interface ProductionBreak {
+    start: string;
+    end: string;
+    duration: number;
+    sensorId: number;
+}
+
+/**
+ * Detects breaks in the data array where 'delta' and/or 'value' doesn't change for a specified time
+ * Core logic shared between frontend and backend
+ *
+ * @param readings The LiveReading array to detect breaks in
+ * @param breakThresholdMinutes The minimum duration in minutes for a break to be considered (default: 5)
+ * @param groupBySensor Whether to group readings by sensorId before processing (default: false)
+ * @returns An array of detected breaks, each with a start and end timestamp, duration, and optionally sensorId
+ */
+export const detectBreaks = (
+    readings: LiveReading[],
+    breakThresholdMinutes: number = 5,
+    groupBySensor: boolean = false
+): ProductionBreak[] => {
+    if (readings.length < 2) return [];
+
+    let breaks: ProductionBreak[] = [];
+
+    // If groupBySensor is true, process each sensor's readings separately
+    if (groupBySensor) {
+        const readingsBySensor: Record<string, LiveReading[]> = {};
+
+        // Group readings by sensorId
+        for (const reading of readings) {
+            const sensorId = reading.sensorId.toString();
+            if (!readingsBySensor[sensorId]) {
+                readingsBySensor[sensorId] = [];
+            }
+            readingsBySensor[sensorId].push(reading);
+        }
+
+        // Process each sensor's readings
+        for (const sensorId in readingsBySensor) {
+            const sensorBreaks = detectBreaksForReadings(
+                readingsBySensor[sensorId],
+                breakThresholdMinutes
+            );
+
+            // Add sensorId to each break
+            breaks.push(...sensorBreaks.map(breakItem => ({
+                ...breakItem,
+                sensorId: +sensorId
+            })));
+        }
+    } else {
+        // Process all readings together
+        breaks = detectBreaksForReadings(readings, breakThresholdMinutes);
+    }
+
+    return breaks;
+};
+
+/**
+ * Helper function that detects breaks in a single array of readings
+ * @param readings Array of readings to process
+ * @param breakThresholdMinutes Minimum duration for a break
+ * @returns Array of detected breaks
+ */
+const detectBreaksForReadings = (
+    readings: LiveReading[],
+    breakThresholdMinutes: number
+): ProductionBreak[] => {
+    if (readings.length < 2) return [];
+
+    let breaks: ProductionBreak[] = [];
+    let breakStart: string | null = null;
+    let lastValue: number | null = null;
+    let lastDelta: number | null = null;
+    let lastTimestamp: string | null = null;
+
+    // Sort readings by timestamp
+    const sortedReadings = [...readings].sort((a, b) => +a.timestamp - +b.timestamp);
+
+    const sensorId = +readings[0].sensorId
+
+
+    for (let i = 0; i < sortedReadings.length; i++) {
+        const reading = sortedReadings[i];
+
+        // Skip the first reading as we need a previous reading to compare
+        if (i === 0) {
+            lastValue = reading.value;
+            lastDelta = reading.delta;
+            lastTimestamp = reading.timestamp;
+            continue;
+        }
+
+        // Check if value and delta haven't changed
+        const valueUnchanged = reading.value === lastValue ||
+            (lastValue != null && Math.abs(reading.value - lastValue) < 8);
+        const deltaUnchanged = reading.delta === lastDelta ||
+            (lastDelta != null && Math.abs(reading.delta - lastDelta) < 8);
+
+        // If we're in a break and either value or delta has changed, end the break
+        if (breakStart && (!valueUnchanged || !deltaUnchanged)) {
+            const duration = (+reading.timestamp - +breakStart) / (1000 * 60);
+            // Only consider breaks of specified threshold or more
+            if (duration >= breakThresholdMinutes) {
+                breaks.push({
+                    start: breakStart,
+                    end: lastTimestamp!,
+                    duration: duration,
+                    sensorId: sensorId
+                });
+            }
+            breakStart = null;
+        }
+
+        // If value and delta haven't changed, start a break if not already in one
+        if (valueUnchanged && deltaUnchanged) {
+            if (!breakStart) {
+                breakStart = lastTimestamp!;
+            }
+        }
+
+        lastValue = reading.value;
+        lastDelta = reading.delta;
+        lastTimestamp = reading.timestamp;
+    }
+
+    // Check if we're still in a break at the end of the array
+    if (breakStart && lastTimestamp) {
+        const duration = (+lastTimestamp - +breakStart) / (1000 * 60);
+        if (duration >= breakThresholdMinutes) {
+            breaks.push({
+                start: breakStart,
+                end: lastTimestamp,
+                duration: duration,
+                sensorId: sensorId
+
+            });
+        }
+    }
+
+    return breaks;
+};

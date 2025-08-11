@@ -12,11 +12,11 @@ import { LiveReading, LiveUpdate, TempReading } from '@brado/types';
   cors: {
     origin: [
       'https://brado-2.harea.digital',
-        'http://localhost:8100',
-        'https://127.0.0.1:8100'
+      'http://localhost:8100',
+      'https://127.0.0.1:8100',
     ],
-    credentials: true
-  }
+    credentials: true,
+  },
 })
 export class ReadingsGateway implements OnGatewayInit {
   @WebSocketServer()

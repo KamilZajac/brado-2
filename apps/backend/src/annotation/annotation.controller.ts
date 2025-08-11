@@ -10,7 +10,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import {Annotation, User} from '@brado/types';
+import { Annotation, User } from '@brado/types';
 import { AuthGuard } from '@nestjs/passport';
 
 @UseGuards(AuthGuard('jwt'))
@@ -19,10 +19,7 @@ export class AnnotationController {
   constructor(private readonly annotationService: AnnotationService) {}
 
   @Post()
-  async createAnnotation(
-    @Request() req,
-    @Body() body: Partial<Annotation>,
-  ) {
+  async createAnnotation(@Request() req, @Body() body: Partial<Annotation>) {
     const user: User = req.user; // Get user data from JWT
     return this.annotationService.create(user, body);
   }
@@ -32,7 +29,6 @@ export class AnnotationController {
     const user: User = req.user;
     return this.annotationService.findAllByUser(user);
   }
-
 
   @Get('after/:timestamp')
   getAfter(@Param('timestamp') ts: string) {
@@ -48,7 +44,6 @@ export class AnnotationController {
   getFromTo(@Param('fromTS') fromTS: string, @Param('toTS') toTS: string) {
     return this.annotationService.getBetween(fromTS, toTS);
   }
-
 
   @Get(':id')
   async getAnnotationById(@Request() req, @Param('id') id: number) {
