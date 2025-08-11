@@ -27,7 +27,7 @@ export class NotificationsService {
   }) {
     const { endpoint, keys } = sub;
     const existing = await this.repo.findOne({ where: { endpoint } });
-    
+
     if (existing) {
       existing.p256dh = keys?.p256dh ?? existing.p256dh;
       existing.auth   = keys?.auth ?? existing.auth;

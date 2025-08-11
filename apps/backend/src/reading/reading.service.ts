@@ -79,6 +79,11 @@ export class ReadingService {
       );
 
       const periodStart = currentWorkPeriod.length > 0 ? currentWorkPeriod[0].start : undefined;
+      const periodEnd = currentWorkPeriod.length > 0 ? currentWorkPeriod[0].end : undefined;
+
+      if (periodEnd && +periodEnd < new Date().getTime()) {
+        return
+      }
 
       // Get the last 30 readings for this sensor (including the new ones)
       const lastReadings = await this.findLastNBySensorId(sensorId, 240, periodStart)
