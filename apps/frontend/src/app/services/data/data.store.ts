@@ -60,7 +60,7 @@ export class DataStore {
             }
       })
 
-      const workingSummary = getDailyWorkingSummary(readingsInPeriod, this.annotationsStore.getAnnotationsForReadings(readingsInPeriod)(), [currentPeriod])
+      const workingSummary = getDailyWorkingSummary(readingsInPeriod, this.annotationsStore.getAnnotationsForReadings(readingsInPeriod)(), [currentPeriod], this.getHourlyTarget())
 
       if(workingSummary) {
         summaries[key] = workingSummary

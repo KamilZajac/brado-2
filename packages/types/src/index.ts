@@ -307,7 +307,7 @@ export const getDailyWorkingSummary = (
     readings: LiveReading[] | HourlyReading[],
     annotations: Annotation[] = [],
     workPeriods: WorkingPeriod[] = [],
-    hourlyTarget: number = 5250,
+    hourlyTarget: number,
     fixedStartTS?: string,
     fixedEndTS?: string // Todo to implement on monthly stats
 ): DailyWorkingSummary | null => {
