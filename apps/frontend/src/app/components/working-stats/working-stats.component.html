@@ -1,7 +1,7 @@
 @if (workingSummary) {
   <div class="stats">
     <!--   Todo - make time more readable ( f.e. 2 hours 15 min ) -->
-    <p>Czas pracy: <b>{{ (workingSummary.totalTime / 3600000) | number:'1.1-1' }}h</b></p>
+    <p>Czas pracy: <b>{{ (workingSummary.totalTime / 60000) | number:'1.0-0' }} min</b></p>
     <p>Start: <b>{{ workingSummary.start | date: 'dd/MM/yyyy HH:mm:ss' }}</b></p>
     <p>Koniec: <b>{{ workingSummary.end | date: 'dd/MM/yyyy HH:mm:ss' }}</b></p>
 
@@ -9,16 +9,16 @@
 
 
     <p>Awarie: <b>{{ workingSummary.accidents.count }}
-      / {{ (workingSummary.accidents.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+      / {{ (workingSummary.accidents.totalDurationMs / 60000) | number:'1.0-0' }} min</b></p>
     <p>Przerwy: <b>{{ workingSummary.breaks.count }}
-      / {{ (workingSummary.breaks.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+      / {{ (workingSummary.breaks.totalDurationMs / 60000) | number:'1.0-0' }} min</b></p>
     <p>Organizacji: <b>{{ workingSummary.organisations.count }}
-      / {{ (workingSummary.organisations.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+      / {{ (workingSummary.organisations.totalDurationMs / 60000) | number:'1.0-0' }} min</b></p>
     <p>Wym. Strzem.: <b>{{ workingSummary.clipsChanges.count }}
-      / {{ (workingSummary.clipsChanges.totalDurationMs / 3600000) | number:'1.1-1' }}h</b></p>
+      / {{ (workingSummary.clipsChanges.totalDurationMs / 60000) | number:'1.0-0' }} min</b></p>
     @if (isAdmin) {
-      <p> MTBF: <b>{{ (MTBF / 3600000) | number:'1.1-1' }}h</b></p>
-      <p> MTTR: <b>{{ (MTTR / 3600000) | number:'1.1-1' }}h</b></p>
+      <p> MTBF: <b>{{ (MTBF / 60000) | number:'1.0-0' }} min</b></p>
+      <p> MTTR: <b>{{ (MTTR / 60000) | number:'1.0-0' }} min</b></p>
     }
   </div>
 }

@@ -1,9 +1,10 @@
-import {Component, effect, EventEmitter, inject, input, Input, OnInit, Output, ViewChild} from '@angular/core';
+import {Component, effect, EventEmitter, inject, Input, OnInit, Output, ViewChild} from '@angular/core';
 import {
   Annotation,
   AnnotationType,
   detectBreaks,
-  getAnnotationTitle, getPolishDayKey,
+  getAnnotationTitle,
+  getPolishDayKey,
   HourlyReading,
   LiveReading,
   ProductionBreak,
@@ -55,7 +56,6 @@ import {DataStore} from "../../services/data/data.store";
 import {AnnotationsStore} from "../../services/annotation/annotations.store";
 import {DatePipe} from "@angular/common";
 import {TimeRange} from "../date-picker/date-picker.component";
-import {key} from "ionicons/icons";
 
 ChartJS.register(
   LineController,

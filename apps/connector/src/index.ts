@@ -350,7 +350,21 @@ async function parseXMLtoReading(xml) {
                 const readings: TempReading[] = []
                 const timestamp = new Date().getTime().toString();
 
-                if(sensors.every(sensor => !sensor.$.val2 && !sensor.$.val3 && sensor.$.val)) {
+                if(sensors.every(sensor => sensor.$.name?.includes('Basen'))){
+                    sensors.forEach(sensor => {
+                        const reading = {
+                            id: -1,
+                            timestamp,
+                            temperature: parseFloat(sensor.$.val),
+                            humidity: 0,
+                            dewPoint: 0,
+                            sensorId: sensor.$.name
+                        };
+                        readings.push(reading);
+                        logger.debug(`Parsed temperature reading: temp=${reading.temperature}, humidity=${reading.humidity}, dewPoint=${reading.dewPoint}, sensorId=${reading.sensorId}`);
+                    });
+
+                } else if(sensors.every(sensor => !sensor.$.val2 && !sensor.$.val3 && sensor.$.val)) {
                     logger.debug("Processing XML in legacy format");
                     const temperature = parseFloat(sensors[0].$.val);
                     const humidity = parseFloat(sensors[1].$.val);
@@ -427,7 +441,9 @@ async function readTemperatures(): Promise<void> {
         'http://89.22.215.52:41233/fresh.xml',
         'http://89.22.215.52:41232/fresh.xml',
         'http://89.22.215.52:41231/fresh.xml',
-        'http://89.22.215.52:41230/fresh.xml'
+        'http://89.22.215.52:41230/fresh.xml',
+        'http://89.22.215.52:41234/fresh.xml',
+        'http://89.22.215.52:41235/fresh.xml'
     ];
 
     try {

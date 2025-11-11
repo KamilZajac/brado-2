@@ -121,7 +121,7 @@ export class TemperatureService {
       Margines: ${this.TEMPERATURE_THRESHOLD}°C
 
       Temperatura: ${sensorId} jest powyżej ${this.TEMPERATURE_THRESHOLD}°C 
-      przez przynajmniej 5 minut.
+      przez przynajmniej ${this.DURATION_THRESHOLD_MS / 60000} minut.
 
     `;
 

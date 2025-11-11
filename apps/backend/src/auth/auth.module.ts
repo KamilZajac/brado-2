@@ -20,7 +20,7 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'y!our1Sec!re2tK#ey3',
-      signOptions: { expiresIn: '1h' },
+      signOptions: { expiresIn: '24h' },
     }),
   ],
   controllers: [AuthController],
