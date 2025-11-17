@@ -325,11 +325,72 @@ export class ChartComponent implements OnInit {
           };
         });
       }
+
+      // Temporary markers for creating a new custom annotation
+      if (this.chartMode === ChartOperation.ADD_ANNOTATION && this.newAnnotation) {
+        try {
+          const chartValues = this.chartData.datasets[0].data.map((item: any) => item.y);
+          const filtered = chartValues.filter((y: any) => y !== null && y !== undefined);
+          if (filtered.length) {
+            const minValue = Math.min(...filtered);
+            const maxValue = Math.max(...filtered);
+            const valueRange = maxValue - minValue || 1;
+
+            const fromTs = this.newAnnotation.from_timestamp ? +this.newAnnotation.from_timestamp : null;
+            const toTs = this.newAnnotation.to_timestamp ? +this.newAnnotation.to_timestamp : null;
+
+            if (fromTs && !toTs) {
+              annotations['newAnnStart'] = {
+                type: 'line',
+                xMin: fromTs,
+                xMax: fromTs,
+                yMin: minValue - (valueRange * 0.05),
+                yMax: maxValue + (valueRange * 0.05),
+                borderColor: 'rgba(0,123,255,0.9)',
+                borderWidth: 2,
+                borderDash: [4, 4],
+                label: {
+                  display: true,
+                  content: 'Początek',
+                  position: 'start',
+                  backgroundColor: 'rgba(0,123,255,0.1)',
+                  color: '#000'
+                }
+              }
+            }
+
+            if (fromTs && toTs) {
+              const start = Math.min(fromTs, toTs);
+              const end = Math.max(fromTs, toTs);
+              annotations['newAnnBox'] = {
+                type: 'box',
+                xMin: start,
+                xMax: end,
+                yMin: minValue - (valueRange * 0.05),
+                yMax: maxValue + (valueRange * 0.05),
+                backgroundColor: 'rgba(0,123,255,0.15)',
+                borderColor: 'rgba(0,123,255,0.9)',
+                borderWidth: 1,
+                borderDash: [6, 3],
+                label: {
+                  display: true,
+                  content: 'Zakres',
+                  position: 'start',
+                  backgroundColor: 'rgba(0,123,255,0.2)',
+                  color: '#000'
+                }
+              }
+            }
+          }
+        } catch (e) {
+          // noop
+        }
+      }
     }
 
     // Add target growth lines for each working period
     const shouldShowGrowthLines = (this.keyToDisplay ==='value' || this.keyToDisplay === 'dailyTotal');
-    console.log(this.keyToDisplay)
+
     if (shouldShowGrowthLines &&  this.hourlyTarget && workingPeriods.length > 0 && this.chartData?.datasets?.[0]?.data?.length > 0) {
       const chartData = this.chartData.datasets[0].data;
 
@@ -589,9 +650,6 @@ export class ChartComponent implements OnInit {
 
 
       ]
-
-      console.log(datasets);
-      console.log(this.keyToDisplay)
 
     }
 
@@ -874,7 +932,7 @@ export class ChartComponent implements OnInit {
     return role !== 'cancel'; // returns true if "Yes" clicked
   }
 
-  onChartClick(event: any) {
+  async onChartClick(event: any) {
 
     if (this.chartMode === ChartOperation.ADD_ANNOTATION) {
       const chartInstance = this.chart?.chart;
@@ -890,7 +948,7 @@ export class ChartComponent implements OnInit {
       const yValue = yScale.getValueForPixel(clickY) || 0
 
       if (xValue) {
-        this.addValueToNewAnnotation(xValue)
+        await this.addValueToNewAnnotation(xValue)
       }
     }
 
@@ -1051,6 +1109,12 @@ export class ChartComponent implements OnInit {
       //   },
       // });
     }
+
+    // Cleanup selection state regardless of confirm/cancel
+    this.newAnnotation = null;
+    this.chartMode = ChartOperation.DEFAULT;
+    await this.buildChartOptions();
+    this.chart?.update();
   }
 
   private async toast(message: string) {
@@ -1121,20 +1185,32 @@ export class ChartComponent implements OnInit {
     await actionSheet.present();
   }
 
-  private addValueToNewAnnotation(xValue: number) {
+  private async addValueToNewAnnotation(xValue: number) {
     if (!this.newAnnotation) {
       return
     }
 
     if (this.newAnnotation.from_timestamp.length === 0) {
       this.newAnnotation.from_timestamp = Math.round(xValue).toString()
+      // show start marker
+      await this.buildChartOptions();
+      this.chart?.update();
     } else {
       this.newAnnotation.to_timestamp = Math.round(xValue).toString()
+      // normalize order
+      const from = +this.newAnnotation.from_timestamp;
+      const to = +this.newAnnotation.to_timestamp;
+      if (to < from) {
+        this.newAnnotation.from_timestamp = to.toString();
+        this.newAnnotation.to_timestamp = from.toString();
+      }
+      // show selection box
+      await this.buildChartOptions();
+      this.chart?.update();
     }
 
     if (this.newAnnotation.to_timestamp) {
-
-      this.openNewAnnotationModal(this.newAnnotation)
+      await this.openNewAnnotationModal(this.newAnnotation)
 
     }
   }
@@ -1252,6 +1328,23 @@ export class ChartComponent implements OnInit {
             window.URL.revokeObjectURL(url);
           });
         }
+
+      if (
+        data.operation === ChartOperation.ADD_ANNOTATION
+      ) {
+        // Let user pick annotation type, then enable selection mode
+        await this.presentAnnotationOptions((ann: Annotation) => {
+          this.newAnnotation = {
+            ...ann,
+            sensorId: this.sensorId,
+            from_timestamp: '',
+            to_timestamp: ''
+          } as Annotation;
+          this.chartMode = ChartOperation.ADD_ANNOTATION;
+          this.buildChartOptions();
+          this.toast('Kliknij początek, a następnie koniec zakresu');
+        });
+      }
 
       if(
         data.operation === ChartOperation.EXPORT

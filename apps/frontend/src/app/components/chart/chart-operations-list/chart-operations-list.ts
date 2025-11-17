@@ -27,6 +27,7 @@ export enum ChartOperation {
       </ion-list>
     } @else {
       <ion-list>
+<!--        <ion-item button (click)="select(ChartOperation.ADD_ANNOTATION)">Dodaj Adnotacje</ion-item>-->
         <ion-item button (click)="select(ChartOperation.EXPORT_RAW)">Exportuj surowe odczyty</ion-item>
         <ion-item button (click)="select(ChartOperation.IMPORT_RAW)">Importuj surowe odczyty</ion-item>
         @if (showExport) {
