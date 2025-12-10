@@ -45,10 +45,11 @@ services:
       VAPID_SUBJECT: ${VAPID_SUBJECT}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: "production"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`api.brado-2.harea.digital`)" # or your preferred subdomain
+      - "traefik.http.routers.backend.rule=Host(`${BACKEND_URL}`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=myresolver"
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
@@ -62,7 +63,8 @@ services:
       target: connector
     image: brado-connector
     volumes:
-      - /home/ubuntu/apps/brado/apps/connector/logs:/app/logs
+      - /tmp/logs:/app/logs
+#      - /home/ubuntu/apps/brado/apps/connector/logs:/app/logs
     expose:
       - "4000"
     restart: always
@@ -82,7 +84,7 @@ services:
       - web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`brado-2.harea.digital`)"
+      - "traefik.http.routers.frontend.rule=Host(`${FRONTEND_URL}`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=myresolver"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
